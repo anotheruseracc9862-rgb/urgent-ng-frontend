@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# GHSA-vfj7-8cjw-p6xm (braces <=3.0.3, stack exhaustion via deeply nested glob
+# patterns): dev-only ESLint tooling chain eslint-config-next ->
+# @next/eslint-plugin-next -> fast-glob -> micromatch -> braces. No patched
+# braces release exists (3.0.3 is the newest version ever published, still
+# pinned by the latest Next.js canary). Glob patterns come from our own lint
+# config, never user input, and nothing in this chain ships to production.
+# Remove this entry once braces publishes a fix.
+auditConfig:
+  ignoreGhsas:
+    - "GHSA-vfj7-8cjw-p6xm"
+

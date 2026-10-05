@@ -1,0 +1,14 @@
+{
+  "name": "@urgent/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "^16"
+  }
+}
