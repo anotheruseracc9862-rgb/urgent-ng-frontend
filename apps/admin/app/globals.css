@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand colors */
+  --lime: #a6d445;
+  --lime-600: #93c700;
+  --green: #668a00;
+  --green-700: #526f00;
+  --green-900: #3b5000;
+  --tint: #f4fbe6;
+  --tint-2: #eaf5cf;
+  
+  /* Neutral colors */
+  --ink: #17212e;
+  --ink-2: #344154;
+  --muted: #6b7788;
+  --faint: #98a2b0;
+  --line: #e7ebe3;
+  --line-2: #f0f2ec;
+  --bg: #f7f8f7;
+  --surface: #ffffff;
+  --panel: #f3f5f2;
+  
+  /* Semantic colors */
+  --blue: #2457c5;
+  --blue-bg: #eaf1ff;
+  --amber: #9a5b00;
+  --amber-bg: #fff4de;
+  --red: #b42318;
+  --red-bg: #fff0ee;
+  --ok: #17723b;
+  --ok-bg: #e8f7ed;
+  --violet: #6a3fb5;
+  --violet-bg: #f1eafe;
+  
+  /* Radius */
+  --r-xl: 28px;
+  --r-lg: 22px;
+  --r: 16px;
+  --r-sm: 12px;
+  --r-xs: 8px;
+  
+  /* Shadows */
+  --shadow: 0 0 0 1px rgba(23, 33, 46, .05), 0 1px 2px rgba(23, 33, 46, .04), 0 14px 34px -18px rgba(23, 33, 46, .14);
+  --shadow-pop: 0 24px 60px -18px rgba(23, 33, 46, .35);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Colors */
+  --color-lime: var(--lime);
+  --color-lime-600: var(--lime-600);
+  --color-green: var(--green);
+  --color-green-700: var(--green-700);
+  --color-green-900: var(--green-900);
+  --color-tint: var(--tint);
+  --color-tint-2: var(--tint-2);
+  
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  
+  --color-blue: var(--blue);
+  --color-blue-bg: var(--blue-bg);
+  --color-amber: var(--amber);
+  --color-amber-bg: var(--amber-bg);
+  --color-red: var(--red);
+  --color-red-bg: var(--red-bg);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-violet: var(--violet);
+  --color-violet-bg: var(--violet-bg);
+  
+  /* Border Radius */
+  --radius-xl: var(--r-xl);
+  --radius-lg: var(--r-lg);
+  --radius: var(--r);
+  --radius-sm: var(--r-sm);
+  --radius-xs: var(--r-xs);
+  
+  /* Shadows */
+  --shadow: var(--shadow);
+  --shadow-pop: var(--shadow-pop);
+  
+  /* Font family */
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
+

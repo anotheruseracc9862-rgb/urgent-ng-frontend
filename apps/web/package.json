@@ -21,12 +21,12 @@
     "@tanstack/query-sync-storage-persister": "^5.90.5",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-persist-client": "^5.90.5",
-    "@urgent/api-client": "workspace:*",
-    "@urgent/config": "workspace:*",
-    "@urgent/schemas": "workspace:*",
-    "@urgent/types": "workspace:*",
-    "@urgent/ui": "workspace:*",
-    "@urgent/utils": "workspace:*",
+    "@urgent/api-client": "*",
+    "@urgent/config": "*",
+    "@urgent/schemas": "*",
+    "@urgent/types": "*",
+    "@urgent/ui": "*",
+    "@urgent/utils": "*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jose": "^6.1.0",
@@ -50,5 +50,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@10.24.0"
+  "packageManager": "npm@10.0.0"
 }
