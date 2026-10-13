@@ -1,6 +1,4 @@
 import { Metadata } from 'next';
-import { PublicHeader } from '@/components/public/public-header';
-import { PublicFooter } from '@/components/public/public-footer';
 import { HeroSection } from '@/components/landing/hero-section';
 import { InstantRequestSection } from '@/components/landing/instant-request-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
@@ -33,18 +31,15 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      <PublicHeader />
-      <main>
-        <HeroSection />
-        <InstantRequestSection />
-        <HowItWorksSection />
-        <LiveErrandsSection />
-        <EarningsSection />
-        <TrustSecuritySection />
-        <FaqSection />
-        <CtaBannerSection />
-      </main>
-      <PublicFooter />
+      <HeroSection />
+      <InstantRequestSection />
+      <HowItWorksSection />
+      <LiveErrandsSection />
+      <EarningsSection />
+      <TrustSecuritySection />
+      <FaqSection />
+      <CtaBannerSection />
     </>
   );
 }
+
