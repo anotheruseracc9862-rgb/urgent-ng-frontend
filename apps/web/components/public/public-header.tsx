@@ -1,10 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, Plus, User, X } from 'lucide-react';
-import { cn } from '@urgent/ui';
+import { LayoutDashboard, LogOut, Menu, Plus, User, X } from 'lucide-react';
+import {
+  Avatar,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  cn,
+} from '@urgent/ui';
+import { useViewer } from './use-viewer';
 
 const NAV = [
   { href: '/#how-it-works', label: 'How It Works' },
@@ -18,8 +28,59 @@ const PILL =
   'inline-flex h-[42px] items-center justify-center gap-2 whitespace-nowrap rounded-full px-[18px] text-[13.5px] font-bold transition-[transform,background-color] duration-150 active:scale-[0.98]';
 
 /** Flat white bar with a hairline, as in demo `.site-header` after touch-up. */
+function initialsOf(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U'
+  );
+}
+
 export function PublicHeader() {
   const [open, setOpen] = useState(false);
+  const { viewer, signOut } = useViewer();
+  const signedIn = viewer.status === 'user';
+  const [hidden, setHidden] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const menuOpen = useRef(false);
+
+  useEffect(() => {
+    menuOpen.current = open;
+  }, [open]);
+
+  // Hide on scroll down, show on any scroll up (and always at the top).
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const y = Math.max(window.scrollY, 0);
+      const delta = y - lastY;
+      const height = headerRef.current?.offsetHeight ?? 68;
+
+      if (y <= 8) {
+        setHidden(false);
+      } else if (Math.abs(delta) >= 6) {
+        const focusInside = headerRef.current?.contains(document.activeElement) ?? false;
+        if (delta > 0 && y > height && !menuOpen.current && !focusInside) setHidden(true);
+        else if (delta < 0) setHidden(false);
+      }
+      lastY = y;
+    };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -31,7 +92,13 @@ export function PublicHeader() {
   }, [open]);
 
   return (
-    <header className="relative z-50 border-b border-[var(--tu-line)] bg-white">
+    <header
+      ref={headerRef}
+      className={cn(
+        'sticky top-0 z-50 border-b border-[var(--tu-line)] bg-white transition-transform duration-300 ease-out motion-reduce:transition-none',
+        hidden && !open && '-translate-y-full',
+      )}
+    >
       <div className="mx-auto flex h-[62px] w-full max-w-[1280px] items-center justify-between gap-6 px-4 sm:px-6 lg:h-[68px]">
         <Link href="/" className="flex shrink-0 items-center" onClick={() => setOpen(false)}>
           <Image
@@ -57,23 +124,76 @@ export function PublicHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href="/login" className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}>
-            <User className="size-[18px]" />
-            <span className="hidden sm:inline">Sign In</span>
-          </Link>
-          <Link
-            href="/register"
-            className={cn(
-              PILL,
-              'hidden bg-white text-ink shadow-[inset_0_0_0_1px_rgba(23,33,46,0.12)] hover:bg-[#f3f5f2] md:inline-flex',
-            )}
-          >
-            Sign Up
-          </Link>
-          <Link href="/register" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
-            <Plus className="size-[18px]" strokeWidth={2.4} />
-            <span className="hidden min-[420px]:inline">Post Errand</span>
-          </Link>
+          {viewer.status === 'loading' ? (
+            <div aria-hidden className="flex items-center gap-2">
+              <span className="hidden h-[42px] w-24 animate-pulse rounded-full bg-[#f3f5f2] sm:block" />
+              <span className="h-[42px] w-[42px] animate-pulse rounded-full bg-[#f3f5f2] min-[420px]:w-[132px]" />
+            </div>
+          ) : null}
+
+          {viewer.status === 'guest' ? (
+            <>
+              <Link href="/login" className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}>
+                <User className="size-[18px]" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Link>
+              <Link
+                href="/register"
+                className={cn(
+                  PILL,
+                  'hidden bg-white text-ink shadow-[inset_0_0_0_1px_rgba(23,33,46,0.12)] hover:bg-[#f3f5f2] md:inline-flex',
+                )}
+              >
+                Sign Up
+              </Link>
+              <Link href="/register" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
+                <Plus className="size-[18px]" strokeWidth={2.4} />
+                <span className="hidden min-[420px]:inline">Post Errand</span>
+              </Link>
+            </>
+          ) : null}
+
+          {viewer.status === 'user' ? (
+            <>
+              <Link
+                href="/dashboard"
+                className={cn(PILL, 'hidden text-cn-blue-600 hover:bg-[#f3f5f2] sm:inline-flex')}
+              >
+                <LayoutDashboard className="size-[18px]" />
+                Dashboard
+              </Link>
+              <Link href="/errands/new" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
+                <Plus className="size-[18px]" strokeWidth={2.4} />
+                <span className="hidden min-[420px]:inline">Post Errand</span>
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Account menu"
+                  className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cn-green-500"
+                >
+                  <Avatar size="default" variant="default" initials={initialsOf(viewer.me.name)} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[200px]">
+                  <DropdownMenuLabel className="truncate">{viewer.me.name}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">
+                      <LayoutDashboard className="mr-2 size-4" /> Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 size-4" /> Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => void signOut()}>
+                    <LogOut className="mr-2 size-4" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : null}
           <button
             type="button"
             aria-label={open ? 'Close menu' : 'Open menu'}
@@ -103,13 +223,23 @@ export function PublicHeader() {
               {item.label}
             </Link>
           ))}
-          <Link
-            href="/register?mode=runner"
-            onClick={() => setOpen(false)}
-            className="rounded-xl px-3.5 py-3 text-[15px] font-semibold text-cn-blue-600 hover:bg-[#f3f5f2] hover:text-ink"
-          >
-            Become a Runner
-          </Link>
+          {signedIn ? (
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="rounded-xl px-3.5 py-3 text-[15px] font-semibold text-cn-blue-600 hover:bg-[#f3f5f2] hover:text-ink"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/register?mode=runner"
+              onClick={() => setOpen(false)}
+              className="rounded-xl px-3.5 py-3 text-[15px] font-semibold text-cn-blue-600 hover:bg-[#f3f5f2] hover:text-ink"
+            >
+              Become a Runner
+            </Link>
+          )}
         </nav>
       ) : null}
     </header>

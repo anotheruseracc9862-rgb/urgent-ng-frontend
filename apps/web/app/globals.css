@@ -254,3 +254,6 @@ input[type='checkbox']:checked {
 }
 input[type='checkbox']:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(166, 212, 69, 0.35); }
 input[type='checkbox']:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* Anchored sections clear the sticky public header. */
+html { scroll-padding-top: 84px; scroll-behavior: smooth; }
