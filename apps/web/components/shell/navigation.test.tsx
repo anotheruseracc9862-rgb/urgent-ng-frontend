@@ -28,11 +28,15 @@ describe('shell navigation', () => {
     ['REQUESTER', 'New errand', '/errands/new'],
     ['RUNNER', 'Find errands', '/marketplace'],
   ] as const)('renders the demo-matched desktop rail for %s mode', (mode, actionLabel, modeHref) => {
-    render(<Sidebar mode={mode} />);
+    render(<Sidebar mode={mode} name="Ada Lovelace" />);
     const sidebar = screen.getByRole('complementary', { name: 'Main' });
     expect(sidebar).toHaveClass('hidden', 'lg:flex');
     expect(within(sidebar).getByRole('link', { name: actionLabel })).toHaveAttribute('href', modeHref);
     expect(within(sidebar).getByRole('navigation', { name: 'Account' })).toBeInTheDocument();
+    expect(within(sidebar).getByRole('link', { name: /Ada Lovelace/ })).toHaveAttribute('href', '/profile');
+    if (mode === 'RUNNER') {
+      expect(within(sidebar).getByRole('link', { name: 'Availability settings' })).toHaveAttribute('href', '/dashboard#availability');
+    }
   });
 
   it('derives a stable breadcrumb for nested routes without displaying record ids', () => {

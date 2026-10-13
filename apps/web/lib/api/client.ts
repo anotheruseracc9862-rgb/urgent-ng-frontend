@@ -17,6 +17,8 @@ export interface ApiOptions {
   signal?: AbortSignal;
   cookie?: string;
   noRefresh?: boolean;
+  /** Request may be used without a session; auth failures must not navigate from public UI. */
+  optionalAuth?: boolean;
   timeoutMs?: number;
   noPolicyIntercept?: boolean;
 }
@@ -134,6 +136,7 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     signal,
     cookie,
     noRefresh,
+    optionalAuth,
     timeoutMs,
     noPolicyIntercept,
   } = options;
@@ -153,7 +156,7 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     if (!isApiError(error)) throw error;
 
     const inBrowser = typeof window !== "undefined";
-    if (inBrowser && error.code === "POLICY_ACCEPTANCE_REQUIRED" && !noPolicyIntercept) {
+    if (inBrowser && error.code === "POLICY_ACCEPTANCE_REQUIRED" && !noPolicyIntercept && !optionalAuth) {
       return interceptPolicyRequest<T>(path, options);
     }
 
@@ -161,10 +164,11 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
       if ((await refreshBrowserSession()) === "refreshed") {
         return api<T>(path, { ...options, noRefresh: true });
       }
-      redirectToLogin();
+      if (optionalAuth) clearBrowserSession();
+      else redirectToLogin();
     }
 
-    redirectForApiError(error);
+    if (!optionalAuth) redirectForApiError(error);
 
     throw error;
   }

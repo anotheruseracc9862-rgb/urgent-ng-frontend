@@ -36,7 +36,6 @@ export function LoginForm() {
   const redirect = safeRedirect(params.get('redirect'));
   const justVerified = params.get('verified') === '1';
   const justReset = params.get('reset') === '1';
-  const sessionExpired = params.get('reason') === 'session-expired';
   const sessionCheckFailed = params.get('reason') === 'session-check-failed';
   const sessionCheckRequestId = params.get('requestId');
 
@@ -90,7 +89,6 @@ export function LoginForm() {
 
       {justVerified ? <Alert variant="ok">Your account is verified. Sign in to continue.</Alert> : null}
       {justReset ? <Alert variant="ok">Password changed. Sign in with your new password.</Alert> : null}
-      {sessionExpired ? <Alert variant="info">You were signed out for your security. Sign in again to continue.</Alert> : null}
       {sessionCheckFailed ? (
         <Alert variant="danger">
           We could not check your session. Sign in again to continue.

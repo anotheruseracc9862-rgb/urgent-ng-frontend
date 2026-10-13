@@ -4755,6 +4755,10 @@ export interface components {
         MeDto: {
             phone: string | null;
             email: string | null;
+            /** @description False for an account created with Google that has no password yet: sensitive changes are confirmed with a Google ID token instead. */
+            hasPassword: boolean;
+            /** @description True when a Google account is linked to this user. */
+            googleLinked: boolean;
             status: components["schemas"]["UserStatus"];
             startMode: components["schemas"]["StartMode"] | null;
             photoMediaId: string | null;

@@ -17,7 +17,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
   return (
     <SessionProvider me={me}>
       <div className="grid min-h-screen gap-4 p-3 sm:p-4 lg:grid-cols-[276px_minmax(0,1fr)]">
-        <Sidebar mode={mode} />
+        <Sidebar mode={mode} name={me.name} />
         <div className="flex min-w-0 flex-col gap-4">
           <Topbar mode={mode} />
           <main className="min-w-0 pb-24 lg:pb-10">{children}</main>

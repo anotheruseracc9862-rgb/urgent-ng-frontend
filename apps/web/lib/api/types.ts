@@ -27,6 +27,9 @@ export interface Me {
   phoneVerified: boolean;
   email: string | null;
   emailVerified: boolean;
+  /** False for a Google-created account without a password: confirm sensitive changes with Google. */
+  hasPassword: boolean;
+  googleLinked: boolean;
   status: UserStatus;
   startMode: StartMode | null;
   photoMediaId: string | null;

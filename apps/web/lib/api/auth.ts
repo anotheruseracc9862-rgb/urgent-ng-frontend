@@ -1,4 +1,5 @@
 import { api } from './client';
+import type { components } from '@urgent/api-client';
 import type {
   ConsentHistory,
   ConsentInput,
@@ -7,8 +8,10 @@ import type {
   Me,
   PolicyVersion,
   RegisterResult,
-  StartMode,
 } from './types';
+
+/** Proof for a sensitive change: the password, or a fresh Google ID token for an account without one. */
+export type ContactProof = { currentPassword: string } | { googleIdToken: string };
 
 /** The backend wants exactly one of phone or email. */
 export type Identifier = { phone: string } | { email: string };
@@ -34,8 +37,18 @@ export const authApi = {
   reset: (input: Identifier & { code: string; newPassword: string }) =>
     api<{ reset: boolean }>('/auth/password/reset', { method: 'POST', body: input }),
   me: () => api<Me>('/me'),
-  updateMe: (input: { name?: string; startMode?: StartMode; bio?: string | null; homeArea?: string | null }) =>
+  publicViewer: () => api<Me>('/me', { optionalAuth: true }),
+  updateMe: (input: components['schemas']['UpdateMeDto']) =>
     api<Me>('/me', { method: 'PATCH', body: input }),
+  setProfilePhoto: (mediaId: string) =>
+    api<Me>('/me/photo', { method: 'PUT', body: { mediaId } }),
+  clearProfilePhoto: () => api<Me>('/me/photo', { method: 'DELETE' }),
+  summary: () => api<components['schemas']['MeSummaryDto']>('/me/summary'),
+  /** Step 1 of adding or changing a phone or email: proof of the person, code sent to the new value. */
+  requestContact: (input: ContactProof & Identifier) =>
+    api<{ sentTo: string }>('/me/contact', { method: 'POST', body: input }),
+  verifyContact: (input: Identifier & { code: string }) =>
+    api<{ kind: 'phone' | 'email'; value: string }>('/me/contact/verify', { method: 'POST', body: input }),
   consents: () => api<ConsentHistory>('/me/consents'),
   acceptConsent: (input: ConsentInput) => api('/me/consents', { method: 'POST', body: input }),
 };

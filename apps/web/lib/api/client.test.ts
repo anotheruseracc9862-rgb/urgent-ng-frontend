@@ -112,6 +112,38 @@ describe('api()', () => {
     });
     window.removeEventListener('urgent:auth-navigation', navigation);
   });
+
+  it('treats an expired session as a guest for optional public requests without navigating', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(respond(401, { error: { code: 'AUTH_REQUIRED', message: 'x' } }))
+      .mockResolvedValueOnce(respond(401, { error: { code: 'AUTH_REQUIRED', message: 'x' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const navigation = vi.fn();
+    window.addEventListener('urgent:auth-navigation', navigation);
+
+    await expect(api('/me', { optionalAuth: true })).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(navigation).not.toHaveBeenCalled();
+    window.removeEventListener('urgent:auth-navigation', navigation);
+  });
+
+  it('does not route an optional public request into policy acceptance', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      respond(403, { error: { code: 'POLICY_ACCEPTANCE_REQUIRED', message: 'Accept policy' } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const navigation = vi.fn();
+    window.addEventListener('urgent:policy-acceptance-required', navigation);
+
+    await expect(api('/me', { optionalAuth: true })).rejects.toMatchObject({
+      code: 'POLICY_ACCEPTANCE_REQUIRED',
+    });
+
+    expect(navigation).not.toHaveBeenCalled();
+    window.removeEventListener('urgent:policy-acceptance-required', navigation);
+  });
 });
 
 describe('safeRedirect()', () => {

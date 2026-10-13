@@ -7,6 +7,14 @@ export const queryKeys = {
     me: (userId?: string) => (userId ? ['auth', 'me', userId] as const : ['auth', 'me'] as const),
   },
 
+  dashboard: {
+    summary: (userId: string) => ['dashboard', 'summary', userId] as const,
+  },
+
+  media: {
+    url: (mediaId: string) => ['media', 'url', mediaId] as const,
+  },
+
   // Errands
   errands: {
     all: () => ['errands'] as const,

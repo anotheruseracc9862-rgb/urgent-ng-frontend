@@ -7,9 +7,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowRight } from 'lucide-react';
-import { Button, Input, Label } from '@urgent/ui';
+import { Alert, Button, Input, Label } from '@urgent/ui';
 import { isValidPhone, normalizePhone } from '@urgent/utils';
 import { authApi } from '@/lib/api/auth';
+import { isApiError } from '@/lib/api/client';
 import { REQUIRED_CONSENTS } from '@/lib/api/types';
 import { setPendingVerify } from '@/lib/auth/pending-identity';
 import { track } from '@/lib/observability';
@@ -47,6 +48,8 @@ export function RegisterForm() {
   const params = useSearchParams();
   const mode = params.get('mode') === 'runner' ? 'RUNNER' : 'REQUESTER';
   const [errorMessage, setErrorMessage] = useState('');
+  /** Set when the identifier already belongs to an account: offer sign in or a fresh code. */
+  const [taken, setTaken] = useState<{ phone?: string; email?: string } | null>(null);
 
   const {
     register,
@@ -59,6 +62,9 @@ export function RegisterForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setErrorMessage('');
+    setTaken(null);
+    const phone = data.phone ? (normalizePhone(data.phone) ?? data.phone) : undefined;
+    const email = data.email ? data.email.toLowerCase() : undefined;
     try {
       const published = await authApi.policies();
       const consents = REQUIRED_CONSENTS.map((type) => {
@@ -69,9 +75,6 @@ export function RegisterForm() {
         setErrorMessage('Sign-up is not available right now. Please try again shortly.');
         return;
       }
-
-      const phone = data.phone ? (normalizePhone(data.phone) ?? data.phone) : undefined;
-      const email = data.email ? data.email.toLowerCase() : undefined;
 
       const result = await authApi.register({
         name: data.name,
@@ -85,6 +88,24 @@ export function RegisterForm() {
       setPendingVerify({ via: result.verifyVia, phone, email });
       sessionStorage.setItem('urgent.intent', mode);
       track('auth.register_completed');
+      router.push('/verify');
+    } catch (error) {
+      if (isApiError(error) && error.code === 'IDENTIFIER_TAKEN') {
+        setTaken({ phone, email });
+        return;
+      }
+      setErrorMessage(describeAuthError(error));
+    }
+  };
+
+  /** The same person who never finished verifying: send a new code for the existing account. */
+  const resumeVerification = async () => {
+    if (!taken) return;
+    const identifier = taken.phone ? { phone: taken.phone } : taken.email ? { email: taken.email } : null;
+    if (!identifier) return;
+    try {
+      await authApi.resendOtp(identifier);
+      setPendingVerify({ via: taken.phone ? 'phone' : 'email', phone: taken.phone, email: taken.email });
       router.push('/verify');
     } catch (error) {
       setErrorMessage(describeAuthError(error));
@@ -116,6 +137,19 @@ export function RegisterForm() {
       </AuthHeading>
 
       <FormError message={errorMessage} />
+      {taken ? (
+        <Alert variant="info" role="status">
+          <p className="font-bold">This phone or email already has an account.</p>
+          <p className="mt-1 text-[13px]">
+            <Link className="font-bold underline" href="/login">Sign in</Link> to continue. If you never finished
+            verifying it,{' '}
+            <button type="button" className="font-bold underline" onClick={() => void resumeVerification()}>
+              send a new code
+            </button>
+            . You can also <Link className="font-bold underline" href="/forgot-password">reset your password</Link>.
+          </p>
+        </Alert>
+      ) : null}
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4" noValidate>
         <div>

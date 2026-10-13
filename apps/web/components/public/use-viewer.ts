@@ -21,7 +21,7 @@ export function useViewer() {
   useEffect(() => {
     let cancelled = false;
     authApi
-      .me()
+      .publicViewer()
       .then((me) => {
         if (!cancelled) setViewer({ status: 'user', me });
       })

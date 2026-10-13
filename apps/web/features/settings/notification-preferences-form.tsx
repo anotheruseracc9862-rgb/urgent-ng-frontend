@@ -2,23 +2,14 @@
 
 import { useState } from 'react';
 import { LockKeyhole } from 'lucide-react';
+import type { components } from '@urgent/api-client';
 import { Alert, Button } from '@urgent/ui';
 import { api, isApiError } from '@/lib/api/client';
 
-type NotificationCategory = 'TRANSACTIONAL' | 'SAFETY' | 'MARKETPLACE' | 'MESSAGING' | 'MARKETING';
-type NotificationChannel = 'IN_APP' | 'PUSH' | 'EMAIL';
-
-export interface NotificationPreference {
-  category: NotificationCategory;
-  channel: NotificationChannel;
-  enabled: boolean;
-}
-
-export interface QuietHours {
-  start: string;
-  end: string;
-  isDefault: boolean;
-}
+type NotificationCategory = components['schemas']['NotificationCategory'];
+type NotificationChannel = components['schemas']['NotificationChannel'];
+export type NotificationPreference = components['schemas']['PreferenceEntryViewDto'];
+export type QuietHours = components['schemas']['QuietHoursViewDto'];
 
 const CHANNELS: { id: NotificationChannel; label: string }[] = [
   { id: 'IN_APP', label: 'In app' },
@@ -89,16 +80,18 @@ export function NotificationPreferencesForm({
 
     setIsSaving(true);
     try {
+      const preferencesBody: components['schemas']['UpdatePreferencesDto'] = { preferences };
+      const quietHoursBody: components['schemas']['QuietHoursDto'] = useCustomQuietHours
+        ? { start: quietStart, end: quietEnd }
+        : { start: null, end: null };
       const [updatedPreferences, updatedQuietHours] = await Promise.all([
         api<NotificationPreference[]>('/me/notification-preferences', {
           method: 'PUT',
-          body: { preferences },
+          body: preferencesBody,
         }),
         api<QuietHours>('/me/quiet-hours', {
           method: 'PUT',
-          body: useCustomQuietHours
-            ? { start: quietStart, end: quietEnd }
-            : { start: null, end: null },
+          body: quietHoursBody,
         }),
       ]);
 

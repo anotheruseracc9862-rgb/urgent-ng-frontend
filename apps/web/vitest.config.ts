@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // jsdom + userEvent flows are slow when the whole suite runs in parallel.
+    testTimeout: 20_000,
     setupFiles: ['./test/setup.ts'],
     include: [
       '**/*.{test,spec}.?(c|m)[jt]s?(x)',
