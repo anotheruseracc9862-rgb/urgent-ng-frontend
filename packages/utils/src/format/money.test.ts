@@ -31,12 +31,17 @@ describe('parseMoneyToKobo', () => {
     expect(parseMoneyToKobo('12.345')).toBeNull();
     expect(parseMoneyToKobo('-100')).toBeNull();
     expect(parseMoneyToKobo('')).toBeNull();
+    expect(parseMoneyToKobo('1,,234')).toBeNull();
+    expect(parseMoneyToKobo('1,23')).toBeNull();
+    expect(parseMoneyToKobo('90071992547409.92')).toBeNull();
   });
 
   it('handles edge cases', () => {
     expect(parseMoneyToKobo('0')).toBe(0);
     expect(parseMoneyToKobo('0.00')).toBe(0);
     expect(parseMoneyToKobo('0.01')).toBe(1);
+    expect(parseMoneyToKobo('₦ 0')).toBe(0);
+    expect(parseMoneyToKobo('1.')).toBe(100);
   });
 });
 

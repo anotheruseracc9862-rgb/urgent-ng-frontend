@@ -14,6 +14,7 @@ describe('formatPhone', () => {
   it('returns null for invalid numbers', () => {
     expect(formatPhone('123')).toBeNull();
     expect(formatPhone('abcdefghijk')).toBeNull();
+    expect(formatPhone('0760 123 4567')).toBeNull();
   });
 });
 
@@ -28,11 +29,15 @@ describe('normalizePhone', () => {
   it('handles formatted input', () => {
     expect(normalizePhone('0803 456 7890')).toBe('+2348034567890');
     expect(normalizePhone('+234 803 456 7890')).toBe('+2348034567890');
+    expect(normalizePhone('+234 (0) 803-456-7890')).toBe('+2348034567890');
   });
 
   it('returns null for invalid numbers', () => {
     expect(normalizePhone('123')).toBeNull();
     expect(normalizePhone('080345678')).toBeNull();
+    expect(normalizePhone('1234567890')).toBeNull();
+    expect(normalizePhone('07601234567')).toBeNull();
+    expect(normalizePhone('0803abc56789')).toBeNull();
   });
 });
 
@@ -42,6 +47,7 @@ describe('isValidPhone', () => {
     expect(isValidPhone('2348034567890')).toBe(true);
     expect(isValidPhone('+2348034567890')).toBe(true);
     expect(isValidPhone('8034567890')).toBe(true);
+    expect(isValidPhone('09123456789')).toBe(true);
   });
 
   it('rejects invalid numbers', () => {

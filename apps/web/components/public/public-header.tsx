@@ -3,18 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { LayoutDashboard, LogOut, Menu, Plus, User, X } from 'lucide-react';
-import {
-  Avatar,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  cn,
-} from '@urgent/ui';
+import { LayoutDashboard, Menu, Plus, User, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { cn } from '@urgent/ui';
 import { useViewer } from './use-viewer';
+
+// The account menu (Radix dropdown and popper) loads only for a signed-in viewer, so guests on the
+// landing page never download it.
+const AccountMenu = dynamic(() => import('./account-menu').then((m) => m.AccountMenu), { ssr: false });
 
 const NAV = [
   { href: '/#how-it-works', label: 'How It Works' },
@@ -26,18 +22,6 @@ const NAV = [
 
 const PILL =
   'inline-flex h-[42px] items-center justify-center gap-2 whitespace-nowrap rounded-full px-[18px] text-[13.5px] font-bold transition-[transform,background-color] duration-150 active:scale-[0.98]';
-
-/** Flat white bar with a hairline, as in demo `.site-header` after touch-up. */
-function initialsOf(name: string): string {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('') || 'U'
-  );
-}
 
 export function PublicHeader() {
   const [open, setOpen] = useState(false);
@@ -166,32 +150,7 @@ export function PublicHeader() {
                 <Plus className="size-[18px]" strokeWidth={2.4} />
                 <span className="hidden min-[420px]:inline">Post Errand</span>
               </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  aria-label="Account menu"
-                  className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cn-green-500"
-                >
-                  <Avatar size="default" variant="default" initials={initialsOf(viewer.me.name)} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[200px]">
-                  <DropdownMenuLabel className="truncate">{viewer.me.name}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="mr-2 size-4" /> Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 size-4" /> Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => void signOut()}>
-                    <LogOut className="mr-2 size-4" /> Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AccountMenu name={viewer.me.name} onSignOut={() => void signOut()} />
             </>
           ) : null}
           <button

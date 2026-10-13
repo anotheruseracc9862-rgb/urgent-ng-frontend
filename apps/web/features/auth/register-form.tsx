@@ -11,6 +11,7 @@ import { Button, Input, Label } from '@urgent/ui';
 import { isValidPhone, normalizePhone } from '@urgent/utils';
 import { authApi } from '@/lib/api/auth';
 import { REQUIRED_CONSENTS } from '@/lib/api/types';
+import { setPendingVerify } from '@/lib/auth/pending-identity';
 import { track } from '@/lib/observability';
 import { AuthHeading, FieldError, FormError, OrDivider, PasswordInput, describeAuthError } from './auth-ui';
 import { GoogleButton } from './google-button';
@@ -81,14 +82,7 @@ export function RegisterForm() {
       } as Parameters<typeof authApi.register>[0]);
 
       // Context for the next screen. Never put it in the URL; never store the password.
-      sessionStorage.setItem(
-        'urgent.verify',
-        JSON.stringify({
-          via: result.verifyVia,
-          phone,
-          email,
-        }),
-      );
+      setPendingVerify({ via: result.verifyVia, phone, email });
       sessionStorage.setItem('urgent.intent', mode);
       track('auth.register_completed');
       router.push('/verify');

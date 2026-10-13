@@ -1,6 +1,6 @@
 # Urgent.ng Frontend
 
-Turborepo + pnpm monorepo for Urgent.ng's web applications. See
+Turborepo + npm workspaces for Urgent.ng's web applications. See
 `../doc/Urgent.ng — Frontend Architecture PRD.md` for the authoritative
 specification.
 
@@ -9,8 +9,8 @@ specification.
 ```text
 frontend/
 ├── apps/
-│   ├── web/    # Consumer application (requester + runner), port 3001
-│   └── admin/  # Internal administration application, port 3002
+│   ├── web/    # Consumer application (requester + runner), port 4001
+│   └── admin/  # Internal administration application, port 4002
 └── packages/
     ├── ui/            # Reusable UI primitives (Radix + CVA + tailwind-merge)
     ├── api-client/    # Shared HTTP client infrastructure
@@ -27,13 +27,17 @@ contexts — never one app with an `/admin` route.
 ## Getting started
 
 ```bash
-pnpm install
-pnpm dev          # web on :3001, admin on :3002
-pnpm build        # production build of all apps and packages
-pnpm typecheck
+npm ci
+npm run dev       # web on :4001, admin on :4002
+npm run build     # production build of all apps and packages
+npm run typecheck
+npm run check     # lint, typecheck and tests
 ```
 
-Copy `.env.example` to `.env.local` in each app for environment configuration.
+Copy `apps/web/.env.example` to `apps/web/.env.local` and
+`apps/admin/.env.example` to `apps/admin/.env.local`. Both apps proxy API
+requests through their own origin; the API runs on port 4000 by default.
+Use Node.js 20.9 or newer.
 
 ## Conventions
 

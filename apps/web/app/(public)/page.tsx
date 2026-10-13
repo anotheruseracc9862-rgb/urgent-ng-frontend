@@ -7,6 +7,10 @@ import { EarningsSection } from '@/components/landing/earnings-section';
 import { TrustSecuritySection } from '@/components/landing/trust-security-section';
 import { FaqSection } from '@/components/landing/faq-section';
 import { CtaBannerSection } from '@/components/landing/cta-banner-section';
+import { getPopularCategories } from '@/lib/api/reference';
+
+/** Static page that refreshes its category list from the API every five minutes. */
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Urgent.ng — On-Demand Errand Marketplace in Nigeria',
@@ -28,11 +32,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const categories = await getPopularCategories();
+
   return (
     <>
       <HeroSection />
-      <InstantRequestSection />
+      <InstantRequestSection categories={categories} />
       <HowItWorksSection />
       <LiveErrandsSection />
       <EarningsSection />

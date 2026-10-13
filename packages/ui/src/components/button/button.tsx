@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { LoaderCircle } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 
@@ -18,7 +19,7 @@ const buttonVariants = cva(
       },
       size: {
         default: "min-h-[44px] px-5",
-        sm: "min-h-[36px] px-3.5 text-[12.5px]",
+        sm: "min-h-11 px-3.5 text-[12.5px] sm:min-h-[36px]",
         lg: "min-h-[52px] px-7 text-[14.5px]",
       },
     },
@@ -29,25 +30,40 @@ const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+type ButtonBaseProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
+  VariantProps<typeof buttonVariants>;
+
+export type ButtonProps =
+  | (ButtonBaseProps & { asChild?: false; isLoading?: boolean })
+  | (ButtonBaseProps & { asChild: true; isLoading?: never });
 
 export function Button({
   className,
   variant,
   size,
   asChild = false,
+  isLoading = false,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
+  const sharedProps = {
+    className: cn(buttonVariants({ variant, size, className })),
+    "aria-busy": isLoading || undefined,
+    ...props,
+  };
+
+  if (asChild) {
+    return <Comp {...sharedProps} />;
+  }
+
   return (
-    <Comp
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+    <button
+      {...sharedProps}
+      disabled={isLoading || props.disabled}
+    >
+      {isLoading && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
+      {props.children}
+    </button>
   );
 }
 

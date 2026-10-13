@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button, Input, Label } from '@urgent/ui';
 import { isValidPhone } from '@urgent/utils';
 import { authApi, toIdentifier } from '@/lib/api/auth';
+import { setPendingIdentifier } from '@/lib/auth/pending-identity';
 import { AuthHeading, FieldError, FormError, describeAuthError } from './auth-ui';
 
 const schema = z.object({
@@ -39,11 +40,7 @@ export function ForgotPasswordForm() {
     try {
       // The API answers the same whether or not the account exists.
       await authApi.forgot(toIdentifier(identifier));
-      try {
-        sessionStorage.setItem('urgent.identifier', identifier.trim());
-      } catch {
-        // Storage can be blocked; the reset page then asks again.
-      }
+      setPendingIdentifier(identifier.trim());
       router.push('/reset-password');
     } catch (error) {
       setErrorMessage(describeAuthError(error));

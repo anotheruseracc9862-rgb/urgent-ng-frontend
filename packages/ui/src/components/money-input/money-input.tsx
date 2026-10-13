@@ -1,51 +1,38 @@
 import * as React from "react";
+import { formatMoneyInput, parseMoneyToKobo } from "@urgent/utils";
 import { Input, type InputProps } from "../input";
 
 export interface MoneyInputProps extends Omit<InputProps, 'type' | 'value' | 'onChange'> {
-  value?: number; // kobo
+  value?: number | null; // kobo
   onChange?: (kobo: number | null) => void;
 }
 
 export const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
-  ({ value, onChange, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = React.useState(() => {
-      if (value !== undefined) {
-        return (value / 100).toFixed(2);
+  ({ value, onChange, onBlur, ...props }, ref) => {
+    const [displayValue, setDisplayValue] = React.useState(() =>
+      value === undefined || value === null ? "" : formatMoneyInput(value),
+    );
+    const lastEmittedValue = React.useRef<number | null | undefined>(value);
+
+    React.useEffect(() => {
+      if (value !== lastEmittedValue.current) {
+        lastEmittedValue.current = value;
+        setDisplayValue(value === undefined || value === null ? "" : formatMoneyInput(value));
       }
-      return '';
-    });
+    }, [value]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const input = e.target.value.replace(/[^\d.]/g, '');
-      
-      // Allow only one decimal point
-      const parts = input.split('.');
-      if (parts.length > 2) return;
-      
-      // Limit to 2 decimal places
-      if (parts[1] && parts[1].length > 2) return;
-      
+      const input = e.target.value;
+      const parsed = input.trim() ? parseMoneyToKobo(input) : null;
       setDisplayValue(input);
-      
-      if (onChange) {
-        if (input === '' || input === '.') {
-          onChange(null);
-        } else {
-          const naira = parseFloat(input);
-          if (!isNaN(naira)) {
-            onChange(Math.round(naira * 100));
-          }
-        }
-      }
+      lastEmittedValue.current = parsed ?? null;
+      onChange?.(parsed);
     };
 
-    const handleBlur = () => {
-      if (displayValue && !displayValue.endsWith('.')) {
-        const naira = parseFloat(displayValue);
-        if (!isNaN(naira)) {
-          setDisplayValue(naira.toFixed(2));
-        }
-      }
+    const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+      const parsed = parseMoneyToKobo(displayValue);
+      if (parsed !== null) setDisplayValue(formatMoneyInput(parsed));
+      onBlur?.(event);
     };
 
     return (

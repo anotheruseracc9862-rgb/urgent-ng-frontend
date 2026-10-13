@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { authApi } from '@/lib/api/auth';
 import type { Me } from '@/lib/api/types';
-import { clearQueryCache } from '@/lib/query/provider';
+import { clearSessionCaches } from '@/lib/auth/session-events';
+import { clearPendingIdentity } from '@/lib/auth/pending-identity';
 
 export type ViewerState =
   | { status: 'loading' }
@@ -38,8 +39,9 @@ export function useViewer() {
     } catch {
       // Logout is idempotent on the server.
     }
-    clearQueryCache();
+    clearSessionCaches();
     try {
+      clearPendingIdentity();
       sessionStorage.clear();
     } catch {
       // Storage can be blocked.

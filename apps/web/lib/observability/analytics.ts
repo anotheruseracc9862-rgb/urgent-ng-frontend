@@ -64,9 +64,20 @@ const SENSITIVE_PATTERNS = [
   /name/i,
 ];
 
+// Values are checked as well as keys: a harmless key can still carry a phone, an email or free text.
+const SENSITIVE_VALUE_PATTERNS = [
+  /\+?\d[\d\s-]{8,}\d/, // phone-like digit runs
+  /[^\s@]+@[^\s@]+\.[^\s@]+/, // email
+  /https?:\/\//i, // URLs can carry tokens and ids
+];
+const MAX_VALUE_LENGTH = 64; // enum-like values only, never free text
+
 function containsSensitiveData(properties: EventProperties): boolean {
-  return Object.keys(properties).some((key) =>
-    SENSITIVE_PATTERNS.some((pattern) => pattern.test(key))
+  return Object.entries(properties).some(
+    ([key, value]) =>
+      SENSITIVE_PATTERNS.some((pattern) => pattern.test(key)) ||
+      (typeof value === 'string' &&
+        (value.length > MAX_VALUE_LENGTH || SENSITIVE_VALUE_PATTERNS.some((pattern) => pattern.test(value)))),
   );
 }
 

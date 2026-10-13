@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@urgent/ui';
-import { isActive, itemsFor, type ShellMode } from './nav-items';
+import { isActive, primaryItemsFor, type ShellMode } from './nav-items';
 
 /** Mobile bottom navigation (F0-07). Shown below the `lg` breakpoint. */
 export function BottomNav({ mode }: { mode: ShellMode }) {
   const pathname = usePathname();
-  const items = itemsFor(mode).filter((i) => i.primary).slice(0, 5);
+  const items = primaryItemsFor(mode);
 
   return (
     <nav

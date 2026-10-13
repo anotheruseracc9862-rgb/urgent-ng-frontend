@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSessionValue } from '@/lib/storage/session-value';
+import { setPendingIdentifier } from '@/lib/auth/pending-identity';
+import { usePendingIdentifier } from '@/lib/auth/use-pending-identity';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Controller, useForm } from 'react-hook-form';
@@ -35,7 +36,7 @@ type FormData = z.infer<typeof schema>;
 export function ResetPasswordForm() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState('');
-  const saved = useSessionValue('urgent.identifier');
+  const saved = usePendingIdentifier();
   const needsIdentifier = saved === null;
 
   const {
@@ -57,11 +58,7 @@ export function ResetPasswordForm() {
     setErrorMessage('');
     try {
       await authApi.reset({ ...toIdentifier(data.identifier), code: data.code, newPassword: data.password });
-      try {
-        sessionStorage.setItem('urgent.identifier', data.identifier.trim());
-      } catch {
-        // Storage can be blocked.
-      }
+      setPendingIdentifier(data.identifier.trim());
       router.replace('/login?reset=1');
     } catch (error) {
       setErrorMessage(describeAuthError(error));

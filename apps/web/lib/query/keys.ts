@@ -4,7 +4,7 @@ export const queryKeys = {
   // Auth
   auth: {
     session: () => ['auth', 'session'] as const,
-    me: () => ['auth', 'me'] as const,
+    me: (userId?: string) => (userId ? ['auth', 'me', userId] as const : ['auth', 'me'] as const),
   },
 
   // Errands
@@ -42,6 +42,7 @@ export const queryKeys = {
 
   // Runner
   runner: {
+    all: () => ['runner'] as const,
     verification: () => ['runner', 'verification'] as const,
     performance: () => ['runner', 'performance'] as const,
     offerLimit: () => ['runner', 'offer-limit'] as const,

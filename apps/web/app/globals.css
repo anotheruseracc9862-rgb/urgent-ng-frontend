@@ -42,10 +42,12 @@
   --r: 16px;
   --r-sm: 12px;
   --r-xs: 8px;
+  --r-pill: 9999px;
   
   /* Shadows */
   --shadow: 0 0 0 1px rgba(23, 33, 46, .05), 0 1px 2px rgba(23, 33, 46, .04), 0 14px 34px -18px rgba(23, 33, 46, .14);
   --shadow-pop: 0 24px 60px -18px rgba(23, 33, 46, .35);
+  --font: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme inline {
@@ -78,6 +80,14 @@
   --color-ok-bg: var(--ok-bg);
   --color-violet: var(--violet);
   --color-violet-bg: var(--violet-bg);
+
+  /* Business UI geometry and elevation */
+  --radius-app: var(--r-xl);
+  --radius-card: var(--r-lg);
+  --radius-pill: var(--r-pill);
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-pop);
+  --spacing: 0.25rem;
   
   /* CN design system (public landing + info pages) */
   --color-cn-green-50: #f4fbe6;
@@ -102,13 +112,13 @@
   --color-cn-blue-900: #0a0e14;
 
   /* Font family */
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -142,13 +152,21 @@ h1, h2, h3 { letter-spacing: -0.03em; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.hero-fade-1 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.1s backwards; }
-.hero-fade-2 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.25s backwards; }
-.hero-fade-3 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.4s backwards; }
+/* Entrance animations are desktop only: on phones they delay the first paint of the hero. */
+@media (min-width: 768px) {
+  .hero-fade-1 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.1s backwards; }
+  .hero-fade-2 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.25s backwards; }
+  .hero-fade-3 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.4s backwards; }
+}
 
 .hero-badge {
-  animation: badgeEntrance 0.9s var(--ease-out-back) 0.5s backwards, floatBadge 4s ease-in-out 1.4s infinite alternate;
   transition: box-shadow 0.35s var(--ease-out-expo), border-color 0.3s ease;
+}
+/* The endless float runs only where the badge sits over the photo (desktop). */
+@media (min-width: 768px) {
+  .hero-badge {
+    animation: badgeEntrance 0.9s var(--ease-out-back) 0.5s backwards, floatBadge 4s ease-in-out 1.4s infinite alternate;
+  }
 }
 .hero-badge:hover {
   box-shadow: 0 20px 40px -6px rgba(16, 21, 31, 0.16), 0 0 24px -2px rgba(133, 196, 36, 0.28);
@@ -176,14 +194,20 @@ h1, h2, h3 { letter-spacing: -0.03em; }
 .card-calm { transition: box-shadow 0.4s var(--ease-out-expo); }
 .card-calm:hover { box-shadow: 0 20px 44px -8px rgba(16, 21, 31, 0.1); }
 
-/* Scroll reveal (see components/shared/reveal.tsx) */
-.reveal {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.75s var(--ease-out-expo), transform 0.75s var(--ease-out-expo);
+/* Scroll reveal (see components/shared/reveal.tsx): CSS only, content is visible without support. */
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: none; }
 }
-.reveal.is-in { opacity: 1; transform: none; }
-.no-js .reveal { opacity: 1; transform: none; }
+@media (min-width: 768px) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
+  }
+}
 
 /* Range sliders, as in the demo calculator (.custom-range) */
 input[type='range'].range {
@@ -226,7 +250,7 @@ input[type='range'].range:focus-visible { box-shadow: 0 0 0 4px rgba(166, 212, 6
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .reveal { opacity: 1 !important; transform: none !important; }
+  .reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 
 /* Dark mode is not designed yet: keep native controls light. */

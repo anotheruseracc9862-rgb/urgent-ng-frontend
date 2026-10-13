@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Boxes, Clock, FileText, MapPin, Navigation, Send, ShieldCheck, Star, Zap } from 'lucide-react';
 import { cn } from '@urgent/ui';
 import { RevealSection } from '@/components/shared/reveal';
+import type { PopularCategory } from '@/lib/api/reference';
 import { saveErrandDraft } from '@/lib/drafts/errand-draft';
 
 const BUDGET_PRESETS = [2000, 3500, 5000, 8000];
@@ -39,7 +40,16 @@ function IconField({ icon: Icon, children, top }: { icon: typeof Clock; children
   );
 }
 
-export function InstantRequestSection() {
+/** Shown only when the reference API cannot be reached. */
+const FALLBACK_CATEGORIES: Pick<PopularCategory, 'key' | 'name'>[] = [
+  { key: 'delivery', name: 'Package Delivery' },
+  { key: 'shopping', name: 'Market Shopping' },
+  { key: 'document', name: 'Document Pickup' },
+  { key: 'other', name: 'Other Custom Errand' },
+];
+
+export function InstantRequestSection({ categories = [] }: { categories?: PopularCategory[] }) {
+  const options = categories.length > 0 ? categories : FALLBACK_CATEGORIES;
   const router = useRouter();
   const [budget, setBudget] = useState('3500');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -197,16 +207,12 @@ export function InstantRequestSection() {
                 </Label>
                 <IconField icon={Boxes}>
                   <select id="category"
-                  name="category" className={cn(FIELD, CHEVRON)} defaultValue="Price confirmation">
-                    <option value="Price confirmation">🏷️ Price confirmation</option>
-                    <option value="Sell fast">⚡ Sell fast</option>
-                    <option value="Delivery">📦 Package Delivery</option>
-                    <option value="Shopping">🛒 Market Shopping</option>
-                    <option value="Document">📄 Document Pickup</option>
-                    <option value="Food">🍲 Food / Groceries</option>
-                    <option value="Queue">🏦 Queue &amp; Pay</option>
-                    <option value="Physical">🔧 Physical / Inspection</option>
-                    <option value="Other">⚡ Other Custom Errand</option>
+                  name="category" className={cn(FIELD, CHEVRON)} defaultValue={options[0]?.key}>
+                    {options.map((category) => (
+                      <option key={category.key} value={category.key}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
                 </IconField>
               </div>

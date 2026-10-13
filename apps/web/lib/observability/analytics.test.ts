@@ -58,4 +58,25 @@ describe('Analytics', () => {
       expect(console.warn).toHaveBeenCalled();
     });
   });
+
+  it('drops events whose values carry a phone, an email, a link or free text', () => {
+    const values = [
+      { source: '08031234567' },
+      { source: '+234 803 123 4567' },
+      { source: 'ada@example.com' },
+      { source: 'https://urgent.ng/shared/abc123' },
+      { source: 'Please pick up the parcel from 12 Allen Avenue, Ikeja, near the blue gate and call me' },
+    ];
+
+    values.forEach((properties) => {
+      vi.clearAllMocks();
+      track('errand.create_started', properties);
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('contains sensitive data'));
+    });
+  });
+
+  it('keeps short enum-like values', () => {
+    track('errand.create_started', { source: 'dashboard', step: 2 });
+    expect(console.warn).not.toHaveBeenCalled();
+  });
 });

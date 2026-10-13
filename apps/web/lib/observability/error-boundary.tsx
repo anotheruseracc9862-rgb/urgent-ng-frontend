@@ -3,10 +3,13 @@
 import * as React from 'react';
 import { Alert, Button } from '@urgent/ui';
 import { AlertTriangle } from 'lucide-react';
+import { reportError, type ErrorScope } from './report';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  /** Which boundary this is, so reports say where the error was caught. */
+  scope?: Exclude<ErrorScope, 'route'>;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
@@ -26,40 +29,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to monitoring service
-    console.error('ErrorBoundary caught:', error, errorInfo);
-    
-    // Report to external service (sanitized)
-    this.reportError(error, errorInfo);
-    
-    // Call custom error handler
+    reportError(error, this.props.scope ?? 'component', { componentStack: errorInfo.componentStack });
     this.props.onError?.(error, errorInfo);
-  }
-
-  reportError(error: Error, errorInfo: React.ErrorInfo) {
-    // Filter sensitive data before reporting
-    const sanitizedStack = error.stack ? this.sanitizeStack(error.stack) : undefined;
-    const sanitizedComponentStack = errorInfo.componentStack ? this.sanitizeStack(errorInfo.componentStack) : undefined;
-
-    // TODO: Send to error monitoring service (e.g., Sentry)
-    // Only report in production
-    if (process.env.NODE_ENV === 'production') {
-      // window.errorMonitor?.captureException({
-      //   message: error.message,
-      //   stack: sanitizedStack,
-      //   componentStack: sanitizedComponentStack,
-      // });
-    }
-  }
-
-  sanitizeStack(stack?: string): string | undefined {
-    if (!stack) return undefined;
-    
-    // Remove potential sensitive data from stack traces
-    return stack
-      .replace(/\b\d{11}\b/g, '[PHONE]')
-      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
-      .replace(/\b\d{13,}\b/g, '[ID]');
   }
 
   render() {

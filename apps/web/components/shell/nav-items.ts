@@ -21,6 +21,9 @@ export interface NavItem {
   mode?: ShellMode;
   /** Also shown in the mobile bottom bar. */
   primary?: boolean;
+  /** Limit mobile navigation to these modes when the item is otherwise primary. */
+  primaryModes?: readonly ShellMode[];
+  section?: 'menu' | 'account';
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -30,15 +33,44 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/offers', label: 'My offers', icon: Star, mode: 'RUNNER' },
   { href: '/assignments', label: 'Assignments', icon: MapPin, mode: 'RUNNER', primary: true },
   { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/profile', label: 'Profile', icon: User, primary: true },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'] },
+  { href: '/profile', label: 'Profile & account', icon: User, primary: true, section: 'account' },
+  { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
 ];
+
+export const ROUTE_TITLES: Readonly<Record<string, string>> = {
+  '/account/standing': 'Account standing',
+  '/onboarding': 'Onboarding',
+  '/policy-acceptance': 'Policy acceptance',
+  '/verification': 'Verification',
+};
 
 export function itemsFor(mode: ShellMode): NavItem[] {
   return NAV_ITEMS.filter((item) => !item.mode || item.mode === mode);
 }
 
+export function primaryItemsFor(mode: ShellMode): NavItem[] {
+  return itemsFor(mode).filter(
+    (item) => item.primary && (!item.primaryModes || item.primaryModes.includes(mode)),
+  );
+}
+
 export function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function titleForPath(pathname: string): string {
+  const candidates = [
+    ...NAV_ITEMS.map(({ href, label }) => ({ href, label })),
+    ...Object.entries(ROUTE_TITLES).map(([href, label]) => ({ href, label })),
+  ];
+  const match = candidates
+    .filter(({ href }) => isActive(pathname, href))
+    .sort((left, right) => right.href.length - left.href.length)[0];
+  if (match) return match.label;
+
+  const lastSegment = pathname.split('/').filter(Boolean).at(-1);
+  if (!lastSegment) return 'Workspace';
+  if (/^(?:[0-9]+|[0-9a-f]{8}-[0-9a-f-]{27,})$/i.test(lastSegment)) return 'Details';
+  return lastSegment.replace(/[-_]/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 }

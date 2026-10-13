@@ -1,3 +1,4 @@
+import { decodeJwt } from 'jose';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -30,9 +31,33 @@ function matches(pathname: string, route: string): boolean {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
-/** The access cookie is dropped by the browser when it expires, so presence is enough here. */
+function safeRedirect(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return '/dashboard';
+  }
+
+  try {
+    const target = new URL(value, 'http://local.invalid');
+    return target.origin === 'http://local.invalid' ? `${target.pathname}${target.search}${target.hash}` : '/dashboard';
+  } catch {
+    return '/dashboard';
+  }
+}
+
+/** Decode only the expiry claim; the backend remains responsible for token verification and authorization. */
+export function isAccessTokenValid(token: string | undefined): boolean {
+  if (!token) return false;
+
+  try {
+    const { exp } = decodeJwt(token);
+    return typeof exp === 'number' && exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
 function hasAccessCookie(request: NextRequest): boolean {
-  return Boolean(request.cookies.get(ACCESS_COOKIE)?.value);
+  return isAccessTokenValid(request.cookies.get(ACCESS_COOKIE)?.value);
 }
 
 export function middleware(request: NextRequest) {
@@ -41,9 +66,7 @@ export function middleware(request: NextRequest) {
 
   if (GUEST_ONLY.some((r) => matches(pathname, r))) {
     if (signedIn) {
-      const target = request.nextUrl.searchParams.get('redirect');
-      const safe = target && target.startsWith('/') && !target.startsWith('//') ? target : '/dashboard';
-      return NextResponse.redirect(new URL(safe, request.url));
+      return NextResponse.redirect(new URL(safeRedirect(request.nextUrl.searchParams.get('redirect')), request.url));
     }
     return NextResponse.next();
   }

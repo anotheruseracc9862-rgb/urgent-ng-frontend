@@ -101,18 +101,39 @@ export function formatRelativeTime(date: string | Date): string {
   return rtf.format(isPast ? -diffYear : diffYear, 'year');
 }
 
-/**
- * Parse Lagos date/time input to ISO string
- * @param dateStr - Date string in local format
- * @param timeStr - Optional time string
- * @returns ISO 8601 string in UTC
- */
+/** Parse an HTML date/time input in Africa/Lagos (UTC+1) into ISO UTC. */
 export function parseLagosDateTime(dateStr: string, timeStr?: string): string {
-  const combined = timeStr ? `${dateStr} ${timeStr}` : dateStr;
-  
-  // Parse as Lagos time
-  const date = new Date(combined);
-  
-  // Convert to UTC for API
-  return date.toISOString();
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  const timeParts = /^(\d{2}):(\d{2})$/.exec(timeStr ?? '00:00');
+  if (!dateParts || !timeParts) throw new RangeError('Enter a valid Lagos date and time.');
+
+  const [, yearText, monthText, dayText] = dateParts;
+  const [, hourText, minuteText] = timeParts;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (year < 1000 || month < 1 || month > 12 || day < 1 || hour > 23 || minute > 59) {
+    throw new RangeError('Enter a valid Lagos date and time.');
+  }
+
+  const localTime = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  if (
+    localTime.getUTCFullYear() !== year ||
+    localTime.getUTCMonth() !== month - 1 ||
+    localTime.getUTCDate() !== day
+  ) {
+    throw new RangeError('Enter a valid Lagos date and time.');
+  }
+
+  return new Date(localTime.getTime() - 60 * 60 * 1000).toISOString();
+}
+
+/** Convert an ISO UTC value back to the date/time values shown in Lagos. */
+export function formatLagosDateTimeParts(iso: string): { date: string; time: string } | null {
+  const timestamp = Date.parse(iso);
+  if (!Number.isFinite(timestamp)) return null;
+  const lagos = new Date(timestamp + 60 * 60 * 1000).toISOString();
+  return { date: lagos.slice(0, 10), time: lagos.slice(11, 16) };
 }

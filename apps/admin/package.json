@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev --port 4002",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 4002",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -45,7 +46,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "packageManager": "npm@10.0.0"
 }

@@ -1,75 +1,46 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { queryKeys } from './keys';
 
-type InvalidationMap = {
-  [K in keyof typeof queryKeys]?: Array<keyof (typeof queryKeys)[K]>;
+export const invalidationMaps = {
+  createErrand: [queryKeys.errands.all(), queryKeys.marketplace.all()],
+  updateErrand: [queryKeys.errands.all()],
+  deleteErrand: [queryKeys.errands.all(), queryKeys.marketplace.all()],
+  createOffer: [queryKeys.offers.all(), queryKeys.runner.all(), queryKeys.errands.all()],
+  updateOffer: [queryKeys.offers.all(), queryKeys.errands.all()],
+  acceptOffer: [queryKeys.offers.all(), queryKeys.errands.all(), queryKeys.assignments.all()],
+  updateAssignment: [queryKeys.assignments.all(), queryKeys.errands.all()],
+  markNotificationRead: [queryKeys.notifications.all()],
+} as const;
+
+export type InvalidationName = keyof typeof invalidationMaps;
+
+type ApiMutationOptions<TData, TError, TVariables, TContext> = Omit<
+  UseMutationOptions<TData, TError, TVariables, TContext>,
+  'mutationFn' | 'onSuccess'
+> & {
+  mutationFn: (variables: TVariables) => Promise<TData>;
+  invalidates?: readonly InvalidationName[];
+  onSuccess?: UseMutationOptions<TData, TError, TVariables, TContext>['onSuccess'];
 };
 
-// Helper to invalidate related queries after a mutation
-export function useMutationWithInvalidation<TData, TError, TVariables, TContext = unknown>(
-  mutationFn: (variables: TVariables) => Promise<TData>,
-  invalidations: InvalidationMap,
-  options?: Omit<UseMutationOptions<TData, TError, TVariables, TContext>, 'mutationFn'>
-) {
+export function useApiMutation<TData, TError = Error, TVariables = void, TContext = unknown>({
+  mutationFn,
+  invalidates = [],
+  onSuccess,
+  ...options
+}: ApiMutationOptions<TData, TError, TVariables, TContext>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn,
     ...options,
-    onSuccess: (data, variables, context, mutationContext) => {
-      // Invalidate specified query keys
-      Object.entries(invalidations).forEach(([namespace, keys]) => {
-        if (Array.isArray(keys)) {
-          keys.forEach((key) => {
-            const namespaceKeys = queryKeys[namespace as keyof typeof queryKeys];
-            if (namespaceKeys && typeof namespaceKeys === 'object') {
-              const queryKeyFn = namespaceKeys[key as keyof typeof namespaceKeys];
-              if (typeof queryKeyFn === 'function') {
-                queryClient.invalidateQueries({ queryKey: (queryKeyFn as () => readonly unknown[])() });
-              }
-            }
-          });
-        } else {
-          // Invalidate entire namespace
-          queryClient.invalidateQueries({ queryKey: [namespace] });
-        }
-      });
-
-      options?.onSuccess?.(data, variables, context, mutationContext);
+    mutationFn,
+    onSuccess: async (data, variables, onMutateResult, mutationContext) => {
+      await Promise.all(
+        invalidates.flatMap((name) =>
+          invalidationMaps[name].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+        ),
+      );
+      await onSuccess?.(data, variables, onMutateResult, mutationContext);
     },
   });
 }
-
-// Common mutation invalidations
-export const invalidationMaps = {
-  createErrand: {
-    errands: ['lists', 'list'],
-  },
-  updateErrand: {
-    errands: ['detail', 'lists'],
-  },
-  deleteErrand: {
-    errands: ['lists', 'list'],
-  },
-  createOffer: {
-    offers: ['lists', 'list'],
-    runner: ['offerLimit'],
-    errands: ['offers'],
-  },
-  updateOffer: {
-    offers: ['detail', 'lists'],
-    errands: ['offers'],
-  },
-  acceptOffer: {
-    offers: ['detail'],
-    errands: ['detail'],
-    assignments: ['lists', 'list'],
-  },
-  updateAssignment: {
-    assignments: ['detail', 'lists'],
-    errands: ['detail'],
-  },
-  markNotificationRead: {
-    notifications: ['list', 'unreadCount'],
-  },
-} as const;

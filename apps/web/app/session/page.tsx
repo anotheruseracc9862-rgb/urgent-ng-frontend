@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { safeRedirect } from '@/lib/api/client';
+import { clearBrowserSession, isApiError, refreshBrowserSession, safeRedirect } from '@/lib/api/client';
 
 /**
  * Landing point for a protected URL opened without an access cookie.
@@ -15,22 +15,22 @@ function SessionRefresh() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/v1/auth/refresh', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    })
-      .then((res) => {
+    refreshBrowserSession()
+      .then((result) => {
         if (cancelled) return;
-        if (res.ok) {
+        if (result === 'refreshed') {
           router.replace(redirect);
         } else {
-          router.replace(`/login?redirect=${encodeURIComponent(redirect)}`);
+          clearBrowserSession();
+          router.replace(`/login?reason=session-expired&redirect=${encodeURIComponent(redirect)}`);
         }
       })
-      .catch(() => {
-        if (!cancelled) router.replace(`/login?redirect=${encodeURIComponent(redirect)}`);
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          const params = new URLSearchParams({ reason: 'session-check-failed', redirect });
+          if (isApiError(error) && error.requestId) params.set('requestId', error.requestId);
+          router.replace(`/login?${params.toString()}`);
+        }
       });
     return () => {
       cancelled = true;

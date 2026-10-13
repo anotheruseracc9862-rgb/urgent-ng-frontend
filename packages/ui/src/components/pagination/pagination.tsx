@@ -35,7 +35,7 @@ const PaginationLink = ({ className, isActive, ...props }: PaginationLinkProps) 
       "inline-flex items-center justify-center whitespace-nowrap rounded-[var(--r-sm)] text-sm font-bold transition-colors",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",
-      "h-9 w-9",
+      "h-11 w-11",
       isActive
         ? "bg-ink text-lime"
         : "hover:bg-panel text-ink-2",

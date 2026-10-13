@@ -35,14 +35,16 @@ export function HeroSection() {
             price offers, and pay safely only after it&apos;s delivered.
           </p>
 
-          {/* Mobile media: the photo with the badge under it */}
-          <div className="hero-fade-2 mb-8 w-full md:hidden">
+          {/* Mobile media: the photo with the badge under it. No entrance animation: it is the LCP element. */}
+          <div className="mb-8 w-full md:hidden">
             <Image
               src="/assets/hero-bg.png"
               alt="Trusted errand runner"
               width={720}
               height={480}
               priority
+              fetchPriority="high"
+              sizes="(max-width: 767px) 100vw, 1px"
               className="h-auto w-full rounded-3xl object-cover"
             />
             <TaskDoneBadge className="mt-4 w-full max-w-[320px]" />

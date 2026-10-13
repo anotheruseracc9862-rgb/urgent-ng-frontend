@@ -1,7 +1,3 @@
-'use client';
-
-import { useState } from 'react';
-import { cn } from '@urgent/ui';
 import { RevealSection } from '@/components/shared/reveal';
 import { SectionHeader } from '@/components/shared/section-header';
 
@@ -51,60 +47,66 @@ const TABS: { role: Role; label: string }[] = [
   { role: 'runner', label: 'I Want to Earn (Runner)' },
 ];
 
-export function HowItWorksSection() {
-  const [role, setRole] = useState<Role>('requester');
+/**
+ * The role switch is two radio inputs: the labels and panels that follow them react to `:checked`
+ * through `group-has-*` variants, so the section needs no client JavaScript.
+ */
+function Steps({ role, className }: { role: Role; className: string }) {
+  return (
+    <div className={`tab-fade-slide hidden gap-6 sm:grid-cols-2 lg:grid-cols-4 ${className}`}>
+      {STEPS[role].map((step, index) => (
+        <div key={step.title} className="card-lift flex flex-col gap-3.5 bg-white p-[22px]">
+          <div className="icon-pop icon-fill grid size-11 place-items-center rounded-[14px] bg-[#eaf5cf] text-base font-extrabold text-[#3b5000]">
+            {index + 1}
+          </div>
+          <h3 className="text-[17px] font-extrabold tracking-[-0.01em] text-ink">
+            {index + 1}. {step.title}
+          </h3>
+          <p className="text-[13.5px] leading-normal text-muted">{step.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
+export function HowItWorksSection() {
   return (
     <RevealSection id="how-it-works" className="bg-[#f7f8f7] py-16 md:py-24">
-      <div className="mx-auto w-full max-w-6xl px-4">
+      <div className="group/how mx-auto w-full max-w-6xl px-4">
         <SectionHeader
           tag="Simple & Transparent"
           title="How Urgent.ng Works"
           subtitle="Whether you need something urgently handled or you want to make money running tasks in your spare time, the process is fast and seamless."
         />
 
+        <input type="radio" name="how-role" id="how-requester" defaultChecked className="sr-only" />
+        <input type="radio" name="how-role" id="how-runner" className="sr-only" />
+
         <div className="mb-10 flex justify-center">
           <div
-            role="tablist"
+            role="group"
             aria-label="Choose your role"
             className="inline-flex max-w-full flex-col gap-1 rounded-[28px] border border-cn-blue-100 bg-cn-blue-50 p-1 sm:flex-row sm:rounded-full"
           >
-            {TABS.map((tab) => {
-              const active = role === tab.role;
-              return (
-                <button
-                  key={tab.role}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setRole(tab.role)}
-                  className={cn(
-                    'rounded-full px-6 py-2 text-sm font-semibold transition-all duration-200',
-                    active
-                      ? 'bg-white text-cn-blue-700 shadow-[0_2px_8px_rgba(16,21,31,0.08)]'
-                      : 'text-cn-blue-500 hover:text-cn-blue-700',
-                  )}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+            {TABS.map((tab) => (
+              <label
+                key={tab.role}
+                htmlFor={`how-${tab.role}`}
+                className={
+                  'cursor-pointer rounded-full px-6 py-2 text-center text-sm font-semibold text-cn-blue-500 transition-all duration-200 hover:text-cn-blue-700 ' +
+                  (tab.role === 'requester'
+                    ? 'group-has-[#how-requester:focus-visible]/how:ring-2 group-has-[#how-requester:focus-visible]/how:ring-lime-600 group-has-[#how-requester:checked]/how:bg-white group-has-[#how-requester:checked]/how:text-cn-blue-700 group-has-[#how-requester:checked]/how:shadow-[0_2px_8px_rgba(16,21,31,0.08)]'
+                    : 'group-has-[#how-runner:focus-visible]/how:ring-2 group-has-[#how-runner:focus-visible]/how:ring-lime-600 group-has-[#how-runner:checked]/how:bg-white group-has-[#how-runner:checked]/how:text-cn-blue-700 group-has-[#how-runner:checked]/how:shadow-[0_2px_8px_rgba(16,21,31,0.08)]')
+                }
+              >
+                {tab.label}
+              </label>
+            ))}
           </div>
         </div>
 
-        <div key={role} role="tabpanel" className="tab-fade-slide grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS[role].map((step, index) => (
-            <div key={step.title} className="card-lift flex flex-col gap-3.5 bg-white p-[22px]">
-              <div className="icon-pop icon-fill grid size-11 place-items-center rounded-[14px] bg-[#eaf5cf] text-base font-extrabold text-[#3b5000]">
-                {index + 1}
-              </div>
-              <h3 className="text-[17px] font-extrabold tracking-[-0.01em] text-ink">
-                {index + 1}. {step.title}
-              </h3>
-              <p className="text-[13.5px] leading-normal text-muted">{step.text}</p>
-            </div>
-          ))}
-        </div>
+        <Steps role="requester" className="group-has-[#how-requester:checked]/how:grid" />
+        <Steps role="runner" className="group-has-[#how-runner:checked]/how:grid" />
       </div>
     </RevealSection>
   );

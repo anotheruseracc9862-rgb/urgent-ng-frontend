@@ -7,6 +7,10 @@ afterEach(() => {
   cleanup();
 });
 
+if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.scrollIntoView) {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+}
+
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

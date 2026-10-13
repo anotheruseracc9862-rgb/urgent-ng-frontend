@@ -1,22 +1,29 @@
+const VALID_PREFIXES = new Set(['70', '80', '81', '90', '91']);
+
+function nationalNumber(phone: string): string | null {
+  const cleaned = phone.trim().replace(/[\s\-.()]/g, '');
+  if (!/^\+?\d+$/.test(cleaned)) return null;
+
+  let national: string | undefined;
+  let match: RegExpExecArray | null;
+  if ((match = /^0(\d{10})$/.exec(cleaned))) national = match[1];
+  else if ((match = /^(\d{10})$/.exec(cleaned))) national = match[1];
+  else if ((match = /^\+?234(\d{10})$/.exec(cleaned))) national = match[1];
+  else if ((match = /^\+?2340(\d{10})$/.exec(cleaned))) national = match[1];
+
+  return national && VALID_PREFIXES.has(national.slice(0, 2)) ? national : null;
+}
+
 /**
- * Format Nigerian phone number for display
- * @param phone - Phone number in any format
- * @returns Formatted string like "+234 803 456 7890" or null if invalid
+ * Format a valid Nigerian mobile number for display.
+ * @returns Formatted national or E.164 string, or null if invalid.
  */
 export function formatPhone(phone: string): string | null {
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // Handle +234 format (13 digits: 234 + 10)
-  if (cleaned.startsWith('234') && cleaned.length === 13) {
-    return `+234 ${cleaned.slice(3, 6)} ${cleaned.slice(6, 9)} ${cleaned.slice(9)}`;
-  }
-  
-  // Handle 0 format (11 digits: 0 + 10)
-  if (cleaned.startsWith('0') && cleaned.length === 11) {
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
-  }
-  
-  return null;
+  const national = nationalNumber(phone);
+  if (!national) return null;
+  const input = phone.trim().replace(/[\s\-.()]/g, '');
+  if (/^0\d{10}$/.test(input)) return `0${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`;
+  return `+234 ${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`;
 }
 
 /**
@@ -25,24 +32,8 @@ export function formatPhone(phone: string): string | null {
  * @returns E.164 format like "+2348034567890" or null if invalid
  */
 export function normalizePhone(phone: string): string | null {
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // Already in +234 format
-  if (cleaned.startsWith('234') && cleaned.length === 13) {
-    return `+${cleaned}`;
-  }
-  
-  // Convert from 0 format
-  if (cleaned.startsWith('0') && cleaned.length === 11) {
-    return `+234${cleaned.slice(1)}`;
-  }
-  
-  // Just 10 digits (assume Nigerian)
-  if (cleaned.length === 10) {
-    return `+234${cleaned}`;
-  }
-  
-  return null;
+  const national = nationalNumber(phone);
+  return national ? `+234${national}` : null;
 }
 
 /**

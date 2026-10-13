@@ -20,20 +20,14 @@ export function formatMoney(kobo: number): string {
  * @returns Integer kobo amount, or null if invalid
  */
 export function parseMoneyToKobo(input: string): number | null {
-  // Remove currency symbol, whitespace, and commas
-  const cleaned = input.replace(/[₦\s,]/g, '');
-  
-  // Check if valid number format
-  if (!/^\d+(\.\d{0,2})?$/.test(cleaned)) {
-    return null;
-  }
-  
-  const naira = parseFloat(cleaned);
-  if (isNaN(naira) || naira < 0) {
-    return null;
-  }
-  
-  return Math.round(naira * 100);
+  const cleaned = input.trim().replace(/^₦\s*/, '');
+  const match = /^(?:(\d+)|(\d{1,3}(?:,\d{3})+))(?:\.(\d{0,2}))?$/.exec(cleaned);
+  if (!match) return null;
+
+  const naira = Number((match[1] ?? match[2]!).replace(/,/g, ''));
+  if (!Number.isSafeInteger(naira) || naira > Math.floor(Number.MAX_SAFE_INTEGER / 100)) return null;
+  const kobo = naira * 100 + Number((match[3] ?? '').padEnd(2, '0') || '0');
+  return Number.isSafeInteger(kobo) ? kobo : null;
 }
 
 /**

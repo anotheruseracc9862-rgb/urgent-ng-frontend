@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
+import { env } from "./lib/env";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Barrel packages: import only the components and icons a route uses.
+    optimizePackageImports: ["@urgent/ui", "lucide-react"],
+  },
   transpilePackages: [
     "@urgent/ui",
     "@urgent/api-client",
@@ -13,11 +18,10 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/:path*`,
+        destination: `${env.NEXT_PUBLIC_API_URL}/:path*`,
       },
     ];
   },
 };
 
 export default nextConfig;
-

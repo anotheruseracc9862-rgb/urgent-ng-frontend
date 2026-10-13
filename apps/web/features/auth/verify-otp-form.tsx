@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSessionValue } from '@/lib/storage/session-value';
+import { setPendingIdentifier, setPendingVerify, type PendingVerify } from '@/lib/auth/pending-identity';
+import { usePendingVerify } from '@/lib/auth/use-pending-identity';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock } from 'lucide-react';
@@ -10,22 +11,7 @@ import { authApi, type Identifier } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/client';
 import { AuthHeading, FormError, OtpBoxes, describeAuthError } from './auth-ui';
 
-interface VerifyContext {
-  via: 'phone' | 'email';
-  phone?: string;
-  email?: string;
-}
-
-function parseContext(raw: string | null | undefined): VerifyContext | null {
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as VerifyContext;
-  } catch {
-    return null;
-  }
-}
-
-function mask(ctx: VerifyContext): string {
+function mask(ctx: PendingVerify): string {
   if (ctx.via === 'email' && ctx.email) return ctx.email.replace(/^(.{2}).*(@.*)$/, '$1***$2');
   const phone = ctx.phone ?? '';
   return phone.length > 7 ? `${phone.slice(0, 4)}****${phone.slice(-3)}` : phone;
@@ -33,8 +19,8 @@ function mask(ctx: VerifyContext): string {
 
 export function VerifyOtpForm() {
   const router = useRouter();
-  const raw = useSessionValue('urgent.verify');
-  const ctx = useMemo(() => parseContext(raw), [raw]);
+  const raw = usePendingVerify();
+  const ctx = raw ?? null;
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [invalid, setInvalid] = useState(false);
@@ -43,8 +29,8 @@ export function VerifyOtpForm() {
   const [cooldown, setCooldown] = useState(30);
 
   useEffect(() => {
-    if (raw === null || (raw !== undefined && !ctx)) router.replace('/register');
-  }, [raw, ctx, router]);
+    if (raw === null) router.replace('/register');
+  }, [raw, router]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -69,12 +55,8 @@ export function VerifyOtpForm() {
     setInvalid(false);
     try {
       await authApi.verifyOtp({ ...identifier, code: value });
-      try {
-        sessionStorage.removeItem('urgent.verify');
-        sessionStorage.setItem('urgent.identifier', 'email' in identifier ? identifier.email : identifier.phone);
-      } catch {
-        // Storage can be blocked.
-      }
+      setPendingVerify(null);
+      setPendingIdentifier('email' in identifier ? identifier.email : identifier.phone);
       router.replace('/login?verified=1');
     } catch (e) {
       setInvalid(true);

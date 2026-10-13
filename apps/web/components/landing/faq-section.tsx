@@ -1,7 +1,3 @@
-'use client';
-
-import { useState } from 'react';
-import { cn } from '@urgent/ui';
 import { RevealSection } from '@/components/shared/reveal';
 import { SectionHeader } from '@/components/shared/section-header';
 
@@ -34,12 +30,6 @@ const FAQS = [
 ];
 
 export function FaqSection() {
-  const [openIndex, setOpenIndex] = useState(0);
-
-  const toggleFaq = (index: number) => {
-    setOpenIndex(openIndex === index ? -1 : index);
-  };
-
   return (
     <RevealSection id="faq" className="py-16 md:py-24 bg-white">
       <div className="mx-auto w-full px-4 max-w-[800px]">
@@ -49,25 +39,17 @@ export function FaqSection() {
           subtitle="Everything you need to know about posting and running errands."
         />
 
-        {/* FAQ Accordion */}
+        {/* Native <details name> gives an exclusive accordion with no client JavaScript. */}
         <div className="grid gap-4">
           {FAQS.map((faq, index) => (
-            <div
-              key={index}
-              className={cn(
-                'overflow-hidden rounded-[18px] border bg-white transition-[border-color,box-shadow] duration-200',
-                openIndex === index
-                  ? 'border-cn-green-500 shadow-[0_6px_18px_-2px_rgba(133,196,36,0.12)]'
-                  : 'border-cn-blue-100 hover:border-cn-green-500/35',
-              )}
+            <details
+              key={faq.question}
+              name="faq"
+              open={index === 0}
+              className="group overflow-hidden rounded-[18px] border border-cn-blue-100 bg-white transition-[border-color,box-shadow] duration-200 hover:border-cn-green-500/35 open:border-cn-green-500 open:shadow-[0_6px_18px_-2px_rgba(133,196,36,0.12)]"
             >
-              <button
-                type="button"
-                onClick={() => toggleFaq(index)}
-                aria-expanded={openIndex === index}
-                className="w-full px-6 py-5 flex items-center justify-between text-left transition-colors hover:bg-cn-green-50"
-              >
-                <span className="text-base font-semibold text-cn-blue-700 pr-4">{faq.question}</span>
+              <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-5 text-left transition-colors hover:bg-cn-green-50 [&::-webkit-details-marker]:hidden">
+                <span className="pr-4 text-base font-semibold text-cn-blue-700">{faq.question}</span>
                 <svg
                   width="20"
                   height="20"
@@ -77,19 +59,16 @@ export function FaqSection() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`flex-shrink-0 transition-transform duration-300 ${
-                    openIndex === index ? 'rotate-180 text-cn-green-600' : 'text-cn-blue-400'
-                  }`}
+                  aria-hidden="true"
+                  className="shrink-0 text-cn-blue-400 transition-transform duration-300 group-open:rotate-180 group-open:text-cn-green-600"
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
-              </button>
-              {openIndex === index && (
-                <div className="bg-[#fbfbfb] px-6 pb-5 pt-1">
-                  <p className="text-sm leading-relaxed text-cn-blue-500">{faq.answer}</p>
-                </div>
-              )}
-            </div>
+              </summary>
+              <div className="bg-[#fbfbfb] px-6 pb-5 pt-1">
+                <p className="text-sm leading-relaxed text-cn-blue-500">{faq.answer}</p>
+              </div>
+            </details>
           ))}
         </div>
       </div>

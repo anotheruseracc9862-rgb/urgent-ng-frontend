@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FileText } from 'lucide-react';
 import { Alert, Button } from '@urgent/ui';
 import { authApi } from '@/lib/api/auth';
-import { isApiError, safeRedirect } from '@/lib/api/client';
+import { isApiError, replayPendingPolicyRequests, safeRedirect } from '@/lib/api/client';
 import type { ConsentType, PolicyVersion } from '@/lib/api/types';
 import { AuthHeading, FormError, describeAuthError } from './auth-ui';
 
@@ -70,6 +70,7 @@ export function PolicyAcceptanceForm() {
       for (const policy of outstanding) {
         await authApi.acceptConsent({ type: policy.type, version: policy.version });
       }
+      await replayPendingPolicyRequests();
       router.replace(redirect);
       router.refresh();
     } catch (e) {
