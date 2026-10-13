@@ -1,52 +1,69 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import * as jose from 'jose';
 
-const publicRoutes = ['/', '/login', '/register', '/verify', '/forgot-password', '/reset-password', '/terms', '/privacy', '/help', '/pricing'];
-const authRoutes = ['/login', '/register'];
+const ACCESS_COOKIE = 'ung_at';
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // Check if route is public
-  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith('/api/'));
-  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
-  
-  const accessToken = request.cookies.get('access_token')?.value;
-  
-  // Decode token to check session
-  let session = null;
-  if (accessToken) {
-    try {
-      session = jose.decodeJwt(accessToken);
-    } catch {
-      // Invalid token
+/** Areas that need a session. Any other path is public, so unknown URLs reach the 404 page. */
+const PROTECTED = [
+  '/dashboard',
+  '/errands',
+  '/marketplace',
+  '/offers',
+  '/assignments',
+  '/messages',
+  '/notifications',
+  '/profile',
+  '/settings',
+  '/ratings',
+  '/runner',
+  '/verification',
+  '/pro',
+  '/boosts',
+  '/account',
+  '/onboarding',
+  '/policy-acceptance',
+];
+/** Auth pages: a signed-in user is sent to the app instead. */
+const GUEST_ONLY = ['/login', '/register', '/forgot-password', '/reset-password'];
+
+function matches(pathname: string, route: string): boolean {
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
+
+/** The access cookie is dropped by the browser when it expires, so presence is enough here. */
+function hasAccessCookie(request: NextRequest): boolean {
+  return Boolean(request.cookies.get(ACCESS_COOKIE)?.value);
+}
+
+export function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const signedIn = hasAccessCookie(request);
+
+  if (GUEST_ONLY.some((r) => matches(pathname, r))) {
+    if (signedIn) {
+      const target = request.nextUrl.searchParams.get('redirect');
+      const safe = target && target.startsWith('/') && !target.startsWith('//') ? target : '/dashboard';
+      return NextResponse.redirect(new URL(safe, request.url));
     }
+    return NextResponse.next();
   }
-  
-  // Redirect authenticated users away from auth pages
-  if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+
+  if (PROTECTED.some((r) => matches(pathname, r)) && !signedIn) {
+    // The refresh cookie is scoped to /api/v1/auth, so only the browser can use it.
+    // /session tries one refresh and falls back to /login.
+    const url = new URL('/session', request.url);
+    url.searchParams.set('redirect', pathname + search);
+    return NextResponse.redirect(url);
   }
-  
-  // Redirect unauthenticated users to login
-  if (!isPublicRoute && !session) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-  
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * Skip Next internals, API proxy and static files (anything with an extension).
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/|api/|assets/|.*\\..*).*)',
   ],
 };

@@ -9,5 +9,8 @@
   },
   "devDependencies": {
     "typescript": "^5"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }

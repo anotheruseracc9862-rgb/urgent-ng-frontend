@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { cn } from '@urgent/ui';
+import { RevealSection } from '@/components/shared/reveal';
+import { SectionHeader } from '@/components/shared/section-header';
 
 const FAQS = [
   {
@@ -38,34 +41,33 @@ export function FaqSection() {
   };
 
   return (
-    <section id="faq" className="py-16 md:py-24 bg-cn-blue-50">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="inline-block px-4 py-2 rounded-full bg-white text-cn-blue-700 text-sm font-medium mb-4">
-            Got Questions?
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-cn-blue-900 mb-4">
-            Frequently Asked Questions
-          </h2>
-          <p className="text-lg text-cn-blue-600">
-            Everything you need to know about posting and running errands.
-          </p>
-        </div>
+    <RevealSection id="faq" className="py-16 md:py-24 bg-white">
+      <div className="mx-auto w-full px-4 max-w-[800px]">
+        <SectionHeader
+          tag="Got Questions?"
+          title="Frequently Asked Questions"
+          subtitle="Everything you need to know about posting and running errands."
+        />
 
         {/* FAQ Accordion */}
-        <div className="space-y-4">
+        <div className="grid gap-4">
           {FAQS.map((faq, index) => (
             <div
               key={index}
-              className="bg-white rounded-2xl border border-cn-blue-100 shadow-sm overflow-hidden"
+              className={cn(
+                'overflow-hidden rounded-[18px] border bg-white transition-[border-color,box-shadow] duration-200',
+                openIndex === index
+                  ? 'border-cn-green-500 shadow-[0_6px_18px_-2px_rgba(133,196,36,0.12)]'
+                  : 'border-cn-blue-100 hover:border-cn-green-500/35',
+              )}
             >
               <button
                 type="button"
                 onClick={() => toggleFaq(index)}
-                className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-cn-blue-50 transition-colors"
+                aria-expanded={openIndex === index}
+                className="w-full px-6 py-5 flex items-center justify-between text-left transition-colors hover:bg-cn-green-50"
               >
-                <span className="font-semibold text-cn-blue-900 pr-4">{faq.question}</span>
+                <span className="text-base font-semibold text-cn-blue-700 pr-4">{faq.question}</span>
                 <svg
                   width="20"
                   height="20"
@@ -75,22 +77,22 @@ export function FaqSection() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`flex-shrink-0 text-cn-blue-400 transition-transform ${
-                    openIndex === index ? 'rotate-180' : ''
+                  className={`flex-shrink-0 transition-transform duration-300 ${
+                    openIndex === index ? 'rotate-180 text-cn-green-600' : 'text-cn-blue-400'
                   }`}
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
               {openIndex === index && (
-                <div className="px-6 pb-5">
-                  <p className="text-cn-blue-600 leading-relaxed">{faq.answer}</p>
+                <div className="bg-[#fbfbfb] px-6 pb-5 pt-1">
+                  <p className="text-sm leading-relaxed text-cn-blue-500">{faq.answer}</p>
                 </div>
               )}
             </div>
           ))}
         </div>
       </div>
-    </section>
+    </RevealSection>
   );
 }

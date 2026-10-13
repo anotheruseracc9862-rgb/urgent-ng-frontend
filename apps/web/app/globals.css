@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4 skips workspace packages: scan the shared UI package explicitly. */
+@source "../../../packages/ui/src";
+
 :root {
   /* Brand colors */
   --lime: #a6d445;
@@ -76,17 +79,28 @@
   --color-violet: var(--violet);
   --color-violet-bg: var(--violet-bg);
   
-  /* Border Radius */
-  --radius-xl: var(--r-xl);
-  --radius-lg: var(--r-lg);
-  --radius: var(--r);
-  --radius-sm: var(--r-sm);
-  --radius-xs: var(--r-xs);
-  
-  /* Shadows */
-  --shadow: var(--shadow);
-  --shadow-pop: var(--shadow-pop);
-  
+  /* CN design system (public landing + info pages) */
+  --color-cn-green-50: #f4fbe6;
+  --color-cn-green-100: #e8f7cb;
+  --color-cn-green-200: #d6f0a3;
+  --color-cn-green-300: #bbe770;
+  --color-cn-green-400: #b8e255;
+  --color-cn-green-500: #93c700;
+  --color-cn-green-600: #80ad00;
+  --color-cn-green-700: #668a00;
+  --color-cn-green-800: #526f00;
+  --color-cn-green-900: #3b5000;
+  --color-cn-blue-50: #eff1f4;
+  --color-cn-blue-100: #e1e6ec;
+  --color-cn-blue-200: #c5ced9;
+  --color-cn-blue-300: #9baac0;
+  --color-cn-blue-400: #657996;
+  --color-cn-blue-500: #42526b;
+  --color-cn-blue-600: #2d394d;
+  --color-cn-blue-700: #1b2330;
+  --color-cn-blue-800: #10151f;
+  --color-cn-blue-900: #0a0e14;
+
   /* Font family */
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
@@ -100,3 +114,143 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+
+/* ───────── Landing effects, ported from demo/styles.css ───────── */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --tu-line: rgba(23, 33, 46, .07);
+  --tu-shadow: 0 0 0 1px rgba(23, 33, 46, .05), 0 1px 2px rgba(23, 33, 46, .04), 0 18px 40px -22px rgba(23, 33, 46, .18);
+}
+
+h1, h2, h3 { letter-spacing: -0.03em; }
+
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes floatBadge {
+  from { transform: translateY(0); }
+  to { transform: translateY(-7px); }
+}
+@keyframes badgeEntrance {
+  from { opacity: 0; transform: translateY(24px) scale(0.88); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes tabFadeSlideIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-fade-1 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.1s backwards; }
+.hero-fade-2 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.25s backwards; }
+.hero-fade-3 { animation: heroFadeUp 0.8s var(--ease-out-expo) 0.4s backwards; }
+
+.hero-badge {
+  animation: badgeEntrance 0.9s var(--ease-out-back) 0.5s backwards, floatBadge 4s ease-in-out 1.4s infinite alternate;
+  transition: box-shadow 0.35s var(--ease-out-expo), border-color 0.3s ease;
+}
+.hero-badge:hover {
+  box-shadow: 0 20px 40px -6px rgba(16, 21, 31, 0.16), 0 0 24px -2px rgba(133, 196, 36, 0.28);
+  border-color: rgba(133, 196, 36, 0.5);
+}
+.hero-badge .badge-icon { transition: transform 0.35s var(--ease-out-back), background-color 0.3s ease; }
+.hero-badge:hover .badge-icon { transform: scale(1.12) rotate(6deg); background-color: #d7f59d; }
+
+.tab-fade-slide { animation: tabFadeSlideIn 0.38s var(--ease-out-expo) forwards; }
+
+/* Cards: hairline ring, soft shadow, lift on hover */
+.card-lift {
+  border-radius: 22px;
+  box-shadow: var(--tu-shadow);
+  transition: transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo), border-color 0.3s ease;
+}
+.card-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px -4px rgba(16, 21, 31, 0.12), 0 0 0 1px rgba(133, 196, 36, 0.3);
+}
+.card-lift .icon-pop { transition: transform 0.35s var(--ease-out-back), background-color 0.3s ease, color 0.3s ease; }
+.card-lift:hover .icon-pop { transform: scale(1.12) rotate(5deg); }
+.card-lift:hover .icon-pop.icon-fill { background-color: var(--color-cn-green-500); color: #fff; }
+
+.card-calm { transition: box-shadow 0.4s var(--ease-out-expo); }
+.card-calm:hover { box-shadow: 0 20px 44px -8px rgba(16, 21, 31, 0.1); }
+
+/* Scroll reveal (see components/shared/reveal.tsx) */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.75s var(--ease-out-expo), transform 0.75s var(--ease-out-expo);
+}
+.reveal.is-in { opacity: 1; transform: none; }
+.no-js .reveal { opacity: 1; transform: none; }
+
+/* Range sliders, as in the demo calculator (.custom-range) */
+input[type='range'].range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-cn-blue-100);
+  outline: none;
+}
+input[type='range'].range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-cn-green-500);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(16, 21, 31, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+input[type='range'].range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type='range'].range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-cn-green-500);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(16, 21, 31, 0.2);
+  cursor: pointer;
+}
+input[type='range'].range:focus-visible { box-shadow: 0 0 0 4px rgba(166, 212, 69, 0.3); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
+
+/* Dark mode is not designed yet: keep native controls light. */
+html { color-scheme: light; }
+
+/* Checkboxes: empty box when off, green with a tick when on. */
+input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid #c5ced9;
+  border-radius: 5px;
+  background: #fff center / 12px no-repeat;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input[type='checkbox']:hover { border-color: var(--green); }
+input[type='checkbox']:checked {
+  border-color: var(--green);
+  background-color: var(--green);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+}
+input[type='checkbox']:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(166, 212, 69, 0.35); }
+input[type='checkbox']:disabled { cursor: not-allowed; opacity: 0.5; }

@@ -77,7 +77,7 @@ function isAllowedEvent(event: string): event is AllowedEvent {
 export function track(event: string, properties?: EventProperties): void {
   // Check if event is in allow-list
   if (!isAllowedEvent(event)) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production') {
       console.warn(`Analytics: Event "${event}" is not in allow-list and was dropped`);
     }
     return;
@@ -85,7 +85,7 @@ export function track(event: string, properties?: EventProperties): void {
 
   // Check for sensitive data in properties
   if (properties && containsSensitiveData(properties)) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production') {
       console.warn(`Analytics: Event "${event}" contains sensitive data and was dropped`);
     }
     return;

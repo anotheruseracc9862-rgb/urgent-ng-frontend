@@ -1,194 +1,142 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@urgent/ui';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FileText } from 'lucide-react';
+import { Alert, Button } from '@urgent/ui';
+import { authApi } from '@/lib/api/auth';
+import { isApiError, safeRedirect } from '@/lib/api/client';
+import type { ConsentType, PolicyVersion } from '@/lib/api/types';
+import { AuthHeading, FormError, describeAuthError } from './auth-ui';
 
-interface PolicyChange {
-  type: 'TERMS_OF_SERVICE' | 'PRIVACY_POLICY';
-  version: string;
-  publishedAt: string;
-  summary: string;
-}
+const LABELS: Record<ConsentType, { label: string; href: string }> = {
+  TERMS_OF_SERVICE: { label: 'Terms of Service', href: '/terms' },
+  PRIVACY_POLICY: { label: 'Privacy Policy', href: '/privacy' },
+  SAFETY_POLICY: { label: 'Safety Policy', href: '/help' },
+  PROHIBITED_ITEMS_POLICY: { label: 'Prohibited Items Policy', href: '/terms' },
+  OFFLINE_PAYMENT_TERMS: { label: 'Offline Payment Terms', href: '/help' },
+  LOCATION_SHARING: { label: 'Location Sharing', href: '/privacy' },
+  MARKETING_COMMUNICATIONS: { label: 'Marketing Communications', href: '/privacy' },
+};
 
-interface PolicyAcceptanceFormProps {
-  changedPolicies: PolicyChange[];
-  onAccept: () => Promise<void>;
-}
-
-export function PolicyAcceptanceForm({ changedPolicies, onAccept }: PolicyAcceptanceFormProps) {
+/**
+ * Blocking page for `POLICY_ACCEPTANCE_REQUIRED` (F1-06). Lists what changed, records each
+ * acceptance, then sends the person back to where they were.
+ */
+export function PolicyAcceptanceForm() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [acceptedPolicies, setAcceptedPolicies] = useState<Set<string>>(new Set());
+  const params = useSearchParams();
+  const redirect = safeRedirect(params.get('redirect'));
 
-  const handleCheckboxChange = (policyType: string) => {
-    const newAccepted = new Set(acceptedPolicies);
-    if (newAccepted.has(policyType)) {
-      newAccepted.delete(policyType);
-    } else {
-      newAccepted.add(policyType);
-    }
-    setAcceptedPolicies(newAccepted);
-  };
+  const [outstanding, setOutstanding] = useState<PolicyVersion[] | null>(null);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  const allAccepted = changedPolicies.every((policy) => acceptedPolicies.has(policy.type));
+  useEffect(() => {
+    let cancelled = false;
+    authApi
+      .consents()
+      .then((history) => {
+        if (cancelled) return;
+        if (history.outstanding.length === 0) router.replace(redirect);
+        else setOutstanding(history.outstanding);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        if (isApiError(e) && e.status === 401) router.replace(`/session?redirect=${encodeURIComponent(redirect)}`);
+        else setError(describeAuthError(e));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [redirect, router]);
 
-  const handleAccept = async () => {
-    if (!allAccepted) {
-      setErrorMessage('Please accept all policies to continue');
-      return;
-    }
+  if (outstanding === null) {
+    return error ? (
+      <FormError message={error} />
+    ) : (
+      <p className="text-sm font-semibold text-muted">Loading policy changes…</p>
+    );
+  }
 
-    setIsLoading(true);
-    setErrorMessage('');
+  const allChecked = outstanding.every((p) => checked.has(p.id));
 
+  const accept = async () => {
+    setBusy(true);
+    setError('');
     try {
-      await onAccept();
-      // The parent will handle navigation/retry of original action
-    } catch (error) {
-      setErrorMessage('Failed to save your acceptance. Please try again.');
+      for (const policy of outstanding) {
+        await authApi.acceptConsent({ type: policy.type, version: policy.version });
+      }
+      router.replace(redirect);
+      router.refresh();
+    } catch (e) {
+      setError(describeAuthError(e));
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getPolicyLabel = (type: string) => {
-    switch (type) {
-      case 'TERMS_OF_SERVICE':
-        return 'Terms of Service';
-      case 'PRIVACY_POLICY':
-        return 'Privacy Policy';
-      default:
-        return type;
-    }
-  };
-
-  const getPolicyUrl = (type: string) => {
-    switch (type) {
-      case 'TERMS_OF_SERVICE':
-        return '/terms';
-      case 'PRIVACY_POLICY':
-        return '/privacy';
-      default:
-        return '/';
+      setBusy(false);
     }
   };
 
   return (
-    <div className="w-full max-w-2xl">
-      <div className="bg-white rounded-3xl shadow-xl p-8">
-        <div className="mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-amber-600"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-cn-blue-900 mb-2 text-center">
-            Policy Update Required
-          </h1>
-          <p className="text-cn-blue-600 text-center">
-            We&apos;ve updated our policies. Please review and accept to continue using Urgent.ng
-          </p>
-        </div>
+    <>
+      <AuthHeading title="Our policies changed">
+        Review and accept the updates below to keep using Urgent.ng.
+      </AuthHeading>
 
-        {errorMessage && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-            {errorMessage}
-          </div>
-        )}
+      <FormError message={error} />
 
-        <div className="space-y-6 mb-8">
-          {changedPolicies.map((policy) => (
-            <div
-              key={policy.type}
-              className="border border-cn-blue-200 rounded-2xl p-6 bg-cn-blue-50"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-cn-blue-900 mb-1">
-                    {getPolicyLabel(policy.type)}
-                  </h3>
-                  <p className="text-xs text-cn-blue-600">
-                    Version {policy.version} • Updated{' '}
+      <ul className="grid gap-3">
+        {outstanding.map((policy) => {
+          const info = LABELS[policy.type];
+          return (
+            <li key={policy.id} className="rounded-[var(--r)] border border-line bg-panel p-4">
+              <div className="flex items-start gap-3">
+                <FileText className="mt-0.5 size-5 shrink-0 text-green-700" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-extrabold">{info.label}</div>
+                  <div className="text-xs text-muted">
+                    Version {policy.version} · published{' '}
                     {new Date(policy.publishedAt).toLocaleDateString('en-NG', {
-                      year: 'numeric',
-                      month: 'long',
                       day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
                     })}
-                  </p>
-                </div>
-                <Link
-                  href={getPolicyUrl(policy.type)}
-                  target="_blank"
-                  className="text-sm font-semibold text-cn-green-600 hover:underline flex items-center gap-1"
-                >
-                  Read Full Policy
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+                  </div>
+                  <Link
+                    href={info.href}
+                    target="_blank"
+                    className="mt-1 inline-block text-[13px] font-bold text-green-700 hover:underline"
                   >
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </Link>
+                    Read the full text
+                  </Link>
+                </div>
               </div>
-
-              <div className="bg-white rounded-xl p-4 mb-4">
-                <h4 className="text-sm font-semibold text-cn-blue-900 mb-2">
-                  What&apos;s Changed:
-                </h4>
-                <p className="text-sm text-cn-blue-700 leading-relaxed">{policy.summary}</p>
-              </div>
-
-              <label className="flex items-start gap-3 cursor-pointer group">
+              <label className="mt-3 flex items-start gap-2.5 text-[13px]">
                 <input
                   type="checkbox"
-                  checked={acceptedPolicies.has(policy.type)}
-                  onChange={() => handleCheckboxChange(policy.type)}
-                  className="mt-1 w-5 h-5 rounded border-cn-blue-300 text-cn-green-600 focus:ring-cn-green-600 focus:ring-offset-0 cursor-pointer"
+                  className="mt-0.5 size-4"
+                  checked={checked.has(policy.id)}
+                  onChange={(e) => {
+                    const next = new Set(checked);
+                    if (e.target.checked) next.add(policy.id);
+                    else next.delete(policy.id);
+                    setChecked(next);
+                  }}
                 />
-                <span className="text-sm text-cn-blue-700 group-hover:text-cn-blue-900 font-medium">
-                  I have read and accept the updated {getPolicyLabel(policy.type)}
-                </span>
+                <span>I have read and accept the {info.label}.</span>
               </label>
-            </div>
-          ))}
-        </div>
+            </li>
+          );
+        })}
+      </ul>
 
-        <div className="space-y-4">
-          <Button
-            onClick={handleAccept}
-            className="w-full"
-            size="lg"
-            disabled={isLoading || !allAccepted}
-          >
-            {isLoading ? 'Saving...' : 'Accept All & Continue'}
-          </Button>
+      <Alert variant="info">Until you accept, actions that change anything are blocked.</Alert>
 
-          <p className="text-xs text-center text-cn-blue-600">
-            You must accept all policy updates to continue using Urgent.ng
-          </p>
-        </div>
-      </div>
-    </div>
+      <Button size="lg" className="w-full" disabled={!allChecked || busy} onClick={accept}>
+        {busy ? 'Saving…' : 'Accept and continue'}
+      </Button>
+    </>
   );
 }

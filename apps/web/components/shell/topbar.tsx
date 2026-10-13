@@ -1,68 +1,112 @@
 'use client';
 
 import * as React from 'react';
-import { Search, Bell } from 'lucide-react';
-import { Avatar } from '@urgent/ui';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { Bell, LogOut, Settings, User } from 'lucide-react';
+import {
+  Avatar,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  cn,
+} from '@urgent/ui';
+import { useSession } from '@/lib/auth/client';
+import { saveMode } from '@/lib/auth/mode';
+import { itemsFor, type ShellMode } from './nav-items';
 
-interface TopbarProps {
-  breadcrumb?: React.ReactNode;
-  onModeSwitch?: () => void;
-  mode: 'REQUESTER' | 'RUNNER';
-}
+const MODES: { value: ShellMode; label: string }[] = [
+  { value: 'REQUESTER', label: 'Requester' },
+  { value: 'RUNNER', label: 'Runner' },
+];
 
-export function Topbar({ breadcrumb, onModeSwitch, mode }: TopbarProps) {
+function initialsOf(name: string): string {
   return (
-    <header className="flex items-center gap-3 px-3 py-2.5 rounded-full bg-surface shadow-[var(--shadow)]">
-      {breadcrumb && (
-        <div className="flex items-center gap-2 min-w-0 text-muted text-[12.5px] font-semibold whitespace-nowrap">
-          {breadcrumb}
-        </div>
-      )}
-
-      <div className="relative flex-1 max-w-[420px] ml-auto">
-        <Search className="absolute top-3 left-3.5 w-4 h-4 text-muted pointer-events-none" />
-        <input
-          type="search"
-          placeholder="Search..."
-          className="w-full h-[42px] pl-10 pr-3.5 rounded-full bg-panel text-[13px] border-0 outline-none focus:ring-2 focus:ring-lime-600/25"
-        />
-      </div>
-
-      <div className="flex items-center gap-2 ml-auto">
-        {onModeSwitch && (
-          <div className="inline-flex p-1 rounded-full bg-panel">
-            <button
-              onClick={onModeSwitch}
-              className={cn(
-                'px-3.5 py-2 rounded-full text-[12.5px] font-bold transition-all',
-                mode === 'REQUESTER' ? 'bg-ink text-white' : 'text-muted'
-              )}
-            >
-              Requester
-            </button>
-            <button
-              onClick={onModeSwitch}
-              className={cn(
-                'px-3.5 py-2 rounded-full text-[12.5px] font-bold transition-all',
-                mode === 'RUNNER' ? 'bg-ink text-white' : 'text-muted'
-              )}
-            >
-              Runner
-            </button>
-          </div>
-        )}
-
-        <button className="relative grid place-items-center w-[42px] h-[42px] rounded-full bg-panel hover:bg-tint-2 transition-colors">
-          <Bell className="w-5 h-5 text-ink-2" />
-          <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#ff5a36] border-2 border-white" />
-        </button>
-
-        <Avatar size="default" variant="default" initials="JD" />
-      </div>
-    </header>
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U'
   );
 }
 
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
+export function Topbar({ mode }: { mode: ShellMode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { me, signOut } = useSession();
+
+  const crumb = itemsFor(mode).find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))?.label;
+
+  const switchMode = (next: ShellMode) => {
+    if (next === mode) return;
+    saveMode(next);
+    router.push('/dashboard');
+    router.refresh();
+  };
+
+  return (
+    <header className="flex items-center gap-3 rounded-full bg-surface p-2 pl-3 shadow-[var(--shadow)] lg:pl-[18px]">
+      <Link href="/dashboard" className="shrink-0 lg:hidden">
+        <Image src="/assets/logo.png" alt="Urgent.ng" width={96} height={24} className="h-6 w-auto" />
+      </Link>
+
+      {crumb ? (
+        <div className="hidden min-w-0 truncate text-[12.5px] font-semibold text-muted lg:block">
+          {crumb}
+        </div>
+      ) : null}
+
+      <div className="ml-auto flex items-center gap-2">
+        <div role="group" aria-label="Mode" className="inline-flex rounded-full bg-panel p-1">
+          {MODES.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={mode === value}
+              onClick={() => switchMode(value)}
+              className={cn(
+                'rounded-full px-3 py-1.5 text-[12.5px] font-bold transition-colors sm:px-3.5 sm:py-2',
+                mode === value ? 'bg-ink text-white' : 'text-muted hover:text-ink',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <Link
+          href="/notifications"
+          aria-label="Notifications"
+          className="grid size-[42px] place-items-center rounded-full bg-panel text-ink-2 transition-colors hover:bg-tint-2"
+        >
+          <Bell className="size-5" />
+        </Link>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger aria-label="Account menu" className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600">
+            <Avatar size="default" variant="default" initials={initialsOf(me.name)} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[200px]">
+            <DropdownMenuLabel className="truncate">{me.name}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => router.push('/profile')}>
+              <User className="mr-2 size-4" /> Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => router.push('/settings')}>
+              <Settings className="mr-2 size-4" /> Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => void signOut()}>
+              <LogOut className="mr-2 size-4" /> Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
 }

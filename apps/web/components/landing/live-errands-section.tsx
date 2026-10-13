@@ -1,5 +1,11 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button } from '@urgent/ui';
+import { Clock } from 'lucide-react';
+import { Badge, Button, cn } from '@urgent/ui';
+import { RevealSection } from '@/components/shared/reveal';
+import { SectionHeader } from '@/components/shared/section-header';
 
 // Sample errands data - in production this could come from API
 const SAMPLE_ERRANDS = [
@@ -91,107 +97,119 @@ const CATEGORY_BADGES: Record<string, 'default' | 'green' | 'lime' | 'blue' | 'a
   Physical: 'default',
 };
 
+const FILTERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'All Categories' },
+  { value: 'Price confirmation', label: 'Price confirmation' },
+  { value: 'Sell fast', label: 'Sell fast' },
+  { value: 'Delivery', label: 'Package Delivery' },
+  { value: 'Shopping', label: 'Market & Shopping' },
+  { value: 'Document', label: 'Urgent Documents' },
+  { value: 'Food', label: 'Food & Cakes' },
+  { value: 'Physical', label: 'In-Person Errand' },
+];
+
 export function LiveErrandsSection() {
+  const [filter, setFilter] = useState('all');
+  const errands = filter === 'all' ? SAMPLE_ERRANDS : SAMPLE_ERRANDS.filter((e) => e.category === filter);
+
   return (
-    <section id="live-errands" className="py-16 md:py-24 bg-white">
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="inline-block px-4 py-2 rounded-full bg-cn-blue-50 text-cn-blue-700 text-sm font-medium mb-4">
-            Marketplace Feed
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-cn-blue-900 mb-4">
-            Active Errands Happening Now
-          </h2>
-          <p className="text-lg text-cn-blue-600 max-w-3xl mx-auto">
-            Real errands posted by everyday people and businesses across Nigeria. See what&apos;s
-            moving right now.
-          </p>
+    <RevealSection
+      id="live-errands"
+      className="border-y border-cn-blue-100 bg-[#fbfbfb] py-16 md:py-24"
+    >
+      <div className="mx-auto w-full max-w-7xl px-4">
+        <SectionHeader
+          tag="Marketplace Feed"
+          title="Active Errands Happening Now"
+          subtitle="Real errands posted by everyday people and businesses across Nigeria. See what's moving right now."
+        />
+
+        <div className="mb-10 flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Filter errands">
+          {FILTERS.map((chip) => {
+            const active = filter === chip.value;
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setFilter(chip.value)}
+                className={cn(
+                  'rounded-full border px-[18px] py-2 text-[13px] transition-all duration-200 hover:-translate-y-0.5',
+                  active
+                    ? 'scale-[1.04] border-cn-green-500 bg-cn-green-500 font-bold text-cn-blue-800 shadow-[0_4px_14px_rgba(133,196,36,0.25)]'
+                    : 'border-cn-blue-100 bg-white font-semibold text-cn-blue-600 hover:border-cn-blue-300 hover:shadow-[0_4px_12px_rgba(16,21,31,0.06)]',
+                )}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Errands Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {SAMPLE_ERRANDS.map((errand) => (
-            <div
-              key={errand.id}
-              className="bg-white rounded-2xl border border-cn-blue-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-            >
-              {/* Header */}
-              <div className="p-5 border-b border-cn-blue-100">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <Badge variant={CATEGORY_BADGES[errand.category]} className="mb-2">
-                      {errand.category}
-                    </Badge>
-                    <h3 className="font-bold text-cn-blue-900 text-base leading-snug">
-                      {errand.title}
-                    </h3>
-                  </div>
-                  <Badge variant="amber" className="flex-shrink-0">
-                    {errand.offers} Offers
-                  </Badge>
+        <div key={filter} className="tab-fade-slide mb-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {errands.map((errand) => (
+            <article key={errand.id} className="card-lift flex flex-col gap-3.5 bg-white p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <Badge variant={CATEGORY_BADGES[errand.category] ?? 'default'}>{errand.category}</Badge>
+                  <h3 className="mt-2.5 text-base font-extrabold leading-[1.35] tracking-[-0.01em] text-ink">
+                    {errand.title}
+                  </h3>
                 </div>
+                <Badge variant="amber" className="shrink-0">
+                  {errand.offers} Offers
+                </Badge>
               </div>
 
-              {/* Body */}
-              <div className="p-5 space-y-4">
-                {/* Route */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cn-green-500 mt-1.5 flex-shrink-0" />
-                    <span className="text-cn-blue-700">
-                      <strong>
-                        {errand.task ? 'Location' : errand.dropoff ? 'Pickup' : 'Location'}:
-                      </strong>{' '}
-                      {errand.pickup}
+              <div className="grid gap-2.5 rounded-xl bg-panel px-3.5 py-3 text-[13px] text-ink-2">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-[5px] size-2.5 shrink-0 rounded-full bg-cn-green-500" />
+                  <span>
+                    <strong>{errand.task || !errand.dropoff ? 'Location' : 'Pickup'}:</strong> {errand.pickup}
+                  </span>
+                </div>
+                {errand.task || errand.dropoff ? (
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-[5px] size-2.5 shrink-0 rounded-full bg-ink" />
+                    <span>
+                      <strong>{errand.task ? 'Task' : 'Drop-off'}:</strong> {errand.task || errand.dropoff}
                     </span>
                   </div>
-                  {(errand.task || errand.dropoff) && (
-                    <div className="flex items-start gap-2">
-                      <span className="w-2 h-2 rounded-full bg-cn-blue-500 mt-1.5 flex-shrink-0" />
-                      <span className="text-cn-blue-700">
-                        <strong>{errand.task ? 'Task' : 'Drop-off'}:</strong>{' '}
-                        {errand.task || errand.dropoff}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Description */}
-                <p className="text-sm text-cn-blue-800 line-clamp-2">{errand.description}</p>
-
-                {/* Meta */}
-                <div className="flex items-center gap-3 text-xs text-cn-blue-600">
-                  <span>⏱️ {errand.urgency}</span>
-                  <span>Posted {errand.postedAgo}</span>
-                </div>
+                ) : null}
               </div>
 
-              {/* Footer */}
-              <div className="p-5 bg-cn-blue-50 flex items-center justify-between">
+              <p className="line-clamp-2 flex-1 text-[13px] leading-[1.55] text-muted">{errand.description}</p>
+
+              <div className="flex items-center justify-between text-xs text-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="size-3.5" /> {errand.urgency}
+                </span>
+                <span>{errand.postedAgo}</span>
+              </div>
+
+              <div className="flex items-end justify-between gap-3">
                 <div>
-                  <div className="text-xs text-cn-blue-600 mb-1">
-                    {errand.category === 'Shopping' ? 'Runner Fee' : 'Suggested Budget'}
-                  </div>
-                  <div className="text-lg font-bold text-cn-blue-900">
+                  <span className="block text-[11px] font-semibold text-muted">
+                    {errand.category === 'Shopping' ? 'Runner fee' : 'Suggested budget'}
+                  </span>
+                  <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">
                     ₦{errand.budget.toLocaleString()}
-                  </div>
+                  </span>
                 </div>
                 <Button size="sm" asChild>
-                  <Link href="/register">Make an Offer</Link>
+                  <Link href="/register?mode=runner">Make an Offer</Link>
                 </Button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
 
-        {/* View More Button */}
         <div className="text-center">
-          <Button size="lg" variant="ghost" className="border border-cn-blue-200" asChild>
-            <Link href="/marketplace">View More →</Link>
+          <Button size="lg" variant="ghost" asChild>
+            <Link href="/register">View More →</Link>
           </Button>
         </div>
       </div>
-    </section>
+    </RevealSection>
   );
 }

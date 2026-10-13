@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@urgent/ui';
+import { RevealSection } from '@/components/shared/reveal';
+import { SectionHeader } from '@/components/shared/section-header';
 
 export function EarningsSection() {
   const [errandsPerDay, setErrandsPerDay] = useState(4);
@@ -13,34 +15,26 @@ export function EarningsSection() {
   const monthlyTotal = Math.round(errandsPerDay * avgPrice * daysPerWeek * 4.3);
 
   return (
-    <section id="earn-money" className="py-16 md:py-24 bg-cn-blue-50">
-      <div className="container mx-auto px-4 max-w-5xl">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="inline-block px-4 py-2 rounded-full bg-white text-cn-blue-700 text-sm font-medium mb-4">
-            Earn on Your Terms
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-cn-blue-900 mb-4">
-            Turn Your Free Time into Reliable Daily Income
-          </h2>
-          <p className="text-lg text-cn-blue-600 max-w-3xl mx-auto">
-            Whether you walk, take a bus, ride a bike, or drive, earn by completing quick
-            errands in your neighborhood.
-          </p>
-        </div>
+    <RevealSection id="earn-money" className="py-16 md:py-24 bg-gradient-to-b from-white to-cn-green-50">
+      <div className="mx-auto w-full px-4 max-w-5xl">
+        <SectionHeader
+          tag="Earn on Your Terms"
+          title="Turn Your Free Time into Reliable Daily Income"
+          subtitle="Whether you walk, take a bus, ride a bike, or drive, earn by completing quick errands in your neighborhood."
+        />
 
         {/* Calculator Card */}
-        <div className="bg-white rounded-3xl shadow-lg p-6 md:p-8">
-          <div className="grid lg:grid-cols-[1fr,auto] gap-8">
+        <div className="card-calm mx-auto max-w-[900px] rounded-[28px] border border-cn-blue-100 bg-white p-6 shadow-lg md:p-12">
+          <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
             {/* Controls */}
             <div className="space-y-6">
               {/* Errands per day */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="errands-slider" className="text-sm font-medium text-cn-blue-700">
+                  <label htmlFor="errands-slider" className="text-sm font-semibold text-cn-blue-600">
                     Errands completed per day
                   </label>
-                  <span className="text-sm font-bold text-cn-blue-900">
+                  <span className="text-xl font-bold text-cn-green-600">
                     {errandsPerDay} errands / day
                   </span>
                 </div>
@@ -51,17 +45,17 @@ export function EarningsSection() {
                   max={12}
                   value={errandsPerDay}
                   onChange={(e) => setErrandsPerDay(Number(e.target.value))}
-                  className="w-full h-2 bg-cn-blue-100 rounded-lg appearance-none cursor-pointer accent-cn-green-600"
+                  className="range cursor-pointer"
                 />
               </div>
 
               {/* Average price */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="price-slider" className="text-sm font-medium text-cn-blue-700">
+                  <label htmlFor="price-slider" className="text-sm font-semibold text-cn-blue-600">
                     Average earning per errand
                   </label>
-                  <span className="text-sm font-bold text-cn-blue-900">
+                  <span className="text-xl font-bold text-cn-green-600">
                     ₦{avgPrice.toLocaleString()}
                   </span>
                 </div>
@@ -73,17 +67,17 @@ export function EarningsSection() {
                   step={500}
                   value={avgPrice}
                   onChange={(e) => setAvgPrice(Number(e.target.value))}
-                  className="w-full h-2 bg-cn-blue-100 rounded-lg appearance-none cursor-pointer accent-cn-green-600"
+                  className="range cursor-pointer"
                 />
               </div>
 
               {/* Days per week */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="days-slider" className="text-sm font-medium text-cn-blue-700">
+                  <label htmlFor="days-slider" className="text-sm font-semibold text-cn-blue-600">
                     Working days per week
                   </label>
-                  <span className="text-sm font-bold text-cn-blue-900">
+                  <span className="text-xl font-bold text-cn-green-600">
                     {daysPerWeek} days / week
                   </span>
                 </div>
@@ -94,22 +88,21 @@ export function EarningsSection() {
                   max={7}
                   value={daysPerWeek}
                   onChange={(e) => setDaysPerWeek(Number(e.target.value))}
-                  className="w-full h-2 bg-cn-blue-100 rounded-lg appearance-none cursor-pointer accent-cn-green-600"
+                  className="range cursor-pointer"
                 />
               </div>
             </div>
 
             {/* Results */}
-            <div className="lg:min-w-[280px] bg-gradient-to-br from-cn-green-50 to-cn-blue-50 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-              <span className="text-sm font-medium text-cn-blue-600 mb-2">
+            <div className="flex flex-col items-center gap-4 rounded-[28px] bg-cn-blue-700 p-8 text-center text-white shadow-md">
+              <span className="text-xs font-bold uppercase tracking-[0.05em] text-cn-green-400">
                 Estimated Monthly Earnings
               </span>
-              <div className="text-4xl md:text-5xl font-bold text-cn-green-700 mb-4">
+              <div className="text-[34px] font-bold tracking-[-0.02em] text-white sm:text-[38px]">
                 ₦{monthlyTotal.toLocaleString()}
               </div>
-              <p className="text-xs text-cn-blue-600 mb-4">
-                Paid directly by each requester, in cash or by transfer. Urgent.ng never holds
-                your money.
+              <p className="text-xs text-cn-blue-300">
+                Paid directly by each requester, in cash or by transfer. Urgent.ng never holds your money.
               </p>
               <Button className="w-full" asChild>
                 <Link href="/register?mode=runner">Start Earning as a Runner</Link>
@@ -118,6 +111,6 @@ export function EarningsSection() {
           </div>
         </div>
       </div>
-    </section>
+    </RevealSection>
   );
 }

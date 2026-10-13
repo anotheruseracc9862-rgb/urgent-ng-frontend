@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="urgentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9ee800"/>
+      <stop offset="100%" stop-color="#7ab000"/>
+    </linearGradient>
+  </defs>
+  <!-- Vibrant rounded icon base -->
+  <rect width="32" height="32" rx="7.5" fill="url(#urgentGrad)"/>
+  <!-- Urgent.ng signature lightning mark -->
+  <path d="M17 6L7 18h9l-1 8 10-12h-9l1-8z" fill="#ffffff" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round"/>
+</svg>

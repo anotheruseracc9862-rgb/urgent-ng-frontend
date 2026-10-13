@@ -1,223 +1,117 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Button } from '@urgent/ui';
+import Link from 'next/link';
+import { Menu, Plus, User, X } from 'lucide-react';
+import { cn } from '@urgent/ui';
 
+const NAV = [
+  { href: '/#how-it-works', label: 'How It Works' },
+  { href: '/#live-errands', label: 'Active Errands' },
+  { href: '/#earn-money', label: 'Earn as a Runner' },
+  { href: '/#trust-safety', label: 'Safety' },
+  { href: '/#faq', label: 'FAQ' },
+];
+
+const PILL =
+  'inline-flex h-[42px] items-center justify-center gap-2 whitespace-nowrap rounded-full px-[18px] text-[13.5px] font-bold transition-[transform,background-color] duration-150 active:scale-[0.98]';
+
+/** Flat white bar with a hairline, as in demo `.site-header` after touch-up. */
 export function PublicHeader() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   return (
-    <>
-      <header className="sticky top-0 z-50 bg-white border-b border-cn-blue-100 shadow-sm">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/assets/logo.png"
-                alt="Urgent.ng - Get it fast"
-                width={140}
-                height={40}
-                className="h-8 md:h-10 w-auto"
-                priority
-              />
-            </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-8">
-              <Link
-                href="/#how-it-works"
-                className="text-sm font-medium text-cn-blue-700 hover:text-cn-blue-900 transition-colors"
-              >
-                How It Works
-              </Link>
-              <Link
-                href="/#live-errands"
-                className="text-sm font-medium text-cn-blue-700 hover:text-cn-blue-900 transition-colors"
-              >
-                Active Errands
-              </Link>
-              <Link
-                href="/#earn-money"
-                className="text-sm font-medium text-cn-blue-700 hover:text-cn-blue-900 transition-colors"
-              >
-                Earn as a Runner
-              </Link>
-              <Link
-                href="/#trust-safety"
-                className="text-sm font-medium text-cn-blue-700 hover:text-cn-blue-900 transition-colors"
-              >
-                Safety
-              </Link>
-              <Link
-                href="/#faq"
-                className="text-sm font-medium text-cn-blue-700 hover:text-cn-blue-900 transition-colors"
-              >
-                FAQ
-              </Link>
-            </nav>
-
-            {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-3">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/login" className="gap-2">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  Sign In
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" className="border border-cn-blue-200" asChild>
-                <Link href="/register">Sign Up</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link href="/register" className="gap-2">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="16" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                  </svg>
-                  Post Errand
-                </Link>
-              </Button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-cn-blue-700 hover:text-cn-blue-900 hover:bg-cn-blue-50 rounded-lg transition-colors"
-              aria-label="Toggle menu"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50 z-50 lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
+    <header className="relative z-50 border-b border-[var(--tu-line)] bg-white">
+      <div className="mx-auto flex h-[62px] w-full max-w-[1280px] items-center justify-between gap-6 px-4 sm:px-6 lg:h-[68px]">
+        <Link href="/" className="flex shrink-0 items-center" onClick={() => setOpen(false)}>
+          <Image
+            src="/assets/logo.png"
+            alt="Urgent.ng"
+            width={140}
+            height={34}
+            priority
+            className="h-[30px] w-auto lg:h-[34px]"
           />
+        </Link>
 
-          {/* Drawer */}
-          <div className="fixed top-0 right-0 bottom-0 w-80 max-w-full bg-white z-50 lg:hidden shadow-2xl overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-cn-blue-100">
-              <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                <Image
-                  src="/assets/logo.png"
-                  alt="Urgent.ng"
-                  width={120}
-                  height={35}
-                  className="h-8 w-auto"
-                />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2 text-cn-blue-700 hover:bg-cn-blue-50 rounded-lg transition-colors"
-                aria-label="Close menu"
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
+        <nav aria-label="Primary" className="hidden items-center gap-0.5 lg:flex">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="whitespace-nowrap rounded-full px-[15px] py-[9px] text-[13.5px] font-semibold text-cn-blue-600 transition-colors hover:bg-[#f3f5f2] hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-            <nav className="p-4 space-y-2">
-              <Link
-                href="/#how-it-works"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 text-cn-blue-700 hover:bg-cn-blue-50 rounded-lg transition-colors"
-              >
-                How It Works
-              </Link>
-              <Link
-                href="/#live-errands"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 text-cn-blue-700 hover:bg-cn-blue-50 rounded-lg transition-colors"
-              >
-                Active Errands
-              </Link>
-              <Link
-                href="/register?mode=runner"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 text-cn-blue-700 hover:bg-cn-blue-50 rounded-lg transition-colors"
-              >
-                Become a Runner
-              </Link>
-              <Link
-                href="/#trust-safety"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 text-cn-blue-700 hover:bg-cn-blue-50 rounded-lg transition-colors"
-              >
-                Safety Tips
-              </Link>
-              <Link
-                href="/#faq"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 text-cn-blue-700 hover:bg-cn-blue-50 rounded-lg transition-colors"
-              >
-                FAQ
-              </Link>
-            </nav>
+        <div className="flex items-center gap-2">
+          <Link href="/login" className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}>
+            <User className="size-[18px]" />
+            <span className="hidden sm:inline">Sign In</span>
+          </Link>
+          <Link
+            href="/register"
+            className={cn(
+              PILL,
+              'hidden bg-white text-ink shadow-[inset_0_0_0_1px_rgba(23,33,46,0.12)] hover:bg-[#f3f5f2] md:inline-flex',
+            )}
+          >
+            Sign Up
+          </Link>
+          <Link href="/register" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
+            <Plus className="size-[18px]" strokeWidth={2.4} />
+            <span className="hidden min-[420px]:inline">Post Errand</span>
+          </Link>
+          <button
+            type="button"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            onClick={() => setOpen((v) => !v)}
+            className="grid size-[42px] place-items-center rounded-full bg-[#f3f5f2] text-ink lg:hidden"
+          >
+            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+        </div>
+      </div>
 
-            <div className="p-4 space-y-3 border-t border-cn-blue-100">
-              <Button variant="soft" className="w-full" asChild>
-                <Link href="/login">Sign In</Link>
-              </Button>
-              <Button variant="ghost" className="w-full border border-cn-blue-200" asChild>
-                <Link href="/register">Create Account</Link>
-              </Button>
-              <Button className="w-full" asChild>
-                <Link href="/register">Post Errand</Link>
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-    </>
+      {open ? (
+        <nav
+          id="mobile-nav"
+          aria-label="Mobile"
+          className="absolute inset-x-0 top-full grid gap-0.5 border-b border-[var(--tu-line)] bg-white px-4 pb-4 pt-3 shadow-[0_18px_30px_-18px_rgba(23,33,46,0.25)] lg:hidden"
+        >
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className="rounded-xl px-3.5 py-3 text-[15px] font-semibold text-cn-blue-600 hover:bg-[#f3f5f2] hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+          <Link
+            href="/register?mode=runner"
+            onClick={() => setOpen(false)}
+            className="rounded-xl px-3.5 py-3 text-[15px] font-semibold text-cn-blue-600 hover:bg-[#f3f5f2] hover:text-ink"
+          >
+            Become a Runner
+          </Link>
+        </nav>
+      ) : null}
+    </header>
   );
 }

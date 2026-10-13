@@ -5,21 +5,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
-// Keys that should never be persisted
-const SENSITIVE_KEY_PATTERNS = [
-  /^chat/,
-  /^conversations/,
-  /^messages/,
-  /^location/,
-  /^verification/,
-  /^admin/,
-  /^trusted-contact/,
-  /^disputes/,
-];
+// Query-key roots that are never written to storage (Frontend PRD 22).
+const SENSITIVE_ROOTS = new Set([
+  'auth',
+  'me',
+  'chat',
+  'conversations',
+  'messages',
+  'location',
+  'locations',
+  'verification',
+  'admin',
+  'trusted-contact',
+  'disputes',
+  'payments',
+]);
 
-function isSensitiveKey(queryKey: readonly unknown[]): boolean {
-  const keyString = JSON.stringify(queryKey);
-  return SENSITIVE_KEY_PATTERNS.some(pattern => pattern.test(keyString));
+export function isSensitiveKey(queryKey: readonly unknown[]): boolean {
+  const root = queryKey[0];
+  return typeof root === 'string' && SENSITIVE_ROOTS.has(root);
 }
 
 const queryClient = new QueryClient({

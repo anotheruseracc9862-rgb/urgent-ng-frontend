@@ -1,369 +1,211 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Button } from '@urgent/ui';
-import { formatMoney } from '@urgent/utils';
+import { Check, Minus, Sparkles } from 'lucide-react';
+import { api } from '@/lib/api/client';
 
 export const metadata: Metadata = {
   title: 'Pricing — Urgent.ng',
-  description: 'Simple, transparent pricing for Urgent.ng services',
+  description: 'Free to use. Pay only if you want more.',
 };
 
-// This would fetch from GET /billing/products/public in production
-// For now, using static data matching the expected structure
-const PRODUCTS = [
-  {
-    code: 'RUNNER_PRO_MONTHLY',
-    name: 'Runner Pro (Monthly)',
-    orderType: 'RUNNER_PRO' as const,
-    priceMinor: 299900, // ₦2,999 in kobo
-    vatMinor: 45000, // VAT included
-    currency: 'NGN',
-    periodDays: 30,
-  },
-  {
-    code: 'VERIFICATION_FEE',
-    name: 'Identity Verification',
-    orderType: 'VERIFICATION_FEE' as const,
-    priceMinor: 250000, // ₦2,500 in kobo
-    vatMinor: 37500, // VAT included
-    currency: 'NGN',
-    periodDays: null,
-  },
-  {
-    code: 'BOOST_24H',
-    name: 'Errand Boost (24 hours)',
-    orderType: 'BOOST' as const,
-    priceMinor: 149900, // ₦1,499 in kobo
-    vatMinor: 22500,
-    currency: 'NGN',
-    periodDays: 1,
-  },
+interface Product {
+  code: string;
+  name: string;
+  orderType: 'RUNNER_PRO' | 'BOOST' | 'VERIFICATION_FEE' | string;
+  priceMinor: number;
+  vatMinor: number;
+  currency: string;
+  periodDays: number | null;
+}
+
+/** Shown only if the API cannot be reached, so the page never renders empty. */
+const FALLBACK: Product[] = [
+  { code: 'RUNNER_PRO', name: 'Runner Pro', orderType: 'RUNNER_PRO', priceMinor: 500000, vatMinor: 0, currency: 'NGN', periodDays: 30 },
+  { code: 'PRIORITY_BOOST', name: 'Priority Boost', orderType: 'BOOST', priceMinor: 100000, vatMinor: 0, currency: 'NGN', periodDays: null },
 ];
 
-export default function PricingPage() {
+async function loadProducts(): Promise<Product[]> {
+  try {
+    return await api<Product[]>('/billing/products/public');
+  } catch {
+    return FALLBACK;
+  }
+}
+
+function naira(minor: number): string {
+  return `₦${(minor / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
+}
+
+function Feature({ children, light }: { children: React.ReactNode; light?: boolean }) {
   return (
-    <div className="py-16 bg-cn-blue-50">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-cn-blue-900 mb-4">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="text-lg text-cn-blue-600 max-w-2xl mx-auto">
-            No hidden fees. Pay only for what you use. All prices include VAT.
-          </p>
-        </div>
+    <li className="flex items-start gap-2.5 text-sm">
+      <Check className={`mt-0.5 size-[18px] shrink-0 ${light ? 'text-lime' : 'text-green'}`} strokeWidth={2.5} />
+      <span>{children}</span>
+    </li>
+  );
+}
 
-        {/* Free for Basic Use */}
-        <div className="bg-white rounded-3xl p-8 md:p-12 text-center mb-12 shadow-lg">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cn-green-100 mb-6">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-cn-green-700"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+const COMPARE: { label: string; free: React.ReactNode; pro: React.ReactNode }[] = [
+  { label: 'Post and manage errands', free: 'yes', pro: 'yes' },
+  { label: 'New offers per day', free: '10', pro: 'Unlimited' },
+  { label: 'Edit offers and answer counters', free: 'Unlimited', pro: 'Unlimited' },
+  { label: 'Early access to new errands', free: 'no', pro: 'yes' },
+  { label: 'Pro badge', free: 'no', pro: 'yes' },
+  { label: 'Identity verification to send offers', free: 'yes', pro: 'yes' },
+];
+
+function Cell({ value }: { value: React.ReactNode }) {
+  if (value === 'yes') return <Check className="mx-auto size-[18px] text-ok" strokeWidth={3} aria-label="Included" />;
+  if (value === 'no') return <Minus className="mx-auto size-[18px] text-faint" aria-label="Not included" />;
+  return <span className="font-bold text-ok">{value}</span>;
+}
+
+export default async function PricingPage() {
+  const products = await loadProducts();
+  const pro = products.find((p) => p.orderType === 'RUNNER_PRO');
+  const boost = products.find((p) => p.orderType === 'BOOST');
+
+  return (
+    <div className="mx-auto w-full max-w-[1120px] px-4 pb-16 pt-6">
+      <section className="px-1.5 pb-8 pt-2 text-center">
+        <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-green-700">Runner Pro &amp; pricing</p>
+        <h1 className="mt-2 text-[clamp(28px,4vw,40px)] font-extrabold leading-[1.12] tracking-[-0.03em]">
+          Free to use. Pay only if you want more.
+        </h1>
+        <p className="mx-auto mt-2.5 max-w-[620px] text-base text-muted">
+          Posting errands and sending offers are free. Errand payments go straight from requester to runner, so we
+          never take a cut.
+        </p>
+      </section>
+
+      <div className="grid items-stretch gap-4 md:grid-cols-3">
+        <section className="flex flex-col gap-[18px] rounded-[var(--r-xl)] bg-surface p-7 shadow-[var(--shadow)]">
+          <div>
+            <span className="inline-flex rounded-full bg-panel px-2.5 py-1 text-[11.5px] font-bold text-ink-2">Free</span>
           </div>
-          <h2 className="text-3xl font-bold text-cn-blue-900 mb-4">
-            Free to Post Errands & Run 10 Errands Daily
-          </h2>
-          <p className="text-lg text-cn-blue-600 max-w-3xl mx-auto mb-6">
-            Requesters never pay platform fees. Runners can send up to 10 free offers per day.
-            Payment happens directly between users—Urgent.ng never touches your errand money.
-          </p>
-          <Button size="lg" asChild>
-            <Link href="/register">Get Started Free</Link>
-          </Button>
-        </div>
-
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {/* Runner Pro */}
-          <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-cn-green-600">
-            <div className="text-center mb-6">
-              <div className="inline-block px-3 py-1 bg-cn-green-100 text-cn-green-700 text-xs font-bold rounded-full mb-4">
-                MOST POPULAR
-              </div>
-              <h3 className="text-2xl font-bold text-cn-blue-900 mb-2">Runner Pro</h3>
-              <div className="text-4xl font-bold text-cn-blue-900 mb-2">
-                {formatMoney(PRODUCTS[0].priceMinor)}
-                <span className="text-lg font-normal text-cn-blue-600">/month</span>
-              </div>
-              <p className="text-sm text-cn-blue-600">
-                VAT included: {formatMoney(PRODUCTS[0].vatMinor)}
-              </p>
-            </div>
-
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">
-                  <strong>Unlimited daily offers</strong> — No caps
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Priority in search results</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Pro badge on your profile</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Advanced analytics dashboard</span>
-              </li>
-            </ul>
-
-            <Button className="w-full" asChild>
-              <Link href="/register?mode=runner">Subscribe Now</Link>
-            </Button>
+          <div>
+            <div className="text-[40px] font-extrabold leading-none tracking-[-0.04em]">₦0</div>
+            <div className="mt-2 text-[13px] text-muted">For everyone</div>
           </div>
+          <ul className="grid flex-1 gap-3">
+            <Feature>Post errands and review offers</Feature>
+            <Feature>10 new offers per day as a runner</Feature>
+            <Feature>Editing offers and counters never use your daily count</Feature>
+            <Feature>Chat, progress updates and trusted-contact links</Feature>
+          </ul>
+          <Link
+            href="/register"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-surface text-[13.5px] font-bold shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:bg-panel"
+          >
+            Create free account
+          </Link>
+        </section>
 
-          {/* Verification Fee */}
-          <div className="bg-white rounded-3xl p-8 shadow-lg">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-cn-blue-900 mb-2">Identity Verification</h3>
-              <div className="text-4xl font-bold text-cn-blue-900 mb-2">
-                {formatMoney(PRODUCTS[1].priceMinor)}
-              </div>
-              <p className="text-sm text-cn-blue-600">
-                One-time fee (VAT: {formatMoney(PRODUCTS[1].vatMinor)})
-              </p>
-            </div>
-
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">NIN verification check</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Selfie verification</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Verified badge forever</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Higher trust from requesters</span>
-              </li>
-            </ul>
-
-            <Button variant="ghost" className="w-full border border-cn-blue-200" asChild>
-              <Link href="/register?mode=runner">Get Verified</Link>
-            </Button>
+        <section className="relative flex flex-col gap-[18px] rounded-[var(--r-xl)] bg-ink p-7 text-white shadow-[var(--shadow)]">
+          <span className="absolute right-5 top-5 rounded-full bg-[#26323f] px-2.5 py-1 text-[11.5px] font-bold">
+            Most popular
+          </span>
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">
+              <Sparkles className="size-3" /> Runner Pro
+            </span>
           </div>
-
-          {/* Boost */}
-          <div className="bg-white rounded-3xl p-8 shadow-lg">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-cn-blue-900 mb-2">Errand Boost</h3>
-              <div className="text-4xl font-bold text-cn-blue-900 mb-2">
-                {formatMoney(PRODUCTS[2].priceMinor)}
-              </div>
-              <p className="text-sm text-cn-blue-600">
-                Per 24 hours (VAT: {formatMoney(PRODUCTS[2].vatMinor)})
-              </p>
+          <div>
+            <div className="text-[40px] font-extrabold leading-none tracking-[-0.04em]">
+              {pro ? naira(pro.priceMinor) : '—'}{' '}
+              <small className="text-sm font-semibold tracking-normal text-[#aeb8c6]">
+                / {pro?.periodDays ?? 30} days
+              </small>
             </div>
-
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">
-                  <strong>Featured at the top</strong> of search
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Highlighted with a badge</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Up to 3× more runner views</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-cn-green-600 flex-shrink-0 mt-0.5"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="text-cn-blue-700">Faster offers received</span>
-              </li>
-            </ul>
-
-            <Button variant="ghost" className="w-full border border-cn-blue-200" asChild>
-              <Link href="/register">Boost an Errand</Link>
-            </Button>
-          </div>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="bg-white rounded-3xl p-8 md:p-12">
-          <h2 className="text-2xl font-bold text-cn-blue-900 mb-8 text-center">
-            Pricing Questions
-          </h2>
-          <div className="space-y-6 max-w-3xl mx-auto">
-            <div>
-              <h3 className="font-bold text-cn-blue-900 mb-2">
-                Do requesters pay any platform fees?
-              </h3>
-              <p className="text-cn-blue-700">
-                No. Requesters post errands for free and pay runners directly. Urgent.ng never
-                charges requesters or takes a cut of errand payments.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-cn-blue-900 mb-2">
-                What happens to my Runner Pro subscription if I don&apos;t use it?
-              </h3>
-              <p className="text-cn-blue-700">
-                It continues until you cancel. There are no refunds for unused time, but you can
-                cancel anytime and your benefits continue until the end of your billing period.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-cn-blue-900 mb-2">How do I pay for services?</h3>
-              <p className="text-cn-blue-700">
-                We accept card payments and bank transfers through Paystack. All prices shown
-                include VAT.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-cn-blue-900 mb-2">
-                Is verification required to be a runner?
-              </h3>
-              <p className="text-cn-blue-700">
-                Yes. Identity verification protects both requesters and runners. The ₦2,500
-                one-time fee covers NIN checks and manual review.
-              </p>
+            <div className="mt-2 text-[13px] text-[#c9d2de]">
+              {pro && pro.vatMinor > 0 ? `Includes ${naira(pro.vatMinor)} VAT. ` : ''}Cancel any time.
             </div>
           </div>
-        </div>
+          <ul className="grid flex-1 gap-3 text-[#c9d2de]">
+            <Feature light>Unlimited new offers</Feature>
+            <Feature light>See new errands a few minutes before everyone else</Feature>
+            <Feature light>Pro badge on every offer</Feature>
+            <Feature light>Everything in Free</Feature>
+          </ul>
+          <Link
+            href="/register?mode=runner"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-lime text-[13.5px] font-bold text-ink transition-colors hover:bg-lime-600"
+          >
+            Get Runner Pro
+          </Link>
+        </section>
+
+        <section className="flex flex-col gap-[18px] rounded-[var(--r-xl)] bg-surface p-7 shadow-[var(--shadow)]">
+          <div>
+            <span className="inline-flex rounded-full bg-amber-bg px-2.5 py-1 text-[11.5px] font-bold text-amber">
+              Errand boost
+            </span>
+          </div>
+          <div>
+            <div className="text-[40px] font-extrabold leading-none tracking-[-0.04em]">
+              {boost ? naira(boost.priceMinor) : '—'}{' '}
+              <small className="text-sm font-semibold tracking-normal text-muted">per errand</small>
+            </div>
+            <div className="mt-2 text-[13px] text-muted">One-time, for 6 hours</div>
+          </div>
+          <ul className="grid flex-1 gap-3">
+            <Feature>Higher placement in the runner feed</Feature>
+            <Feature>Only for open errands</Feature>
+            <Feature>Existing offers and agreed amounts do not change</Feature>
+            <Feature>Separate from the errand amount</Feature>
+          </ul>
+          <Link
+            href="/register"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-surface text-[13.5px] font-bold shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:bg-panel"
+          >
+            Boost an errand
+          </Link>
+        </section>
       </div>
+
+      <section className="mt-4 rounded-[var(--r-lg)] bg-surface p-[22px] shadow-[var(--shadow)]">
+        <h2 className="mb-4 text-base font-extrabold tracking-tight">Compare</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs font-bold uppercase tracking-wide text-muted">
+                <th className="py-2.5 pr-3">What you get</th>
+                <th className="px-3 py-2.5 text-center">Free</th>
+                <th className="px-3 py-2.5 text-center">Runner Pro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE.map((row) => (
+                <tr key={row.label} className="border-b border-line-2 last:border-0">
+                  <td className="py-3 pr-3 font-semibold">{row.label}</td>
+                  <td className="px-3 py-3 text-center">
+                    <Cell value={row.free} />
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <Cell value={row.pro} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-[var(--r-lg)] bg-gradient-to-br from-[#f1fadb] to-surface p-[22px] shadow-[var(--shadow)]">
+        <div className="min-w-0 flex-1">
+          <h2 className="mb-1 text-lg font-extrabold tracking-tight">What about the errand itself?</h2>
+          <p className="text-muted">
+            The price is whatever you and the runner agree. You pay the runner directly. Urgent.ng does not collect,
+            hold or release it, and takes no cut.
+          </p>
+        </div>
+        <Link
+          href="/help#payments"
+          className="inline-flex min-h-[44px] items-center rounded-full bg-ink px-5 text-[13.5px] font-bold text-white transition-colors hover:bg-[#0f1822]"
+        >
+          How payments work
+        </Link>
+      </section>
     </div>
   );
 }

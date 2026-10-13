@@ -1,11 +1,16 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { LoginForm } from '@/features/auth/login-form';
 
 export const metadata: Metadata = {
-  title: 'Sign In — Urgent.ng',
+  title: 'Sign in — Urgent.ng',
   description: 'Sign in to your Urgent.ng account',
 };
 
 export default function LoginPage() {
-  return <LoginForm />;
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
 }
