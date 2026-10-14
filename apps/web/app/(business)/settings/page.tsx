@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bell, ChevronRight, Phone } from 'lucide-react';
+import { Bell, ChevronRight, MapPin, Phone, Shield, UserRoundX, UserRoundCog } from 'lucide-react';
 
 export const metadata = { title: 'Settings — Urgent.ng' };
 
@@ -15,6 +15,30 @@ const SECTIONS = [
     icon: Bell,
     title: 'Notifications',
     text: 'Choose what reaches you, and set quiet hours.',
+  },
+  {
+    href: '/settings/privacy',
+    icon: MapPin,
+    title: 'Privacy & consents',
+    text: 'Review required policies and manage optional permissions.',
+  },
+  {
+    href: '/settings/security',
+    icon: Shield,
+    title: 'Security',
+    text: 'Review signed-in sessions and devices with notification access.',
+  },
+  {
+    href: '/settings/blocked',
+    icon: UserRoundX,
+    title: 'Blocked people',
+    text: 'Review people you have blocked and unblock them.',
+  },
+  {
+    href: '/settings/account',
+    icon: UserRoundCog,
+    title: 'Deactivate or delete account',
+    text: 'Manage reversible deactivation or request account deletion.',
   },
 ] as const;
 

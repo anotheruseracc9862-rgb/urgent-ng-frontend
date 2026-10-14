@@ -23,6 +23,13 @@ export interface ApiOptions {
   noPolicyIntercept?: boolean;
 }
 
+export interface ApiResponse<T> {
+  data: T;
+  meta?: { nextCursor?: string | null; [key: string]: unknown };
+  requestId?: string;
+  dateHeader?: string;
+}
+
 const BROWSER_BASE = "/api/v1";
 const SERVER_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api/v1";
 
@@ -127,7 +134,7 @@ function redirectToLogin(): void {
   navigateClient(`/login?reason=session-expired&redirect=${encodeURIComponent(here)}`, true);
 }
 
-export async function api<T = unknown>(path: string, options: ApiOptions = {}): Promise<T> {
+export async function apiResponse<T = unknown>(path: string, options: ApiOptions = {}): Promise<ApiResponse<T>> {
   const {
     method = "GET",
     body,
@@ -151,18 +158,24 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
       cookie,
       timeoutMs,
     });
-    return result.data;
+    const dateHeader = result.headers.get("Date");
+    return {
+      data: result.data,
+      ...(result.meta === undefined ? {} : { meta: result.meta }),
+      ...(result.requestId === undefined ? {} : { requestId: result.requestId }),
+      ...(dateHeader === null ? {} : { dateHeader }),
+    };
   } catch (error) {
     if (!isApiError(error)) throw error;
 
     const inBrowser = typeof window !== "undefined";
     if (inBrowser && error.code === "POLICY_ACCEPTANCE_REQUIRED" && !noPolicyIntercept && !optionalAuth) {
-      return interceptPolicyRequest<T>(path, options);
+      return { data: await interceptPolicyRequest<T>(path, options) };
     }
 
     if (inBrowser && error.status === 401 && !noRefresh && error.code === "AUTH_REQUIRED") {
       if ((await refreshBrowserSession()) === "refreshed") {
-        return api<T>(path, { ...options, noRefresh: true });
+        return apiResponse<T>(path, { ...options, noRefresh: true });
       }
       if (optionalAuth) clearBrowserSession();
       else redirectToLogin();
@@ -172,6 +185,10 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
 
     throw error;
   }
+}
+
+export async function api<T = unknown>(path: string, options: ApiOptions = {}): Promise<T> {
+  return (await apiResponse<T>(path, options)).data;
 }
 
 /** Only same-site relative paths are allowed as post-login destinations. */

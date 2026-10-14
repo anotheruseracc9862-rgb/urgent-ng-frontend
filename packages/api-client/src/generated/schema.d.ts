@@ -3373,7 +3373,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["Offers_getNegotiation"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5040,6 +5040,7 @@ export interface components {
             note?: string;
         };
         CategoryDto: {
+            id: string;
             /** @description Stable key, for example `delivery`. */
             key: string;
             name: string;
@@ -6205,6 +6206,16 @@ export interface components {
             mediaId: string;
             position: number;
         };
+        ErrandAssignmentSummaryDto: {
+            id: string;
+            runnerId: string;
+            /** @enum {string} */
+            status: "PENDING_ACCEPTANCE" | "ACCEPTED" | "DECLINED" | "TIMED_OUT" | "CANCELLED" | "COMPLETED";
+            /** @description The agreed runner fee in kobo. */
+            agreedAmountMinor: number;
+            /** Format: date-time */
+            acceptedAt: string | null;
+        };
         /** @enum {string} */
         ErrandCancellationReason: "REQUESTER_CANCELLED" | "RUNNER_CANCELLED" | "RUNNER_REJECTED_ASSIGNMENT" | "NO_RUNNER_AVAILABLE" | "SAFETY_CONCERN" | "DUPLICATE_ERRAND" | "USER_ACCOUNT_RESTRICTED" | "ADMIN_CANCELLED" | "OTHER";
         ErrandDto: {
@@ -6223,6 +6234,7 @@ export interface components {
             pickupContact: components["schemas"]["ErrandContactViewDto"] | null;
             dropoffContact: components["schemas"]["ErrandContactViewDto"] | null;
             photos: components["schemas"]["ErrandPhotoDto"][];
+            assignment: components["schemas"]["ErrandAssignmentSummaryDto"] | null;
             /** Format: date-time */
             publishedAt: string | null;
             /** Format: date-time */
@@ -6408,6 +6420,43 @@ export interface components {
             version: number;
             /** Format: date-time */
             createdAt: string;
+        };
+        NegotiationEventDto: {
+            id: string;
+            /** @enum {string} */
+            type: "INITIAL_OFFER" | "COUNTER_OFFER" | "ACCEPT" | "REJECT" | "WITHDRAW" | "SYSTEM_EVENT";
+            actorUserId: string;
+            amountMinor: number | null;
+            durationMinutes: number | null;
+            message: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        OfferNegotiationDto: {
+            id: string;
+            errandId: string;
+            runnerId: string;
+            requesterId: string;
+            amountMinor: number;
+            durationMinutes: number;
+            /** @enum {string} */
+            status: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            /** @enum {string} */
+            awaitingParty: "RUNNER" | "REQUESTER" | "NONE";
+            version: number;
+            needsReconfirmation: boolean;
+            closeReason: string | null;
+            conversationId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            availabilityConfirmedAt: string | null;
+            message: string | null;
+            assignmentId: string | null;
+            errandTitle: string;
+            history: components["schemas"]["NegotiationEventDto"][];
         };
         CounterOfferDto: {
             amountMinor: number;
@@ -22014,6 +22063,61 @@ export interface operations {
             };
             /** @description Error (see `error.code`) */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
+    Offers_getNegotiation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OfferNegotiationDto"];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Error (see `error.code`) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

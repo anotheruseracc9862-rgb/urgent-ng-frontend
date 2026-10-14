@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { BottomNav } from '@/components/shell/bottom-nav';
 import { Sidebar } from '@/components/shell/sidebar';
 import { Topbar } from '@/components/shell/topbar';
+import { RestrictionBanner } from '@/components/shell/restriction-banner';
 import { SessionProvider } from '@/lib/auth/client';
 import { getActiveMode, getSession } from '@/lib/auth/session';
 
@@ -20,6 +21,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
         <Sidebar mode={mode} name={me.name} />
         <div className="flex min-w-0 flex-col gap-4">
           <Topbar mode={mode} />
+          <RestrictionBanner />
           <main className="min-w-0 pb-24 lg:pb-10">{children}</main>
         </div>
       </div>

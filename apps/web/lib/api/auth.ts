@@ -1,12 +1,21 @@
-import { api } from './client';
+import { api, apiResponse } from './client';
 import type { components } from '@urgent/api-client';
 import type {
   ConsentHistory,
   ConsentInput,
+  BlockedUser,
+  AccountChange,
+  EnforcementAction,
+  ReliabilityExplanation,
+  PublicProfile,
+  ProfileRating,
+  CreateReport,
   GoogleLoginResult,
   LoginResult,
+  LoginSession,
   Me,
   PolicyVersion,
+  RegisteredDevice,
   RegisterResult,
 } from './types';
 
@@ -50,5 +59,32 @@ export const authApi = {
   verifyContact: (input: Identifier & { code: string }) =>
     api<{ kind: 'phone' | 'email'; value: string }>('/me/contact/verify', { method: 'POST', body: input }),
   consents: () => api<ConsentHistory>('/me/consents'),
-  acceptConsent: (input: ConsentInput) => api('/me/consents', { method: 'POST', body: input }),
+  acceptConsent: (input: ConsentInput) =>
+    api<components['schemas']['ConsentViewDto']>('/me/consents', { method: 'POST', body: input }),
+  withdrawConsent: (consentId: string) =>
+    api<void>(`/me/consents/${consentId}/withdraw`, { method: 'POST' }),
+  sessions: () => api<LoginSession[]>('/me/sessions'),
+  revokeSession: (sessionId: string) => api<void>(`/me/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }),
+  devices: () => api<RegisteredDevice[]>('/me/devices'),
+  removeDevice: (deviceId: string) => api<void>(`/me/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' }),
+  blockedUsers: () => api<BlockedUser[]>('/me/blocks'),
+  blockUser: (userId: string) => api<void>(`/users/${encodeURIComponent(userId)}/block`, { method: 'POST' }),
+  unblockUser: (userId: string) => api<void>(`/users/${encodeURIComponent(userId)}/block`, { method: 'DELETE' }),
+  deactivate: (reason?: string) =>
+    api<AccountChange>('/me/deactivate', { method: 'POST', body: { reason } }),
+  reactivate: () => api<AccountChange>('/me/reactivate', { method: 'POST', body: {} }),
+  requestDeletion: (reason?: string) =>
+    api<AccountChange>('/me/delete-request', { method: 'POST', body: { reason } }),
+  cancelDeletion: () => api<AccountChange>('/me/delete-request', { method: 'DELETE' }),
+  enforcement: () => api<EnforcementAction[]>('/me/enforcement'),
+  appeal: (actionId: string, note: string) =>
+    api<EnforcementAction>(`/enforcement/${encodeURIComponent(actionId)}/appeal`, { method: 'POST', body: { note } }),
+  reliability: () => api<ReliabilityExplanation>('/me/reliability'),
+  publicProfile: (userId: string) => api<PublicProfile>(`/users/${encodeURIComponent(userId)}`),
+  profileRatings: (userId: string, cursor?: string, limit = 10) =>
+    api<ProfileRating[]>(`/users/${encodeURIComponent(userId)}/ratings`, { query: { cursor, limit } }),
+  profileRatingsPage: (userId: string, cursor?: string, limit = 10) =>
+    apiResponse<ProfileRating[]>(`/users/${encodeURIComponent(userId)}/ratings`, { query: { cursor, limit } }),
+  createReport: (input: CreateReport, idempotencyKey: string) =>
+    api<components['schemas']['ReportDto']>('/reports', { method: 'POST', body: input, headers: { 'Idempotency-Key': idempotencyKey } }),
 };

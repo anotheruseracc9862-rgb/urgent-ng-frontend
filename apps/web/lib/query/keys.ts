@@ -6,6 +6,20 @@ export const queryKeys = {
     session: () => ['auth', 'session'] as const,
     me: (userId?: string) => (userId ? ['auth', 'me', userId] as const : ['auth', 'me'] as const),
   },
+  consents: {
+    history: (userId: string) => ['consents', 'history', userId] as const,
+  },
+  security: {
+    sessions: (userId: string) => ['security', 'sessions', userId] as const,
+    devices: (userId: string) => ['security', 'devices', userId] as const,
+  },
+  blocks: {
+    list: (userId: string) => ['blocks', 'list', userId] as const,
+  },
+  account: {
+    enforcement: (userId: string) => ['account', 'enforcement', userId] as const,
+    reliability: (userId: string) => ['account', 'reliability', userId] as const,
+  },
 
   dashboard: {
     summary: (userId: string) => ['dashboard', 'summary', userId] as const,
@@ -21,7 +35,8 @@ export const queryKeys = {
     lists: () => ['errands', 'list'] as const,
     list: (filters: Record<string, unknown>) => ['errands', 'list', filters] as const,
     detail: (id: string) => ['errands', 'detail', id] as const,
-    offers: (errandId: string) => ['errands', 'offers', errandId] as const,
+    offers: (errandId: string, sort?: string) =>
+      sort ? ['errands', 'offers', errandId, sort] as const : ['errands', 'offers', errandId] as const,
   },
 
   // Marketplace
@@ -46,6 +61,7 @@ export const queryKeys = {
     lists: () => ['assignments', 'list'] as const,
     list: (filters: Record<string, unknown>) => ['assignments', 'list', filters] as const,
     detail: (id: string) => ['assignments', 'detail', id] as const,
+    timeline: (id: string) => ['assignments', 'timeline', id] as const,
   },
 
   // Runner
@@ -54,6 +70,8 @@ export const queryKeys = {
     verification: () => ['runner', 'verification'] as const,
     performance: () => ['runner', 'performance'] as const,
     offerLimit: () => ['runner', 'offer-limit'] as const,
+    eligibility: () => ['runner', 'eligibility'] as const,
+    offers: (filters: Record<string, unknown>) => ['runner', 'offers', filters] as const,
   },
 
   // Users
@@ -88,6 +106,8 @@ export const queryKeys = {
   // Reference data
   reference: {
     categories: () => ['reference', 'categories'] as const,
+    popularCategories: () => ['reference', 'popular-categories'] as const,
+    prohibitedItems: () => ['reference', 'prohibited-items'] as const,
     policies: (type: string) => ['reference', 'policies', type] as const,
   },
 } as const;

@@ -79,7 +79,7 @@ export default async function PricingPage() {
       </section>
 
       <div className="grid items-stretch gap-4 md:grid-cols-3">
-        <section className="flex flex-col gap-[18px] rounded-[var(--r-xl)] bg-surface p-7 shadow-[var(--shadow)]">
+        <section id="errand-boost" className="flex flex-col gap-[18px] rounded-[var(--r-xl)] bg-surface p-7 shadow-[var(--shadow)]">
           <div>
             <span className="inline-flex rounded-full bg-panel px-2.5 py-1 text-[11.5px] font-bold text-ink-2">Free</span>
           </div>
