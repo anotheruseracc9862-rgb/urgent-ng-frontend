@@ -17,7 +17,7 @@ export interface ApiResult<T> {
 
 export interface ApiRequestOptions {
   baseUrl?: string;
-  query?: Record<string, string | number | boolean | undefined>;
+  query?: Record<string, string | number | boolean | Array<string | number | boolean> | undefined>;
   body?: unknown;
   headers?: HeadersInit;
   idempotencyKey?: string;
@@ -62,7 +62,14 @@ function buildUrl(
   const url = new URL(joinedPath, isAbsolute ? undefined : "http://localhost");
 
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined) url.searchParams.set(key, String(value));
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item !== undefined) url.searchParams.append(key, String(item));
+      }
+      continue;
+    }
+    url.searchParams.set(key, String(value));
   }
 
   return isAbsolute ? url.toString() : `${url.pathname}${url.search}`;

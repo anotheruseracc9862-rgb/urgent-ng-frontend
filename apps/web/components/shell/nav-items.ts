@@ -1,5 +1,7 @@
 import {
   Bell,
+  Bookmark,
+  History,
   LayoutDashboard,
   MapPin,
   MessageSquare,
@@ -30,7 +32,9 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, primary: true },
   { href: '/errands', label: 'My errands', icon: Package, mode: 'REQUESTER', primary: true },
   { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag, mode: 'RUNNER', primary: true },
+  { href: '/marketplace/saved', label: 'Saved errands', icon: Bookmark, mode: 'RUNNER' },
   { href: '/offers', label: 'My offers', icon: Star, mode: 'RUNNER' },
+  { href: '/runner/history', label: 'Job history', icon: History, mode: 'RUNNER' },
   { href: '/assignments', label: 'Assignments', icon: MapPin, mode: 'RUNNER', primary: true },
   { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true },
   { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'] },

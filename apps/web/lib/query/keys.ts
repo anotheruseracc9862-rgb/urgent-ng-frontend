@@ -43,6 +43,7 @@ export const queryKeys = {
   marketplace: {
     all: () => ['marketplace'] as const,
     feed: (filters: Record<string, unknown>) => ['marketplace', 'feed', filters] as const,
+    map: (filters: Record<string, unknown>) => ['marketplace', 'map', filters] as const,
     detail: (id: string) => ['marketplace', 'detail', id] as const,
     saved: () => ['marketplace', 'saved'] as const,
   },
@@ -62,12 +63,20 @@ export const queryKeys = {
     list: (filters: Record<string, unknown>) => ['assignments', 'list', filters] as const,
     detail: (id: string) => ['assignments', 'detail', id] as const,
     timeline: (id: string) => ['assignments', 'timeline', id] as const,
+    problems: (id: string) => ['assignments', 'problems', id] as const,
+    liveLocation: (id: string) => ['assignments', 'live-location', id] as const,
+    changeRequests: (id: string) => ['assignments', 'change-requests', id] as const,
+    paymentAgreement: (id: string) => ['assignments', 'payment-agreement', id] as const,
+    noShow: (id: string) => ['assignments', 'no-show', id] as const,
+    runnerHistory: (filters: Record<string, unknown>) => ['assignments', 'runner-history', filters] as const,
+    runnerHistorySummary: () => ['assignments', 'runner-history', 'summary'] as const,
   },
 
   // Runner
   runner: {
     all: () => ['runner'] as const,
     verification: () => ['runner', 'verification'] as const,
+    verificationAttempt: (id: string) => ['runner', 'verification', 'attempt', id] as const,
     performance: () => ['runner', 'performance'] as const,
     offerLimit: () => ['runner', 'offer-limit'] as const,
     eligibility: () => ['runner', 'eligibility'] as const,

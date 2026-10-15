@@ -12,7 +12,7 @@ export { ApiError, isApiError };
 export interface ApiOptions {
   method?: ApiMethod;
   body?: unknown;
-  query?: Record<string, string | number | boolean | undefined>;
+  query?: Record<string, string | number | boolean | Array<string | number | boolean> | undefined>;
   headers?: Record<string, string>;
   signal?: AbortSignal;
   cookie?: string;

@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { AssignmentPendingPage } from '@/features/offers/assignment/assignment-pending-page';
+import { AssignmentHubPage } from '@/features/assignments/hub/assignment-hub-page';
 
 export const metadata: Metadata = {
-  title: 'Assignment Pending — Urgent.ng',
+  title: 'Assignment — Urgent.ng',
 };
 
 export default async function AssignmentPendingRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <AssignmentPendingPage assignmentId={id} />;
+  return <AssignmentHubPage assignmentId={id} />;
 }
