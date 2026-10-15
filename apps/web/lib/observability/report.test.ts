@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { scrub, toSafeReport } from './report';
+import { reportWebVitals } from './web-vitals';
 
 describe('safe error reporting', () => {
   it('scrubs phones, emails and long ids from messages and stacks', () => {
@@ -15,6 +16,28 @@ describe('safe error reporting', () => {
 
   it('wraps non-Error throws', () => {
     expect(toSafeReport('boom', 'realtime')).toMatchObject({ name: 'Error', message: 'boom' });
+  });
+
+  it('removes bearer secrets from trusted-contact paths', () => {
+    expect(toSafeReport(new Error('Failed GET https://urgent.ng/shared/a-secret_token'), 'query').message)
+      .toBe('Failed GET https://urgent.ng/shared/[TOKEN]');
+  });
+
+  it('reports public page performance without transmitting its sharing secret', () => {
+    const sendBeacon = vi.fn();
+    const original = window.location.href;
+    vi.stubGlobal('navigator', { sendBeacon });
+    vi.stubEnv('NODE_ENV', 'production');
+    window.history.replaceState({}, '', '/shared/a-secret_token');
+    try {
+      reportWebVitals({ name: 'LCP', value: 123, rating: 'good', delta: 123, id: 'metric' });
+      expect(JSON.parse(sendBeacon.mock.calls[0][1])).toMatchObject({ url: '/shared/[token]' });
+      expect(sendBeacon.mock.calls[0][1]).not.toContain('a-secret_token');
+    } finally {
+      window.history.replaceState({}, '', original);
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
   });
 
   it('keeps undefined input undefined', () => {

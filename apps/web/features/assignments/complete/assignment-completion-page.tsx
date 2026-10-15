@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
+import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
@@ -77,7 +78,7 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
                 : 'The automatic completion deadline has passed. The server will update the errand status.'}
             </p>
           )}
-          <p className="text-xs text-muted">Deadline from server: {deadline ? <time dateTime={deadline}>{new Date(deadline).toLocaleString()}</time> : 'paused'}</p>
+          <p className="text-xs text-muted">Deadline from server: {deadline ? <time dateTime={deadline}>{formatDate(deadline)} (Lagos time)</time> : 'paused'}</p>
         </section>
       ) : null}
       {canConfirm ? (
@@ -90,6 +91,11 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
             <Button type="button" disabled={complete.isPending} onClick={() => complete.mutate()}>{complete.isPending ? 'Confirming…' : 'Confirm completion'}</Button>
             <Button asChild variant="ghost"><Link href={`/assignments/${assignmentId}/dispute`}>Something is wrong</Link></Button>
           </div>
+        </section>
+      ) : errand.status === 'COMPLETED' ? (
+        <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+          <Alert variant="ok" role="status">This errand has been completed.</Alert>
+          <Button asChild className="w-fit"><Link href={`/assignments/${assignmentId}/rating`}>Rate this errand</Link></Button>
         </section>
       ) : errand.status !== 'DELIVERED' ? (
         <Alert variant="warn" role="status">Delivery confirmation becomes available after the runner records delivery.</Alert>

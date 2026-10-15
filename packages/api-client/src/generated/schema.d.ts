@@ -7063,6 +7063,8 @@ export interface components {
              * @enum {string}
              */
             role: "REQUESTER" | "RUNNER";
+            /** @description The latest non-deleted dispute for this assignment, or null. Visible only to its parties. */
+            disputeId?: string | null;
             /** @description The errand as this caller may see it. Exact locations and contacts only for the requester, and for the runner while the assignment is ACCEPTED. */
             errand: components["schemas"]["AssignedErrandDto"];
         };

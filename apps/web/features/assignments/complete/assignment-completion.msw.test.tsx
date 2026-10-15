@@ -15,6 +15,18 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('assignment completion', () => {
+  it('shows the completed outcome and a working rating link after confirmation', async () => {
+    server.use(http.get('*/api/v1/assignments/complete-assignment', () => envelope({
+      id: 'complete-assignment', errandId: 'errand-1', role: 'REQUESTER', status: 'COMPLETED',
+      errand: { id: 'errand-1', title: 'Delivered errand', status: 'COMPLETED', autoCompleteAt: null },
+    })));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><AssignmentCompletionPage assignmentId="complete-assignment" /></QueryClientProvider>);
+    expect(await screen.findByText('This errand has been completed.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rate this errand' })).toHaveAttribute('href', '/assignments/complete-assignment/rating');
+    expect(screen.queryByText(/becomes available after/)).not.toBeInTheDocument();
+  });
+
   it('shows that automatic completion is paused when the server deadline is null after delivery', async () => {
     server.use(http.get('*/api/v1/assignments/complete-assignment', () => envelope({
       id: 'complete-assignment',

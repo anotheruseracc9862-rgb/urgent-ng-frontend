@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Package,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Star,
   User,
@@ -38,6 +39,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/assignments', label: 'Assignments', icon: MapPin, mode: 'RUNNER', primary: true },
   { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true },
   { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'] },
+  { href: '/ratings', label: 'Reviews', icon: Star },
+  { href: '/safety', label: 'Safety & support', icon: ShieldCheck },
   { href: '/profile', label: 'Profile & account', icon: User, primary: true, section: 'account' },
   { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
 ];

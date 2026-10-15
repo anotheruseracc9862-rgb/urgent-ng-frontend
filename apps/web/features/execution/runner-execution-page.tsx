@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Skeleton } from '@urgent/ui';
+import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '@urgent/ui';
 import { MediaUpload } from '@/components/media-upload/media-upload';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
-import { offersApi } from '@/features/offers/api';
+import { offersApi, type StepEvidence } from '@/features/offers/api';
 import { RunnerLocationSharing } from '@/features/location/share/runner-location-sharing';
 
 type Step = 'start' | 'pickup' | 'deliver';
@@ -36,14 +36,12 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
   });
   const [note, setNote] = useState('');
   const [mediaId, setMediaId] = useState<string>();
+  const [intent, setIntent] = useState<{ step: Step; key: string; evidence?: StepEvidence } | null>(null);
   const execute = useMutation({
-    mutationFn: (currentStep: Step) => offersApi.executionStep(assignmentId, currentStep, currentStep === 'start'
-      ? undefined
-      : {
-          ...(note.trim() ? { note: note.trim() } : {}),
-          ...(mediaId ? { mediaId } : {}),
-        }),
+    mutationFn: (confirmed: NonNullable<typeof intent>) =>
+      offersApi.executionStep(assignmentId, confirmed.step, confirmed.key, confirmed.evidence),
     onSuccess: async () => {
+      setIntent(null);
       setNote('');
       setMediaId(undefined);
       await Promise.all([
@@ -53,7 +51,12 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
       await assignment.refetch();
     },
     onError: async (error) => {
-      if (isApiError(error) && error.code === 'ERRAND_INVALID_STATE') await assignment.refetch();
+      if (isApiError(error) && error.code === 'ERRAND_INVALID_STATE') {
+        setIntent(null);
+        setNote('');
+        setMediaId(undefined);
+        await assignment.refetch();
+      }
     },
   });
 
@@ -96,7 +99,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
       </header>
       <RunnerLocationSharing assignmentId={assignmentId} />
 
-      {execute.error ? (
+      {execute.error && !intent ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(execute.error) && execute.error.code === 'ERRAND_INVALID_STATE'
             ? 'The errand status changed. We refreshed the available next step.'
@@ -126,7 +129,18 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
               </div>
             </>
           ) : null}
-          <Button type="button" className="w-fit" disabled={execute.isPending} onClick={() => execute.mutate(currentStep!)}>
+          <Button type="button" className="w-fit" disabled={execute.isPending} onClick={() => {
+            if (!currentStep) return;
+            execute.reset();
+            setIntent({
+              step: currentStep,
+              key: crypto.randomUUID(),
+              ...(currentStep === 'start' ? {} : { evidence: {
+                ...(note.trim() ? { note: note.trim() } : {}),
+                ...(mediaId ? { mediaId } : {}),
+              } }),
+            });
+          }}>
             {execute.isPending ? 'Recording…' : copy.action}
           </Button>
         </section>
@@ -137,6 +151,30 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
           <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}`}>View assignment</Link></Button>
         </section>
       )}
+      <Dialog open={intent !== null && intent.step === currentStep} onOpenChange={(open) => { if (!open && !execute.isPending) setIntent(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{intent ? `${stepCopy[intent.step].action}?` : 'Confirm step'}</DialogTitle>
+            <DialogDescription>
+              {intent?.step === 'start' ? 'Confirm you are ready to begin. The requester will be notified.'
+                : intent?.step === 'pickup' ? 'Confirm you have collected the item. Your note and any photo will be shared with the requester.'
+                  : 'Confirm you have delivered the item. Your evidence will be shared with the requester, who can then confirm completion.'}
+            </DialogDescription>
+          </DialogHeader>
+          {intent?.evidence?.note ? <p className="whitespace-pre-wrap break-words rounded-xl bg-panel p-3 text-sm text-ink-2">{intent.evidence.note}</p> : null}
+          {intent?.evidence?.mediaId ? <p className="text-sm text-muted">One evidence photo attached.</p> : null}
+          {execute.error ? <Alert variant="danger" role="alert">
+            <p>We could not confirm this step. Try again with the same details.</p>
+            {isApiError(execute.error) && execute.error.requestId ? <p className="mt-1 text-xs">Request ID: {execute.error.requestId}</p> : null}
+          </Alert> : null}
+          <DialogFooter className="gap-2 sm:space-x-0">
+            <Button type="button" variant="ghost" disabled={execute.isPending} onClick={() => setIntent(null)}>Go back</Button>
+            <Button type="button" disabled={execute.isPending || !intent || intent.step !== currentStep} onClick={() => { if (intent) execute.mutate(intent); }}>
+              {execute.isPending ? 'Recording…' : intent ? stepCopy[intent.step].action : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

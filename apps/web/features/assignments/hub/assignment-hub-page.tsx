@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -22,19 +23,18 @@ function label(value: string) {
 
 function visibleLocation(location: AssignedErrand['pickup'], exact: boolean) {
   if (!location) return null;
-  const values = location as Record<string, unknown>;
   const keys = exact
     ? ['addressText', 'landmark', 'area', 'lga', 'state']
     : ['area', 'lga', 'state'];
   const display = keys
-    .map((key) => values[key])
+    .map((key) => location[key])
     .filter((value): value is string => typeof value === 'string' && value.length > 0);
   return display.length ? [...new Set(display)].join(', ') : null;
 }
 
 function Contact({ title, contact }: { title: string; contact: AssignedErrand['pickupContact'] }) {
   if (!contact) return null;
-  const details = contact as Record<string, unknown>;
+  const details: Record<string, unknown> = contact;
   const name = typeof details.name === 'string' ? details.name : null;
   const phone = typeof details.phone === 'string' ? details.phone : null;
   if (!name && !phone) return null;
@@ -46,35 +46,42 @@ function Contact({ title, contact }: { title: string; contact: AssignedErrand['p
   );
 }
 
-function AssignmentPhoto({ photo, index }: { photo: AssignedErrand['photos'][number]; index: number }) {
-  const mediaId = photo.mediaId;
+function AssignmentPhoto({ mediaId, alt }: { mediaId: string; alt: string }) {
   const image = useQuery({
     queryKey: queryKeys.media.url(mediaId),
     queryFn: () => api<components['schemas']['MediaUrlDto']>(`/media/${mediaId}/url`),
     staleTime: 4 * 60_000,
+    retry: false,
   });
+  if (image.error) {
+    return <ApiErrorAlert error={image.error} fallback="We could not load this photo." onRetry={() => void image.refetch()} />;
+  }
   return (
     <div className="relative aspect-square overflow-hidden rounded-xl bg-panel">
-      {image.data?.url ? <Image src={image.data.url} alt={`Errand item ${index + 1}`} fill unoptimized sizes="120px" className="object-cover" /> : <Skeleton className="size-full" aria-label="Loading errand photo" />}
+      {image.data?.url ? <a href={image.data.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${alt.toLowerCase()}`}><Image src={image.data.url} alt={alt} fill unoptimized sizes="(max-width: 768px) 40vw, 200px" className="object-contain" /></a> : <Skeleton className="size-full" aria-label="Loading photo" />}
     </div>
   );
 }
 
 export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
   const queryClient = useQueryClient();
+  const [arrivalKey] = useState(() => crypto.randomUUID());
   const key = queryKeys.assignments.detail(assignmentId);
   const assignment = useQuery({
     queryKey: key,
     queryFn: () => offersApi.assignment(assignmentId),
     retry: false,
+    refetchInterval: 30_000,
   });
   const timeline = useQuery({
     queryKey: queryKeys.assignments.timeline(assignmentId),
     queryFn: () => offersApi.assignmentTimeline(assignmentId),
     retry: false,
+    enabled: Boolean(assignment.data),
+    refetchInterval: 30_000,
   });
   const arrived = useMutation({
-    mutationFn: () => offersApi.arrived(assignmentId, {}),
+    mutationFn: () => offersApi.arrived(assignmentId, {}, arrivalKey),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.assignments.timeline(assignmentId) });
     },
@@ -98,16 +105,15 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
   }
 
   const current: AssignmentDetail = assignment.data.data;
-  if (current.status === 'PENDING_ACCEPTANCE') return <AssignmentPendingPage assignmentId={assignmentId} />;
-
   const errand = current.errand;
   const exact = errand.accessLevel === 'EXACT';
   const isRunner = current.role === 'RUNNER';
-  const canArrive = isRunner && current.status === 'ACCEPTED' && errand.status === 'IN_PROGRESS';
+  const hasArrived = timeline.data?.some((event) => event.type === 'ARRIVED');
+  const canArrive = isRunner && current.status === 'ACCEPTED' && errand.status === 'IN_PROGRESS' && timeline.isSuccess && !hasArrived;
 
   return (
     <main className="mx-auto grid max-w-5xl gap-4">
-      <Link href="/assignments" className="w-fit text-sm font-bold text-green-800 hover:underline">← Assignments</Link>
+      <Link href="/dashboard" className="w-fit text-sm font-bold text-green-800 hover:underline">← Dashboard</Link>
       <header className="rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-green-bg px-3 py-1 text-xs font-bold text-green-900">{label(errand.status)}</span>
@@ -117,6 +123,8 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
         <h1 className="mt-3 text-2xl font-extrabold text-ink sm:text-3xl">{errand.title}</h1>
         <p className="mt-2 text-sm text-muted">Agreed runner fee: <strong className="text-ink">{money(current.agreedAmountMinor)}</strong>. This is an agreement between the parties; Urgent.ng does not hold the money.</p>
       </header>
+
+      {current.status === 'PENDING_ACCEPTANCE' ? <AssignmentPendingPage assignmentId={assignmentId} embedded /> : null}
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="grid content-start gap-4">
@@ -128,10 +136,12 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
               <Location label="Pickup" value={visibleLocation(errand.pickup, exact)} />
               <Location label="Destination" value={visibleLocation(errand.destination, exact)} />
             </div>
-            {!exact ? <p className="text-xs text-muted">Exact addresses and contact details will be available after the assignment is accepted.</p> : null}
-            <Contact title="Pickup contact" contact={errand.pickupContact} />
-            <Contact title="Drop-off contact" contact={errand.dropoffContact} />
-            {errand.photos.length ? <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">{errand.photos.map((photo, index) => <AssignmentPhoto key={photo.mediaId} photo={photo} index={index} />)}</div> : null}
+            {!exact ? <p className="text-xs text-muted">Exact addresses and contacts are available to the requester and to the runner only while the assignment is accepted.</p> : null}
+            {exact ? <>
+              <Contact title="Pickup contact" contact={errand.pickupContact} />
+              <Contact title="Drop-off contact" contact={errand.dropoffContact} />
+            </> : null}
+            {errand.photos.length ? <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">{errand.photos.map((photo, index) => typeof photo.mediaId === 'string' ? <AssignmentPhoto key={photo.mediaId} mediaId={photo.mediaId} alt={`Errand item ${index + 1}`} /> : null)}</div> : null}
           </section>
           {canArrive ? (
             <section className="grid gap-2 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
@@ -148,7 +158,7 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
           {timeline.data ? <Timeline events={timeline.data} /> : null}
         </div>
 
-        <aside className="grid content-start gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+        <aside className="grid content-start gap-3 self-start rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
           <h2 className="font-extrabold text-ink">Next action</h2>
           {isRunner && current.status === 'ACCEPTED' && ['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP'].includes(errand.status) ? (
             <>
@@ -160,6 +170,8 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
             <p className="text-sm text-muted">This errand is complete. Review the timeline for the recorded steps.</p>
           ) : current.status === 'CANCELLED' ? (
             <p className="text-sm text-muted">This assignment was cancelled.</p>
+          ) : errand.status === 'DISPUTED' ? (
+            <p className="text-sm text-muted">This errand is disputed. Automatic completion is paused while the team reviews it.</p>
           ) : (
             <p className="text-sm text-muted">The assignment status is {label(current.status)}. Review the details and timeline for updates.</p>
           )}
@@ -177,7 +189,14 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
           {current.role === 'REQUESTER' && current.status === 'ACCEPTED' && errand.status === 'DELIVERED' ? (
             <Button asChild><Link href={`/assignments/${assignmentId}/confirm`}>Confirm delivery</Link></Button>
           ) : null}
-          <p className="border-t border-line pt-3 text-xs text-muted">Selected {new Date(current.selectedAt).toLocaleString()}</p>
+          {current.status === 'COMPLETED' ? <Button asChild><Link href={`/assignments/${assignmentId}/rating`}>Rate this errand</Link></Button> : null}
+          {current.disputeId ? <Button asChild variant="ghost"><Link href={`/disputes/${current.disputeId}`}>View dispute</Link></Button> : null}
+          {current.status === 'ACCEPTED' ? <>
+            {errand.status !== 'DISPUTED' || !current.disputeId ? <Button asChild variant="ghost"><Link href={`/assignments/${assignmentId}/dispute`}>{errand.status === 'DISPUTED' ? 'View dispute' : 'Open a dispute'}</Link></Button> : null}
+            <Button asChild variant="ghost"><Link href={`/errands/${current.errandId}/share`}>Share progress</Link></Button>
+          </> : null}
+          <Button asChild variant="ghost"><Link href={`/safety?assignmentId=${assignmentId}`}>Safety & support</Link></Button>
+          <p className="border-t border-line pt-3 text-xs text-muted">Selected: {new Date(current.selectedAt).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })} (Lagos time)</p>
         </aside>
       </div>
     </main>
@@ -212,7 +231,8 @@ function Timeline({ events }: { events: ExecutionEvent[] }) {
           {events.map((event) => <li key={event.id} className="border-l-2 border-lime-600 pl-3">
             <p className="font-bold text-ink">{label(event.type)}</p>
             {event.note ? <p className="text-sm text-ink-2">{event.note}</p> : null}
-            <time className="text-xs text-muted" dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleString()}</time>
+            {event.mediaId ? <div className="my-2 max-w-48"><AssignmentPhoto mediaId={event.mediaId} alt={`${label(event.type)} evidence`} /></div> : null}
+            <time className="text-xs text-muted" dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })} (Lagos time)</time>
           </li>)}
         </ol>
       ) : <p className="text-sm text-muted">No timeline events yet.</p>}

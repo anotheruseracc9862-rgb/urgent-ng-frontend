@@ -54,16 +54,16 @@ export const offersApi = {
   runnerPerformance: () => api<RunnerPerformance>('/runner/performance'),
   assignment: (id: string) => apiResponse<AssignmentDetail>(`/assignments/${id}`),
   assignmentTimeline: (id: string) => api<ExecutionEvent[]>(`/assignments/${id}/timeline`),
-  executionStep: (id: string, step: 'start' | 'pickup' | 'deliver', input?: StepEvidence) =>
+  executionStep: (id: string, step: 'start' | 'pickup' | 'deliver', idempotencyKey: string, input?: StepEvidence) =>
     api<ExecutionStep>(`/assignments/${id}/${step}`, {
       method: 'POST',
-      headers: { 'Idempotency-Key': crypto.randomUUID() },
+      headers: { 'Idempotency-Key': idempotencyKey },
       ...(input ? { body: input } : {}),
     }),
-  arrived: (id: string, input: components['schemas']['ArrivedDto']) =>
+  arrived: (id: string, input: components['schemas']['ArrivedDto'], idempotencyKey: string) =>
     api<ExecutionEvent>(`/assignments/${id}/arrived`, {
       method: 'POST',
-      headers: { 'Idempotency-Key': crypto.randomUUID() },
+      headers: { 'Idempotency-Key': idempotencyKey },
       body: input,
     }),
   executionProblems: (id: string) => api<ExecutionProblem[]>(`/assignments/${id}/problems`),

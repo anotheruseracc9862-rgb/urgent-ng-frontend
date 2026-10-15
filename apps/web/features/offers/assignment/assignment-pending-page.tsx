@@ -44,17 +44,14 @@ function AcceptanceCountdown({ deadline, dateHeader, onRefresh }: { deadline: st
   );
 }
 
-export function AssignmentPendingPage({ assignmentId }: { assignmentId: string }) {
+export function AssignmentPendingPage({ assignmentId, embedded = false }: { assignmentId: string; embedded?: boolean }) {
   const client = useQueryClient();
   const [declineOpen, setDeclineOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const key = queryKeys.assignments.detail(assignmentId);
   const query = useQuery({
     queryKey: key,
-    queryFn: async () => {
-      const response = await offersApi.assignment(assignmentId);
-      return { assignment: response.data, dateHeader: response.dateHeader };
-    },
+    queryFn: () => offersApi.assignment(assignmentId),
   });
   const accept = useMutation({
     mutationFn: () => offersApi.acceptAssignment(assignmentId, crypto.randomUUID()),
@@ -94,19 +91,21 @@ export function AssignmentPendingPage({ assignmentId }: { assignmentId: string }
     return <main className="mx-auto max-w-4xl"><Link href="/offers" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link><Alert variant="danger" role="alert">{isApiError(query.error) && query.error.code === 'RESOURCE_NOT_FOUND' ? 'This assignment could not be found, or you do not have permission to view it.' : 'We could not load this assignment.'}</Alert><Button className="mt-3" type="button" variant="ghost" onClick={() => void query.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></main>;
   }
 
-  const assignment = query.data.assignment;
+  const assignment = query.data.data;
   const pending = assignment.status === 'PENDING_ACCEPTANCE';
   const isRunner = assignment.role === 'RUNNER';
   const expired = assignment.status === 'TIMED_OUT';
 
   return (
-    <main className="mx-auto grid max-w-4xl gap-4">
+    <section className="grid gap-4">
+      {!embedded ? <>
       <Link href="/offers" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link>
       <header className="rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:p-6">
         <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Assignment · Runner response</p>
         <h1 className="mt-2 text-2xl font-extrabold text-ink sm:text-3xl">{assignment.errand.title}</h1>
         <p className="mt-2 text-sm text-muted">Agreed runner fee: <strong className="text-ink">{money(assignment.agreedAmountMinor)}</strong></p>
       </header>
+      </> : null}
 
       {notice ? <Alert role="status">{notice}</Alert> : null}
       {accept.error && !isApiError(accept.error) ? <Alert variant="danger" role="alert">{accept.error.message}</Alert> : null}
@@ -156,6 +155,6 @@ export function AssignmentPendingPage({ assignmentId }: { assignmentId: string }
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </section>
   );
 }

@@ -127,7 +127,9 @@ export function Topbar({ mode }: { mode: ShellMode }) {
           >
             <Bell className="size-5" />
             {unread.data && unread.data.count > 0 ? (
-              <span aria-hidden="true" className="absolute right-2 top-2 size-2.5 rounded-full border-2 border-surface bg-[#ff5a36]" />
+              <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-5 rounded-full border-2 border-surface bg-[#ff5a36] px-1 text-center text-[9px] font-extrabold leading-4 text-white">
+                {unread.data.count > 99 ? '99+' : unread.data.count}
+              </span>
             ) : null}
           </summary>
           <div className="absolute right-0 top-12 z-30 hidden w-[min(320px,calc(100vw-24px))] rounded-2xl border border-line bg-surface p-4 shadow-[var(--shadow)] group-open:block">

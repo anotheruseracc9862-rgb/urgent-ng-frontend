@@ -92,14 +92,15 @@ export const queryKeys = {
   // Notifications
   notifications: {
     all: () => ['notifications'] as const,
-    list: (cursor?: string) => ['notifications', 'list', cursor] as const,
+    list: (cursor?: string, category?: string, unread?: boolean) =>
+      ['notifications', 'list', cursor, category, unread] as const,
     unreadCount: () => ['notifications', 'unread-count'] as const,
   },
 
   // Conversations
   conversations: {
     all: () => ['conversations'] as const,
-    list: () => ['conversations', 'list'] as const,
+    list: (filters: Record<string, unknown> = {}) => ['conversations', 'list', filters] as const,
     detail: (id: string) => ['conversations', 'detail', id] as const,
     messages: (id: string, cursor?: string) => ['conversations', 'messages', id, cursor] as const,
   },

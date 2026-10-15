@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -88,6 +88,7 @@ function renderPage(withLocationConsent = false) {
   );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(<QueryClientProvider client={client}><SessionProvider me={me}><RunnerExecutionPage assignmentId="execution-1" /></SessionProvider></QueryClientProvider>);
+  return (status: string) => { errandStatus = status; };
 }
 
 beforeAll(() => listen());
@@ -105,17 +106,58 @@ describe('runner execution steps', () => {
     expect(screen.queryByRole('button', { name: 'Confirm pickup' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Start errand' }));
+    const startDialog = await screen.findByRole('dialog');
+    expect(screen.queryByRole('button', { name: 'Confirm pickup' })).not.toBeInTheDocument();
+    await user.click(within(startDialog).getByRole('button', { name: 'Start errand' }));
     expect(await screen.findByRole('button', { name: 'Confirm pickup' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Start errand' })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Pickup note'), 'Picked up safely.');
     await user.click(screen.getByRole('button', { name: 'Confirm pickup' }));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm pickup' }));
     expect(await screen.findByRole('button', { name: 'Confirm delivery' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm pickup' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Confirm delivery' }));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm delivery' }));
     expect(await screen.findByText('No further runner step is available')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm delivery' })).not.toBeInTheDocument();
+  });
+
+  it('reuses the confirmed intent on retry instead of recording a second step', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const keys: Array<string | null> = [];
+    server.use(http.post('*/api/v1/assignments/execution-1/start', ({ request }) => {
+      keys.push(request.headers.get('Idempotency-Key'));
+      return HttpResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Unavailable' }, requestId: 'retry-step' }, { status: 500 });
+    }));
+    await user.click(await screen.findByRole('button', { name: 'Start errand' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Start errand' }));
+    expect(await within(dialog).findByText('Request ID: retry-step')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Start errand' }));
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
+    await user.click(within(dialog).getByRole('button', { name: 'Go back' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(keys).toHaveLength(2);
+  });
+
+  it('refreshes a conflicting step and closes its confirmation before offering the next one', async () => {
+    const user = userEvent.setup();
+    const setStatus = renderPage();
+    server.use(http.post('*/api/v1/assignments/execution-1/start', () => {
+      setStatus('IN_PROGRESS');
+      return HttpResponse.json({ error: { code: 'ERRAND_INVALID_STATE', message: 'Already started' }, requestId: 'step-conflict' }, { status: 409 });
+    }));
+    await user.click(await screen.findByRole('button', { name: 'Start errand' }));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Start errand' }));
+    expect(await screen.findByText('The errand status changed. We refreshed the available next step.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Confirm pickup' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start errand' })).not.toBeInTheDocument();
   });
 
   it('leaves execution available when the browser denies location permission', async () => {

@@ -20,6 +20,16 @@ describe('isAccessTokenValid()', () => {
 });
 
 describe('middleware()', () => {
+  it.each(['/safety', '/report', '/reports/case-id', '/disputes/case-id'])('protects the safety route %s', (path) => {
+    const response = middleware(new NextRequest(`https://app.test${path}`));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toContain('/session?redirect=');
+  });
+
+  it('keeps trusted-contact links public', () => {
+    expect(middleware(new NextRequest('https://app.test/shared/secret')).status).toBe(200);
+  });
+
   it('sends unauthenticated protected visits through the browser refresh route', () => {
     const response = middleware(new NextRequest('https://app.test/errands?tab=active'));
     expect(response.status).toBe(307);

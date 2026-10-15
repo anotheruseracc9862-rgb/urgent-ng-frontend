@@ -24,7 +24,8 @@ export function reportWebVitals(metric: Metric) {
     rating: metric.rating,
     delta: Math.round(metric.delta),
     id: metric.id,
-    url: window.location.pathname,
+    // Trusted-contact URLs contain a bearer secret, not a telemetry identifier.
+    url: window.location.pathname.startsWith('/shared/') ? '/shared/[token]' : window.location.pathname,
   });
 
   // Use sendBeacon if available

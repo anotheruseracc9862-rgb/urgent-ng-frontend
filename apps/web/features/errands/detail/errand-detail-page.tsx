@@ -472,6 +472,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
             </section>
           ) : null}
           {assignment ? <Link href={`/assignments/${assignment.id}`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline"><Truck aria-hidden="true" className="mr-2 inline size-4" />Assignment hub</Link> : null}
+          {assignment?.status === 'ACCEPTED' ? <Link href={`/errands/${errand.id}/share`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline">Share progress with a trusted contact</Link> : null}
           {errand.status === 'DISPUTED' ? <Link href={assignment ? `/assignments/${assignment.id}` : '/support'} className="rounded-[var(--r-lg)] border border-amber/30 bg-amber-bg p-4 text-sm font-bold text-amber"><AlertCircle aria-hidden="true" className="mr-2 inline size-4" />View dispute and next steps</Link> : null}
           {errand.status === 'COMPLETED' ? <div className="rounded-[var(--r-lg)] border border-green-200 bg-green-bg p-4 text-sm text-green-900"><CheckCircle2 aria-hidden="true" className="mr-2 inline size-4" />This errand is complete.</div> : null}
           {errand.status === 'CANCELLED' ? <div className="rounded-[var(--r-lg)] border border-red-200 bg-red-bg p-4 text-sm text-red">This errand is closed. Repost it to create a fresh draft.</div> : null}
