@@ -18,7 +18,8 @@ import {
   cn,
 } from '@urgent/ui';
 import { useSession } from '@/lib/auth/client';
-import { saveMode } from '@/lib/auth/mode';
+import { useHydrated } from '@/lib/use-hydrated';
+import { useModeSwitch } from './use-mode-switch';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { titleForPath, type ShellMode } from './nav-items';
@@ -40,6 +41,7 @@ function initialsOf(name: string): string {
 }
 
 export function Topbar({ mode }: { mode: ShellMode }) {
+  const hydrated = useHydrated();
   const router = useRouter();
   const pathname = usePathname();
   const { me, signOut } = useSession();
@@ -55,15 +57,11 @@ export function Topbar({ mode }: { mode: ShellMode }) {
   });
   const crumb = titleForPath(pathname);
 
-  const switchMode = (next: ShellMode) => {
-    if (next === mode) return;
-    saveMode(next);
-    router.push('/dashboard');
-    router.refresh();
-  };
+  const { requestSwitch: switchMode, dialog: modeDialog } = useModeSwitch(mode);
 
   return (
     <div className="grid min-w-0 gap-2">
+      {modeDialog}
       <header className="flex min-w-0 items-center gap-2 rounded-full bg-surface p-1.5 pl-2 shadow-[var(--shadow)] sm:gap-3 sm:p-2 sm:pl-3 lg:pl-[18px]">
       <Link href="/dashboard" className="shrink-0 lg:hidden">
         <Image src="/assets/logo.png" alt="Urgent.ng" width={80} height={20} className="h-5 w-auto sm:h-6" />
@@ -122,11 +120,11 @@ export function Topbar({ mode }: { mode: ShellMode }) {
 
         <details className="group relative">
           <summary
-            aria-label={unread.data?.count ? `Notifications, ${unread.data.count} unread` : 'Notifications'}
+            aria-label={hydrated && unread.data?.count ? `Notifications, ${unread.data.count} unread` : 'Notifications'}
             className="relative grid size-9 cursor-pointer list-none place-items-center rounded-full bg-panel text-ink-2 transition-colors hover:bg-tint-2 marker:hidden sm:size-[42px]"
           >
             <Bell className="size-5" />
-            {unread.data && unread.data.count > 0 ? (
+            {hydrated && unread.data && unread.data.count > 0 ? (
               <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-5 rounded-full border-2 border-surface bg-[#ff5a36] px-1 text-center text-[9px] font-extrabold leading-4 text-white">
                 {unread.data.count > 99 ? '99+' : unread.data.count}
               </span>
@@ -135,9 +133,9 @@ export function Topbar({ mode }: { mode: ShellMode }) {
           <div className="absolute right-0 top-12 z-30 hidden w-[min(320px,calc(100vw-24px))] rounded-2xl border border-line bg-surface p-4 shadow-[var(--shadow)] group-open:block">
             <div className="flex items-center justify-between gap-3">
               <strong className="text-sm text-ink">Notifications</strong>
-              <span className="text-xs text-muted">{unread.data?.count ?? 0} unread</span>
+              <span className="text-xs text-muted">{hydrated ? unread.data?.count ?? 0 : 0} unread</span>
             </div>
-            {notificationPreview.isLoading ? <p className="mt-2 text-xs text-muted">Loading notifications…</p> : notificationPreview.error ? (
+            {!hydrated || notificationPreview.isLoading ? <p className="mt-2 text-xs text-muted">Loading notifications…</p> : notificationPreview.error ? (
               <p role="status" className="mt-2 text-xs text-muted">Notifications are unavailable right now. Open the notifications page to try again.</p>
             ) : notificationPreview.data?.length ? (
               <ul className="mt-3 grid gap-3">

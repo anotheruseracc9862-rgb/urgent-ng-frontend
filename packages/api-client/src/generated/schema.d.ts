@@ -3262,6 +3262,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/errands/mine/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many errands sit behind each tab of the list, in one call. */
+        get: operations["Errands_counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/errands/{id}": {
         parameters: {
             query?: never;
@@ -5270,6 +5287,23 @@ export interface components {
             deliveriesToConfirm: number;
             /** @description Change requests from a runner that you have not answered. */
             changeRequestsToAnswer: number;
+            /** @description Errands you published in each of the last four 7-day periods, oldest first (four numbers). Drafts excluded. */
+            errandsPerWeek: number[];
+            /** @description Average offers per errand you published in the last 90 days, one decimal. Null with none published. */
+            averageOffersPerErrand: number | null;
+            /** @description Median minutes from publishing to selecting a runner, over errands where you selected one in the last 90 days. Null without a sample. */
+            medianMinutesToSelect: number | null;
+        };
+        OfferDayDto: {
+            /**
+             * @description The day in Lagos time, YYYY-MM-DD.
+             * @example 2026-10-15
+             */
+            date: string;
+            /** @description Offers you sent that day. */
+            sent: number;
+            /** @description Times you were selected that day. */
+            selected: number;
         };
         DashboardRunnerDto: {
             /** @description Assignments pending acceptance or accepted and not finished. */
@@ -5286,6 +5320,8 @@ export interface components {
             completedLast30Days: number;
             /** @description Change requests from a requester that you have not answered. */
             changeRequestsToAnswer: number;
+            /** @description The last seven days in Lagos time, oldest first: offers sent and times selected. */
+            offersPerDay: components["schemas"]["OfferDayDto"][];
         };
         ActivityItemDto: {
             /** @example ERRAND_STATUS */
@@ -6299,6 +6335,21 @@ export interface components {
             /** @description READY media of purpose ERRAND_PHOTO, in display order. At most the configured limit (default 6). */
             photoMediaIds?: string[];
         };
+        OfferPreviewDto: {
+            firstName: string;
+            lastName: string | null;
+            photoMediaId: string | null;
+        };
+        ErrandRunnerSummaryDto: {
+            firstName: string;
+            lastName: string | null;
+            photoMediaId: string | null;
+            /** @description Null until enough ratings are published to show an average. */
+            rating: number | null;
+            ratingCount: number;
+            /** @description Errands this runner has completed. */
+            completedErrands: number;
+        };
         ErrandSummaryDto: {
             status: components["schemas"]["ErrandStatus"];
             category: components["schemas"]["CategoryRefDto"];
@@ -6313,6 +6364,24 @@ export interface components {
             publishedAt: string | null;
             /** Format: date-time */
             expiresAt: string | null;
+            /** @description The lowest active offer in kobo on an open errand. Null with no active offers or once a runner is selected. */
+            lowestOfferMinor: number | null;
+            /** @description Up to four runners with active offers, lowest amount first. Empty once a runner is selected. */
+            offerPreview: components["schemas"]["OfferPreviewDto"][];
+            /** @description The runner on the errand, from selection onward. */
+            runner: components["schemas"]["ErrandRunnerSummaryDto"] | null;
+            /** @description The agreed amount in kobo, once a runner is selected. */
+            agreedAmountMinor: number | null;
+            /**
+             * @description What needs the requester next: OFFERS to review, a RUNNER_TO_CONFIRM, a DELIVERY to confirm, a CHANGE_REQUEST to answer, or an open errand EXPIRING within two hours.
+             * @enum {string|null}
+             */
+            attention: "OFFERS" | "RUNNER_TO_CONFIRM" | "DELIVERY" | "CHANGE_REQUEST" | "EXPIRING" | null;
+            /**
+             * Format: date-time
+             * @description When the attention item lapses: the change request expiry or the errand deadline.
+             */
+            attentionExpiresAt: string | null;
             id: string;
             title: string;
             offerCount: number;
@@ -6320,6 +6389,16 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        MineCountsDto: {
+            /** @description Every errand that is not deleted. */
+            all: number;
+            /** @description Errands that need the requester next (the ATTENTION tab). */
+            attention: number;
+            open: number;
+            active: number;
+            past: number;
+            draft: number;
         };
         UpdateErrandDto: {
             timeMode?: components["schemas"]["TimeMode"];
@@ -7140,6 +7219,10 @@ export interface components {
             destinationArea: string | null;
             /** Format: date-time */
             selectedAt: string;
+            /** @description The requester's first name. */
+            requesterFirstName: string;
+            /** @description The conversation with the requester about this errand, if one exists. Open it at /conversations/{id}. */
+            conversationId: string | null;
         };
         HistoryMonthDto: {
             /**
@@ -21385,8 +21468,8 @@ export interface operations {
     Errands_mine: {
         parameters: {
             query?: {
-                /** @description DRAFT, OPEN (published, no runner yet), ACTIVE (runner selected through delivery, or disputed), PAST (completed, cancelled, expired). Leave out for all. */
-                tab?: "DRAFT" | "OPEN" | "ACTIVE" | "PAST";
+                /** @description DRAFT, OPEN (published, no runner yet), ACTIVE (runner selected through delivery, or disputed), PAST (completed, cancelled, expired), ATTENTION (needs the requester next: offers to review, a runner to confirm, a delivery to confirm, a change request, or closing soon). Leave out for all. */
+                tab?: "DRAFT" | "OPEN" | "ACTIVE" | "PAST" | "ATTENTION";
                 /** @description NEEDS_ATTENTION puts delivered errands, selected runners and errands with offers first. */
                 sort?: "RECENT" | "NEEDS_ATTENTION" | "HIGHEST_AMOUNT";
                 /** @description Search the title, the description and the name of the selected runner. */
@@ -21423,6 +21506,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
+    Errands_counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MineCountsDto"];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
                 };
             };
             /** @description Error (see `error.code`) */
@@ -25081,7 +25208,9 @@ export interface operations {
     };
     Events_stream: {
         parameters: {
-            query?: never;
+            query?: {
+                lastEventId?: unknown;
+            };
             header?: never;
             path?: never;
             cookie?: never;

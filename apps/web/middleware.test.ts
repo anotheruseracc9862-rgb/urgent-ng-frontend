@@ -46,4 +46,13 @@ describe('middleware()', () => {
     const response = middleware(request);
     expect(response.headers.get('location')).toBe('https://app.test/dashboard');
   });
+
+  it('bounces a signed-in visitor off /login, except after a session was found dead', () => {
+    const token = tokenWithExpiry(Math.floor(Date.now() / 1000) + 600);
+    const request = (path: string) => new NextRequest(`https://app.test${path}`, { headers: { cookie: `ung_at=${token}` } });
+    expect(middleware(request('/login')).status).toBe(307);
+    // The API rejected this cookie (for example after a database reset): do not loop back to the app.
+    expect(middleware(request('/login?reason=session-expired&redirect=%2Fdashboard')).status).toBe(200);
+    expect(middleware(request('/login?reason=session-check-failed')).status).toBe(200);
+  });
 });

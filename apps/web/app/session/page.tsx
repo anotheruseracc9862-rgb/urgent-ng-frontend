@@ -21,8 +21,17 @@ function SessionRefresh() {
         if (result === 'refreshed') {
           router.replace(redirect);
         } else {
-          clearBrowserSession();
-          router.replace(`/login?reason=session-expired&redirect=${encodeURIComponent(redirect)}`);
+          // Ask the API to expire the cookies the browser still holds, so /login is not bounced back.
+          void fetch('/api/v1/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          }).catch(() => undefined).finally(() => {
+            if (cancelled) return;
+            clearBrowserSession();
+            router.replace(`/login?reason=session-expired&redirect=${encodeURIComponent(redirect)}`);
+          });
         }
       })
       .catch((error: unknown) => {

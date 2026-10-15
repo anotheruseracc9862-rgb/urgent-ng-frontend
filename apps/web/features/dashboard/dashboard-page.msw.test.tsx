@@ -52,6 +52,9 @@ const summary = {
     awaitingRunnerAcceptance: 0,
     deliveriesToConfirm: 0,
     changeRequestsToAnswer: 0,
+    errandsPerWeek: [0, 1, 0, 2],
+    averageOffersPerErrand: 3.6,
+    medianMinutesToSelect: 14,
   },
   asRunner: {
     activeAssignments: 0,
@@ -61,6 +64,15 @@ const summary = {
     offersThisWeek: 4,
     completedLast30Days: 2,
     changeRequestsToAnswer: 0,
+    offersPerDay: [
+      { date: '2026-10-09', sent: 0, selected: 0 },
+      { date: '2026-10-10', sent: 1, selected: 0 },
+      { date: '2026-10-11', sent: 0, selected: 0 },
+      { date: '2026-10-12', sent: 2, selected: 1 },
+      { date: '2026-10-13', sent: 0, selected: 0 },
+      { date: '2026-10-14', sent: 1, selected: 0 },
+      { date: '2026-10-15', sent: 0, selected: 0 },
+    ],
   },
   recentActivity: [],
 };
@@ -146,6 +158,8 @@ describe('business dashboard', () => {
               pickupArea: 'Yaba',
               destinationArea: 'Ikeja',
               selectedAt: '2026-10-13T20:00:00.000Z',
+              requesterFirstName: 'Ife',
+              conversationId: 'conversation-9',
             }]);
       }),
       http.get('*/api/v1/runner/offer-limit', () => envelope({
@@ -174,6 +188,54 @@ describe('business dashboard', () => {
     expect(await screen.findByText('Deliver a document envelope')).toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Task progress: picked up' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Go offline' })).toBeInTheDocument());
-    expect(screen.getByRole('link', { name: /Deliver a document envelope/ })).toHaveAttribute('href', '/assignments/active-assignment-1');
+    expect(screen.getByRole('link', { name: 'Mark delivered' })).toHaveAttribute('href', '/assignments/active-assignment-1');
+    expect(screen.getByRole('link', { name: 'Message Ife' })).toHaveAttribute('href', '/messages/conversation-9');
+  });
+
+  it('shows requester trends: time to select, offers per errand and weekly posting', async () => {
+    server.use(
+      http.get('*/api/v1/me/summary', () => envelope(summary)),
+      http.get('*/api/v1/errands/mine', () => envelope([])),
+    );
+
+    renderDashboard('REQUESTER');
+
+    expect(await screen.findByText('Avg. time to select')).toBeInTheDocument();
+    expect(screen.getByText('14 min')).toBeInTheDocument();
+    expect(screen.getByText('3.6')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Errands posted in each of the last four weeks/ })).toBeInTheDocument();
+  });
+
+  it('tells the runner how many errands are nearby and shows the week of offers', async () => {
+    server.use(
+      http.get('*/api/v1/me/summary', () => envelope(summary)),
+      http.get('*/api/v1/runner/profile', () => envelope({ availability: 'AVAILABLE', areaCenter: { lat: 6.5, lng: 3.4 }, areaRadiusKm: 5, excludedCategoryIds: [], transport: 'WALKING' })),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: [], canOffer: true, canBrowseFeed: true })),
+      http.get('*/api/v1/runner/assignments', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands', () => HttpResponse.json({
+        data: [{
+          id: 'feed-1', title: 'Pick up pharmacy order', category: { key: 'delivery', name: 'Delivery' }, description: 'x',
+          pickup: { area: 'Lekki Phase 1', lga: null, state: null }, destination: null, distance: { label: '2.4 km' },
+          timeMode: 'ASAP', priority: 'STANDARD', scheduledAt: null, suggestedBudgetMinor: 350_000,
+          requester: { firstName: 'Ife', photoMediaId: null, rating: null, ratingCount: 0, badges: [] },
+          postedAt: '2026-10-15T08:00:00.000Z', expiresAt: '2026-10-16T08:00:00.000Z', offerCount: 1, boosted: false, saved: false,
+        }],
+        meta: { hasNextPage: true, total: 42 },
+        requestId: 'req-feed',
+      })),
+      http.get('*/api/v1/runner/offer-limit', () => envelope({ used: 3, limit: 10, remaining: 7, resetsAt: '2026-10-16T00:00:00.000Z', isPro: false, isAtLimit: false })),
+      http.get('*/api/v1/runner/performance', () => envelope({
+        completedErrands: 5, rating: { average: 4.8, count: 4 },
+        cancellation: { windowSize: 20, sample: 5, percent: 20 }, response: { windowSize: 20, sample: 5, medianMinutes: 6 }, badges: ['TRUSTED'],
+      })),
+    );
+
+    renderDashboard('RUNNER');
+
+    expect(await screen.findByRole('link', { name: 'See all 42' })).toHaveAttribute('href', '/marketplace');
+    expect(screen.getByText('Pick up pharmacy order')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Offers sent and times selected in the last seven days/ })).toBeInTheDocument();
+    expect(await screen.findByText('Replies in ~6 min')).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
   });
 });

@@ -1,27 +1,39 @@
 import {
   Bell,
-  Bookmark,
-  Rocket,
-  Sparkles,
+  CircleHelp,
+  Compass,
+  Flag,
   History,
   LayoutDashboard,
-  MapPin,
   MessageSquare,
   Package,
+  Pin,
+  Receipt,
+  Rocket,
   Settings,
-  ShieldCheck,
-  ShoppingBag,
+  Sparkles,
   Star,
+  Tag,
+  Truck,
   User,
+  Bookmark,
+  BadgeCheck,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 export type ShellMode = 'REQUESTER' | 'RUNNER';
 
+type Icon = ComponentType<{ className?: string }>;
+
+/** What the count badge next to a nav item shows. Filled in by `useNavCounts`. */
+export type NavCountKey = 'errands' | 'offers' | 'tasks' | 'messages' | 'notifications' | 'nearby';
+
 export interface NavItem {
+  /** Path only. A query that picks a sub-view goes in `query`. */
   href: string;
+  query?: Record<string, string>;
   label: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: Icon;
   /** Show only in this mode. Omit for both. */
   mode?: ShellMode;
   /** Also shown in the mobile bottom bar. */
@@ -29,25 +41,62 @@ export interface NavItem {
   /** Limit mobile navigation to these modes when the item is otherwise primary. */
   primaryModes?: readonly ShellMode[];
   section?: 'menu' | 'account';
+  count?: NavCountKey;
+  /** The count needs the person's attention (shown in the alert colour). */
+  countAlert?: boolean;
+  /** Extra paths that also light this item up. */
+  alsoActiveFor?: readonly string[];
 }
 
+/**
+ * The rail matches the demo (`demo/ui.js`): a short list of working places. Everything else
+ * lives in the account menu at the bottom of the rail and on the Profile & account page.
+ */
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, primary: true },
-  { href: '/errands', label: 'My errands', icon: Package, mode: 'REQUESTER', primary: true },
-  { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag, mode: 'RUNNER', primary: true },
-  { href: '/marketplace/saved', label: 'Saved errands', icon: Bookmark, mode: 'RUNNER' },
-  { href: '/offers', label: 'My offers', icon: Star, mode: 'RUNNER' },
-  { href: '/runner/history', label: 'Job history', icon: History, mode: 'RUNNER' },
-  { href: '/assignments', label: 'Assignments', icon: MapPin, mode: 'RUNNER', primary: true },
-  { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true },
-  { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'] },
-  { href: '/boosts', label: 'Boosts', icon: Rocket, mode: 'REQUESTER' },
-  { href: '/pro', label: 'Runner Pro', icon: Sparkles, mode: 'RUNNER' },
-  { href: '/ratings', label: 'Reviews', icon: Star },
-  { href: '/safety', label: 'Safety & support', icon: ShieldCheck },
+
+  { href: '/errands', label: 'My errands', icon: Package, mode: 'REQUESTER', primary: true, count: 'errands' },
+  { href: '/errands', query: { tab: 'ACTIVE' }, label: 'Track errand', icon: Pin, mode: 'REQUESTER', alsoActiveFor: ['/assignments'] },
+
+  { href: '/marketplace', label: 'Find errands', icon: Compass, mode: 'RUNNER', primary: true, count: 'nearby' },
+  { href: '/offers', label: 'My offers', icon: Tag, mode: 'RUNNER', count: 'offers' },
+  { href: '/assignments', label: 'Active task', icon: Truck, mode: 'RUNNER', primary: true, count: 'tasks' },
+
+  { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true, count: 'messages', countAlert: true },
+  { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'], count: 'notifications' },
+
   { href: '/profile', label: 'Profile & account', icon: User, primary: true, section: 'account' },
-  { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
 ];
+
+export interface AccountMenuItem {
+  href: string;
+  label: string;
+  icon: Icon;
+  mode?: ShellMode;
+}
+
+/**
+ * The account menu (bottom of the rail) and the "more" list on Profile & account. In the demo these
+ * are not in the rail: they are one tap away from the person's own card.
+ */
+export const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
+  { href: '/profile', label: 'Profile & account', icon: User },
+  { href: '/runner/history', label: 'Job history', icon: History, mode: 'RUNNER' },
+  { href: '/marketplace/saved', label: 'Saved errands', icon: Bookmark, mode: 'RUNNER' },
+  { href: '/verification', label: 'Verification', icon: BadgeCheck, mode: 'RUNNER' },
+  { href: '/pro', label: 'Runner Pro', icon: Sparkles, mode: 'RUNNER' },
+  { href: '/boosts', label: 'Boosts', icon: Rocket, mode: 'REQUESTER' },
+  { href: '/ratings', label: 'Reviews', icon: Star },
+  { href: '/settings/notifications', label: 'Notification settings', icon: Bell },
+  { href: '/settings/orders', label: 'Orders and receipts', icon: Receipt },
+  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/safety', label: 'Safety & support', icon: Flag },
+  { href: '/help', label: 'Help centre', icon: CircleHelp },
+];
+
+export function accountMenuFor(mode: ShellMode): AccountMenuItem[] {
+  return ACCOUNT_MENU_ITEMS.filter((item) => !item.mode || item.mode === mode);
+}
 
 export const ROUTE_TITLES: Readonly<Record<string, string>> = {
   '/account/standing': 'Account standing',
@@ -58,6 +107,12 @@ export const ROUTE_TITLES: Readonly<Record<string, string>> = {
   '/settings/orders': 'Orders and receipts',
   '/pro': 'Runner Pro',
   '/boosts': 'Boosts',
+  '/settings': 'Settings',
+  '/ratings': 'Reviews',
+  '/safety': 'Safety & support',
+  '/runner/history': 'Job history',
+  '/marketplace/saved': 'Saved errands',
+  '/assignments': 'Active task',
 };
 
 export function itemsFor(mode: ShellMode): NavItem[] {
@@ -74,9 +129,33 @@ export function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/** The link an item points at, with its sub-view query. */
+export function hrefFor(item: Pick<NavItem, 'href' | 'query'>): string {
+  if (!item.query) return item.href;
+  return `${item.href}?${new URLSearchParams(item.query).toString()}`;
+}
+
+/**
+ * Whether an item is the current place. Two items can share a path ("My errands" and
+ * "Track errand"): the one whose query matches wins, and the plain one yields to it.
+ */
+export function isItemActive(item: NavItem, pathname: string, search: URLSearchParams): boolean {
+  const here = isActive(pathname, item.href) || (item.alsoActiveFor ?? []).some((extra) => isActive(pathname, extra));
+  if (!here) return false;
+  if (item.query) {
+    return isActive(pathname, item.href) && Object.entries(item.query).every(([key, value]) => search.get(key) === value);
+  }
+  // The plain item yields when a sibling with a query on the same path is the current view.
+  const sibling = NAV_ITEMS.find((other) => other !== item && other.href === item.href && other.query && (!other.mode || other.mode === item.mode));
+  if (sibling?.query && pathname === item.href) {
+    return !Object.entries(sibling.query).every(([key, value]) => search.get(key) === value);
+  }
+  return true;
+}
+
 export function titleForPath(pathname: string): string {
   const candidates = [
-    ...NAV_ITEMS.map(({ href, label }) => ({ href, label })),
+    ...NAV_ITEMS.filter((item) => !item.query).map(({ href, label }) => ({ href, label })),
     ...Object.entries(ROUTE_TITLES).map(([href, label]) => ({ href, label })),
   ];
   const match = candidates

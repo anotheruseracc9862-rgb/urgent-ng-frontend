@@ -2,9 +2,9 @@
 
 import { ThemeProvider } from "next-themes";
 
-export function AppThemeProvider({ children }: { children: React.ReactNode }) {
+export function AppThemeProvider({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider nonce={nonce} attribute="class" forcedTheme="light" enableSystem={false} storageKey="urgent-admin-theme">
       {children}
     </ThemeProvider>
   );

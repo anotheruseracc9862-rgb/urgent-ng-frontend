@@ -1,5 +1,6 @@
 'use client';
 
+import { clearErrandDraft, readErrandDraft } from '@/lib/drafts/errand-draft';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -58,6 +59,29 @@ const emptyForm = (): ErrandForm => ({
   dropoffContact: { name: '', phone: '' },
   photoMediaIds: [],
 });
+
+/**
+ * Values handed over by the landing-page request form or the dashboard's Quick post. The draft
+ * is read once and cleared. Free-text areas cannot become exact pins, so they go into the
+ * instructions for the person to turn into locations on this form.
+ */
+function formFromDraft(): ErrandForm {
+  const form = emptyForm();
+  const draft = readErrandDraft();
+  if (!draft) return form;
+  clearErrandDraft();
+  form.title = draft.title.slice(0, 80);
+  form.description = draft.description ?? '';
+  if (Number.isFinite(draft.budgetNaira) && draft.budgetNaira >= 500) {
+    form.suggestedBudgetMinor = Math.round(draft.budgetNaira * 100);
+  }
+  const places = [
+    draft.pickup ? `Pickup area: ${draft.pickup}` : '',
+    draft.destination ? `Drop-off area: ${draft.destination}` : '',
+  ].filter(Boolean);
+  form.instructions = places.join('\n');
+  return form;
+}
 
 function locationInput(value: PinValue) {
   return {
@@ -225,7 +249,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   categories: Category[];
 }) {
   const router = useRouter();
-  const [form, setForm] = useState<ErrandForm>(() => initialErrand ? fromErrand(initialErrand) : emptyForm());
+  const [form, setForm] = useState<ErrandForm>(() => initialErrand ? fromErrand(initialErrand) : formFromDraft());
   const [baseline, setBaseline] = useState<ErrandForm | null>(() => initialErrand ? fromErrand(initialErrand) : null);
   const [version, setVersion] = useState(initialErrand?.version ?? 0);
   const [validationError, setValidationError] = useState('');

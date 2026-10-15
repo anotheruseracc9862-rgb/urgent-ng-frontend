@@ -31,6 +31,7 @@ const ALLOWED_STORAGE_WRITES: Record<string, string> = {
   'features/marketplace/feed/marketplace-feed-page.tsx': 'sessionStorage: scroll position',
   'features/push/push-opt-in-prompt.tsx': 'localStorage: the push device id, not the push token',
   'lib/drafts/errand-draft.ts': 'sessionStorage: what the visitor typed on the landing form, tab-scoped and cleared after use and on sign-out',
+  'lib/auth/runner-intro.ts': 'localStorage: a per-user, per-mode 1 flag meaning the mode intro was shown',
   'features/billing/checkout.ts': 'sessionStorage: the pending order id only',
   'lib/storage/session-value.ts': 'sessionStorage helper for tab-scoped, non-secret UI values',
   'lib/query/provider.tsx': 'localStorage: persisted query cache; sensitive query families are excluded and it is cleared on sign-out',

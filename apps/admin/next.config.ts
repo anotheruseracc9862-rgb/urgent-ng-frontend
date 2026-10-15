@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 import { env } from "./lib/env";
+import { securityHeaders } from "./lib/security-headers";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders(process.env.NODE_ENV === "production") }];
+  },
   transpilePackages: [
     "@urgent/ui",
     "@urgent/api-client",
@@ -11,12 +16,12 @@ const nextConfig: NextConfig = {
     "@urgent/config",
   ],
   async rewrites() {
-    return [
+    return { fallback: [
       {
-        source: '/api/v1/:path*',
+        source: '/api/v1/admin/:path*',
         destination: `${env.NEXT_PUBLIC_ADMIN_API_URL}/:path*`,
       },
-    ];
+    ] };
   },
 };
 

@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { ACCOUNT_MENU_ITEMS } from '@/components/shell/nav-items';
 import * as React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -173,6 +175,16 @@ export function ProfilePage() {
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Profile &amp; account</h1>
         <p className="mt-1 text-sm text-muted">Manage your details and the way you use Urgent.ng.</p>
       </header>
+
+      <nav aria-label="More from your account" className="grid gap-2 rounded-[var(--r-lg)] border border-line bg-surface p-3 shadow-[var(--shadow)] sm:grid-cols-2 lg:grid-cols-3">
+        {ACCOUNT_MENU_ITEMS.filter((item) => item.href !== '/profile').map(({ href, label, icon: Icon, mode }) => (
+          <Link key={href} href={href} className="flex min-h-11 items-center gap-3 rounded-full px-3 text-[13.5px] font-semibold text-ink-2 transition-colors hover:bg-panel">
+            <Icon className="size-[18px] shrink-0 text-muted" />
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            {mode ? <span className="rounded-full bg-panel px-2 py-0.5 text-[10px] font-bold uppercase text-muted">{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span> : null}
+          </Link>
+        ))}
+      </nav>
 
       <Card variant="tint" className="p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

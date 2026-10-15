@@ -23,4 +23,14 @@ describe('parseAdminEnvironment', () => {
       }),
     ).toThrow('NEXT_PUBLIC_ADMIN_API_URL');
   });
+
+  it('allows one optional HTTPS evidence origin, not wildcard, credentials or URL paths', () => {
+    const base = { NEXT_PUBLIC_ADMIN_API_URL: 'http://127.0.0.1:4000/api/v1/admin', NEXT_PUBLIC_APP_URL: 'http://localhost:4002' };
+    for (const origin of ['', undefined, 'https://bucket.s3.eu-west-1.amazonaws.com']) {
+      expect(() => parseAdminEnvironment({ ...base, NEXT_PUBLIC_ADMIN_MEDIA_ORIGIN: origin })).not.toThrow();
+    }
+    for (const origin of ['*', 'https:', 'http://storage.test', 'https://user:pass@storage.test', 'https://storage.test/files', 'https://storage.test/?token=secret']) {
+      expect(() => parseAdminEnvironment({ ...base, NEXT_PUBLIC_ADMIN_MEDIA_ORIGIN: origin })).toThrow('NEXT_PUBLIC_ADMIN_MEDIA_ORIGIN');
+    }
+  });
 });

@@ -175,4 +175,74 @@ describe('my errands page', () => {
     expect(screen.getByRole('heading', { name: 'Deliver a parcel' })).toBeInTheDocument();
     expect(cursorSeen).toBe('cursor-next');
   });
+
+  it('shows tab counts, the lowest offer with who offered, and the selected runner', async () => {
+    server.use(
+      http.get('*/api/v1/me/summary', () => envelope(summary)),
+      http.get('*/api/v1/errands/mine/counts', () => envelope({ all: 9, attention: 2, open: 3, active: 1, past: 4, draft: 1 })),
+      http.get('*/api/v1/errands/mine', () => envelope([
+        {
+          ...summaryErrand,
+          id: 'errand-open',
+          title: 'Pick up cake',
+          status: 'OPEN',
+          offerCount: 2,
+          expiresAt: new Date(Date.now() + 5 * 3_600_000).toISOString(),
+          lowestOfferMinor: 400_000,
+          offerPreview: [{ firstName: 'Tunde', lastName: 'Okon', photoMediaId: null }, { firstName: 'Chioma', lastName: 'Eze', photoMediaId: null }],
+          runner: null, agreedAmountMinor: null, attention: 'OFFERS', attentionExpiresAt: null,
+        },
+        {
+          ...summaryErrand,
+          id: 'errand-active',
+          title: 'Collect fabric',
+          status: 'PICKED_UP',
+          offerCount: 3,
+          lowestOfferMinor: null,
+          offerPreview: [],
+          runner: { firstName: 'Blessing', lastName: 'Adeleke', photoMediaId: null, rating: 4.7, ratingCount: 9, completedErrands: 18 },
+          agreedAmountMinor: 400_000, attention: null, attentionExpiresAt: null,
+        },
+      ])),
+    );
+
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><SessionProvider me={me}><MyErrandsPage /></SessionProvider></QueryClientProvider>);
+
+    expect(await screen.findByText('Pick up cake')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Needs attention/ })).toHaveTextContent('2');
+    expect(screen.getByRole('button', { name: /^All/ })).toHaveTextContent('9');
+    expect(screen.getByText(/Lowest ₦4,000/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Review 2 offers' })).toHaveAttribute('href', '/errands/errand-open');
+    expect(screen.getByText('Blessing A.')).toBeInTheDocument();
+    expect(screen.getByText(/★ 4.7 · 18 errands/)).toBeInTheDocument();
+    expect(screen.getByText(/agreed · paid directly/)).toBeInTheDocument();
+  });
+
+  it('flags a delivery to confirm and an errand that is about to close', async () => {
+    server.use(
+      http.get('*/api/v1/me/summary', () => envelope(summary)),
+      http.get('*/api/v1/errands/mine/counts', () => envelope({ all: 2, attention: 2, open: 1, active: 1, past: 0, draft: 0 })),
+      http.get('*/api/v1/errands/mine', () => envelope([
+        {
+          ...summaryErrand, id: 'errand-delivered', title: 'Inhaler run', status: 'DELIVERED',
+          offerPreview: [], lowestOfferMinor: null,
+          runner: { firstName: 'Fatima', lastName: 'Garba', photoMediaId: null, rating: 4.9, ratingCount: 30, completedErrands: 41 },
+          agreedAmountMinor: 350_000, attention: 'DELIVERY', attentionExpiresAt: null,
+        },
+        {
+          ...summaryErrand, id: 'errand-closing', title: 'Generator check', status: 'OPEN', offerCount: 1,
+          offerPreview: [{ firstName: 'Bola', lastName: null, photoMediaId: null }], lowestOfferMinor: 550_000,
+          runner: null, agreedAmountMinor: null, attention: 'EXPIRING',
+          attentionExpiresAt: new Date(Date.now() + 50 * 60_000).toISOString(),
+          expiresAt: new Date(Date.now() + 50 * 60_000).toISOString(),
+        },
+      ])),
+    );
+
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><SessionProvider me={me}><MyErrandsPage /></SessionProvider></QueryClientProvider>);
+
+    expect(await screen.findByText(/Fatima delivered it/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Confirm delivery' })).toBeInTheDocument();
+    expect(screen.getByText(/Closes in 4\d min · extend it once, or boost it/)).toBeInTheDocument();
+  });
 });

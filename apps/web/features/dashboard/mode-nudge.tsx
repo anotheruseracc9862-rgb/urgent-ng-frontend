@@ -1,9 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { ArrowLeftRight } from 'lucide-react';
 import { Button } from '@urgent/ui';
-import { saveMode } from '@/lib/auth/mode';
+import { useModeSwitch } from '@/components/shell/use-mode-switch';
 import type { ShellMode } from '@/components/shell/nav-items';
 
 const COPY: Record<ShellMode, { title: string; text: string; action: string }> = {
@@ -23,7 +22,7 @@ const COPY: Record<ShellMode, { title: string; text: string; action: string }> =
 
 /** One account, two modes: points at the mode the person is not using, and switches in place. */
 export function ModeNudge({ mode }: { mode: ShellMode }) {
-  const router = useRouter();
+  const { requestSwitch, dialog } = useModeSwitch(mode);
   const other: ShellMode = mode === 'RUNNER' ? 'REQUESTER' : 'RUNNER';
   const copy = COPY[mode];
 
@@ -45,14 +44,11 @@ export function ModeNudge({ mode }: { mode: ShellMode }) {
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => {
-          saveMode(other);
-          router.push('/dashboard');
-          router.refresh();
-        }}
+        onClick={() => requestSwitch(other)}
       >
         {copy.action}
       </Button>
+      {dialog}
     </aside>
   );
 }

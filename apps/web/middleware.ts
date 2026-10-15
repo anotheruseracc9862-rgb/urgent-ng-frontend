@@ -70,7 +70,10 @@ export function middleware(request: NextRequest) {
   const signedIn = hasAccessCookie(request);
 
   if (GUEST_ONLY.some((r) => matches(pathname, r))) {
-    if (signedIn) {
+    // A page that just found the session dead sends the user here with a reason. Do not bounce
+    // them back into the app on a cookie that has not expired locally but the API rejected.
+    const sessionDead = ['session-expired', 'session-check-failed'].includes(request.nextUrl.searchParams.get('reason') ?? '');
+    if (signedIn && !sessionDead) {
       return NextResponse.redirect(new URL(safeRedirect(request.nextUrl.searchParams.get('redirect')), request.url));
     }
     return NextResponse.next();

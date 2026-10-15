@@ -7,11 +7,15 @@ import { SessionProvider } from '@/lib/auth/client';
 import { getActiveMode, getSession } from '@/lib/auth/session';
 import { RealtimeProvider } from '@/features/realtime/realtime-provider';
 import { ConnectionBanner } from '@/features/realtime/connection-banner';
+import { ClientOnly } from '@/components/shell/client-only';
 
 export default async function BusinessLayout({ children }: { children: React.ReactNode }) {
   const me = await getSession();
 
-  if (!me) redirect('/login');
+  // The access cookie was present but the API refused it: let the browser try one refresh and
+  // clear the dead cookies. Sending the user straight to /login loops, because middleware sees a
+  // cookie that has not expired and bounces /login back to the app.
+  if (!me) redirect('/session?redirect=%2Fdashboard');
   if (me.status !== 'ACTIVE') redirect('/account/standing');
   if (me.startMode === null) redirect('/onboarding');
 
@@ -26,7 +30,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
             <Topbar mode={mode} />
             <RestrictionBanner />
             <ConnectionBanner />
-            <main className="min-w-0 pb-24 lg:pb-10">{children}</main>
+            <main className="min-w-0 pb-24 lg:pb-10"><ClientOnly>{children}</ClientOnly></main>
           </div>
         </div>
         <BottomNav mode={mode} />

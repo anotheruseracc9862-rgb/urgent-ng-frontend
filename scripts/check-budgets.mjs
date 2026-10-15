@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * First-load JavaScript budgets per route (Frontend Build Plan F10-03).
- * Reads the production build output of apps/web, so run `npm run build -w web` first.
- * Usage: node scripts/check-budgets.mjs [--report]
+ * Reads a production build; build the selected app first.
+ * Usage: node scripts/check-budgets.mjs [--app=admin] [--report] (defaults to web)
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
@@ -10,9 +10,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const webDir = path.resolve(here, '../apps/web');
-const nextDir = path.join(webDir, '.next');
-const budgets = JSON.parse(readFileSync(path.join(here, 'budgets.json'), 'utf8'));
+const app = process.argv.find(arg => arg.startsWith('--app='))?.slice(6) ?? 'web';
+const config = JSON.parse(readFileSync(path.join(here, 'budgets.json'), 'utf8'));
+const budgets = app === 'web' ? config : config.apps?.[app];
+if (!budgets) throw new Error(`No JavaScript budgets configured for ${app}`);
+const nextDir = path.resolve(here, '../apps', app, '.next');
 const reportOnly = process.argv.includes('--report');
 
 const gzipCache = new Map();
@@ -71,6 +73,10 @@ for (const file of pageManifests(path.join(nextDir, 'server/app'))) {
   rows.push({ route: route || '/', kb: Math.round((bytes / 1024) * 10) / 10, mapsInFirstLoad });
 }
 rows.sort((a, b) => b.kb - a.kb);
+if (!rows.length) throw new Error(`No page manifests found for ${app}; run its production build first.`);
+for (const required of budgets.requiredRoutes ?? []) {
+  if (!rows.some(row => row.route === required)) throw new Error(`Missing ${app} route manifest: ${required}`);
+}
 
 function budgetFor(route) {
   const match = budgets.groups.find((group) => group.routes.some((pattern) => new RegExp(pattern).test(route)));

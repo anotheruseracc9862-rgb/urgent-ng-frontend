@@ -12,7 +12,7 @@ export type ExecutionEvent = components['schemas']['ExecutionEventDto'];
 export type OfferSort = NonNullable<NonNullable<operations['Offers_list']['parameters']['query']>['sort']>;
 
 export interface MyErrandFilters {
-  tab?: 'DRAFT' | 'OPEN' | 'ACTIVE' | 'PAST';
+  tab?: 'DRAFT' | 'OPEN' | 'ACTIVE' | 'PAST' | 'ATTENTION';
   sort?: 'RECENT' | 'NEEDS_ATTENTION' | 'HIGHEST_AMOUNT';
   q?: string;
   cursor?: string;

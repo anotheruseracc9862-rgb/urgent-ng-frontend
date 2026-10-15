@@ -40,5 +40,17 @@
   "mapRoutes": [
     "/assignments/[id]/track",
     "/shared/[token]"
-  ]
+  ],
+  "apps": {
+    "admin": {
+      "_comment": "Baseline: console 201–207 kB, login 172, invitation 166, session 157. Limits allow about 8–10% headroom. No map SDK belongs in admin.",
+      "defaultMaxKb": 170,
+      "groups": [
+        { "name": "console", "maxKb": 225, "routes": ["^/dashboard$", "^/\\[workspace\\]$"] },
+        { "name": "authentication", "maxKb": 190, "routes": ["^/login$", "^/accept-invite$"] }
+      ],
+      "requiredRoutes": ["/[workspace]", "/dashboard", "/login", "/accept-invite", "/session"],
+      "mapRoutes": []
+    }
+  }
 }

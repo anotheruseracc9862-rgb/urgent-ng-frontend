@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
@@ -18,9 +19,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Urgent.ng Admin",
   description: "Urgent.ng internal administration application.",
+  robots: { index: false, follow: false },
+  referrer: "no-referrer",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // All admin pages, including login/invitations, render per request for fresh script nonces.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
@@ -28,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <AppThemeProvider>
+        <AppThemeProvider nonce={nonce}>
           <QueryProvider>
             {children}
             <SonnerToaster />
