@@ -117,7 +117,7 @@ export function PublicHeader() {
 
           {viewer.status === 'guest' ? (
             <>
-              <Link href="/login" className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}>
+              <Link href="/login" aria-label="Sign In" className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}>
                 <User className="size-[18px]" />
                 <span className="hidden sm:inline">Sign In</span>
               </Link>
@@ -130,7 +130,7 @@ export function PublicHeader() {
               >
                 Sign Up
               </Link>
-              <Link href="/register" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
+              <Link href="/register" aria-label="Post Errand" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
                 <Plus className="size-[18px]" strokeWidth={2.4} />
                 <span className="hidden min-[420px]:inline">Post Errand</span>
               </Link>
@@ -146,7 +146,7 @@ export function PublicHeader() {
                 <LayoutDashboard className="size-[18px]" />
                 Dashboard
               </Link>
-              <Link href="/errands/new" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
+              <Link href="/errands/new" aria-label="Post Errand" className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}>
                 <Plus className="size-[18px]" strokeWidth={2.4} />
                 <span className="hidden min-[420px]:inline">Post Errand</span>
               </Link>

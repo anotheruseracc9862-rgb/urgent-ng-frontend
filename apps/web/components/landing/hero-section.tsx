@@ -13,7 +13,7 @@ function TaskDoneBadge({ className }: { className?: string }) {
       </div>
       <div className="flex flex-col gap-0.5">
         <div className="text-[15px] font-bold leading-tight text-cn-blue-800">Task Done</div>
-        <div className="text-xs font-medium leading-snug text-cn-blue-400">Inspect items before payment</div>
+        <div className="text-xs font-medium leading-snug text-cn-blue-500">Inspect items before payment</div>
       </div>
     </div>
   );

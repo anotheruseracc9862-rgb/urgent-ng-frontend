@@ -159,7 +159,7 @@ export default async function TermsPage() {
             <h2 className="text-lg font-extrabold tracking-[-0.01em] text-ink mb-2">10. Contact Us</h2>
             <p className="text-ink-2 leading-relaxed">
               Questions about these terms? Contact us at{' '}
-              <a href="mailto:legal@urgent.ng" className="text-cn-green-600 hover:underline">
+              <a href="mailto:legal@urgent.ng" className="text-cn-green-800 underline">
                 legal@urgent.ng
               </a>
             </p>

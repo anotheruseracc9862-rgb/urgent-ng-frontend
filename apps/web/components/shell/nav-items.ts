@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Package,
-  Pin,
+  MapPin,
   Receipt,
   Rocket,
   Settings,
@@ -56,7 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, primary: true },
 
   { href: '/errands', label: 'My errands', icon: Package, mode: 'REQUESTER', primary: true, count: 'errands' },
-  { href: '/errands', query: { tab: 'ACTIVE' }, label: 'Track errand', icon: Pin, mode: 'REQUESTER', alsoActiveFor: ['/assignments'] },
+  { href: '/track', label: 'Track errand', icon: MapPin, mode: 'REQUESTER', alsoActiveFor: ['/assignments'] },
 
   { href: '/marketplace', label: 'Find errands', icon: Compass, mode: 'RUNNER', primary: true, count: 'nearby' },
   { href: '/offers', label: 'My offers', icon: Tag, mode: 'RUNNER', count: 'offers' },

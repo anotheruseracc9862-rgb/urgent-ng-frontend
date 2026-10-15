@@ -8,6 +8,7 @@ const ACCESS_COOKIE = 'ung_at';
 const PROTECTED = [
   '/dashboard',
   '/errands',
+  '/track',
   '/marketplace',
   '/offers',
   '/assignments',

@@ -15,7 +15,7 @@ export function SectionHeader({
   return (
     <div className={cn('mx-auto mb-12 flex max-w-[680px] flex-col items-center gap-1.5 text-center', className)}>
       {tag ? (
-        <span className="text-xs font-bold uppercase tracking-[0.08em] text-cn-green-600">{tag}</span>
+        <span className="text-xs font-bold uppercase tracking-[0.08em] text-cn-green-800">{tag}</span>
       ) : null}
       <h2 className="text-[26px] font-bold leading-[1.25] tracking-[-0.02em] text-cn-blue-700 md:text-4xl">
         {title}

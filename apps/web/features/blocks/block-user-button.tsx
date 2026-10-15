@@ -18,7 +18,13 @@ export async function invalidateBlockRelatedQueries(queryClient: ReturnType<type
   ]);
 }
 
-export function BlockUserButton({ userId, userName }: { userId: string; userName: string }) {
+export function BlockUserButton({ userId, userName, label = 'Block', variant = 'ghost', fullWidth = false }: {
+  userId: string;
+  userName: string;
+  label?: string;
+  variant?: 'ghost' | 'danger';
+  fullWidth?: boolean;
+}) {
   const { me } = useSession();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -34,8 +40,14 @@ export function BlockUserButton({ userId, userName }: { userId: string; userName
 
   return (
     <>
-      <Button type="button" variant="ghost" size="sm" onClick={() => { mutation.reset(); setSuccess(false); setOpen(true); }}>
-        Block
+      <Button
+        type="button"
+        variant={variant}
+        size={fullWidth ? 'default' : 'sm'}
+        className={fullWidth ? 'w-full' : undefined}
+        onClick={() => { mutation.reset(); setSuccess(false); setOpen(true); }}
+      >
+        {label}
       </Button>
       {success ? <p role="status" className="text-xs font-bold text-green-800">{userName} was blocked.</p> : null}
       <Dialog open={open} onOpenChange={setOpen}>

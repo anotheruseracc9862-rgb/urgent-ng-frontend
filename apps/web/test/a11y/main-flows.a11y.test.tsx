@@ -67,7 +67,8 @@ const POLICIES = ['TERMS_OF_SERVICE', 'PRIVACY_POLICY', 'SAFETY_POLICY', 'PROHIB
 const conversation = {
   id: 'c1', errandId: 'e1', errandTitle: 'Pick up parcel', muted: false, canSend: true, readOnlyReason: null,
   unreadCount: 1, lastMessageAt: '2026-10-15T08:00:00Z', createdAt: '2026-10-15T08:00:00Z',
-  counterpart: { userId: 'u2', firstName: 'Tobi', photoMediaId: null },
+  counterpart: { userId: 'u2', firstName: 'Tobi', lastName: 'Ade', photoMediaId: null, role: 'RUNNER', rating: 4.9, ratingCount: 12 },
+  lastMessagePreview: 'On my way', errandStatus: 'IN_PROGRESS', amountMinor: 300_000, amountKind: 'AGREED', pickupArea: 'Yaba', destinationArea: 'Ikeja', assignmentId: 'a1',
 };
 const order = {
   id: 'o1', type: 'RUNNER_PRO', status: 'PAID', amountMinor: 500000, vatMinor: 34884, currency: 'NGN',

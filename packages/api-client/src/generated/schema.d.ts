@@ -6372,6 +6372,10 @@ export interface components {
             runner: components["schemas"]["ErrandRunnerSummaryDto"] | null;
             /** @description The agreed amount in kobo, once a runner is selected. */
             agreedAmountMinor: number | null;
+            /** @description The assignment with the selected runner. Open it at /assignments/{id}. */
+            assignmentId: string | null;
+            /** @description The conversation with the selected runner about this errand, if one exists. */
+            conversationId: string | null;
             /**
              * @description What needs the requester next: OFFERS to review, a RUNNER_TO_CONFIRM, a DELIVERY to confirm, a CHANGE_REQUEST to answer, or an open errand EXPIRING within two hours.
              * @enum {string|null}
@@ -6568,12 +6572,40 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        ConversationCounterpartDto: {
+            userId: string;
+            firstName: string;
+            lastName: string | null;
+            photoMediaId: string | null;
+            /**
+             * @description The other person's side of this errand.
+             * @enum {string}
+             */
+            role: "REQUESTER" | "RUNNER";
+            /** @description Null until enough ratings are published to show an average. */
+            rating: number | null;
+            ratingCount: number;
+        };
         ConversationDto: {
             id: string;
             errandId: string;
             errandTitle: string;
-            /** @description The other person: { userId, firstName, photoMediaId }. */
-            counterpart: Record<string, never>;
+            /** @description The other person. */
+            counterpart: components["schemas"]["ConversationCounterpartDto"];
+            /** @description The latest message that is not removed: its text, or "Photo". Null when there is none. */
+            lastMessagePreview: string | null;
+            /** @description Where the errand is now, as the errand status. */
+            errandStatus: string;
+            /** @description Agreed amount in kobo once a runner is selected, otherwise the runner's latest offer. Null with neither. */
+            amountMinor: number | null;
+            /** @enum {string|null} */
+            amountKind: "AGREED" | "OFFER" | null;
+            /** @description Approximate area only. */
+            pickupArea: string | null;
+            /** @description Approximate area only. */
+            destinationArea: string | null;
+            /** @description The assignment for this conversation, from selection onward. */
+            assignmentId: string | null;
             /** Format: date-time */
             lastMessageAt: string | null;
             unreadCount: number;

@@ -1,13 +1,7 @@
 import type { components } from '@urgent/api-client';
 import { api, apiResponse } from '@/lib/api/client';
 
-export type Conversation = Omit<components['schemas']['ConversationDto'], 'counterpart'> & {
-  counterpart: {
-    userId: string;
-    firstName: string;
-    photoMediaId: string | null;
-  };
-};
+export type Conversation = components['schemas']['ConversationDto'];
 export type Message = components['schemas']['MessageDto'];
 export type SendMessage = components['schemas']['SendMessageDto'];
 export type ConversationFilter = 'ALL' | 'ACTIVE' | 'OFFERS' | 'CLOSED';

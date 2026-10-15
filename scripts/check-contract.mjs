@@ -51,16 +51,18 @@ function walk(dir) {
   return found;
 }
 
-const CALL = /\b(?:api|apiResponse)(?:<[^>]*(?:<[^>]*>)?[^>]*>)?\(\s*([`'"])(\/[^`'"]*)\1([\s\S]{0,200}?)\)/g;
+const CALL = /\b(?:api|apiResponse|adminApi)(?:<[^>]*(?:<[^>]*>)?[^>]*>)?\(\s*([`'"])(\/[^`'"]*)\1([\s\S]{0,200}?)\)/g;
 const missing = [];
 let checked = 0;
-for (const dir of ['apps/web/app', 'apps/web/features', 'apps/web/components', 'apps/web/lib']) {
+for (const dir of ['apps/web/app', 'apps/web/features', 'apps/web/components', 'apps/web/lib', 'apps/admin/app', 'apps/admin/features', 'apps/admin/components', 'apps/admin/lib']) {
   for (const file of walk(path.join(root, dir))) {
     const text = readFileSync(file, 'utf8');
     for (const match of text.matchAll(CALL)) {
-      const route = match[2].replace(/\$\{[^}]+\}/g, 'x').split('?')[0];
-      const literal = /method:\s*'(GET|POST|PUT|PATCH|DELETE)'/i.exec(match[3]);
-      const conditional = [...match[3].matchAll(/'(GET|POST|PUT|PATCH|DELETE)'/g)].map((m) => m[1].toLowerCase());
+      // The admin client's paths are relative to `/api/v1/admin`.
+      const adminCall = file.includes(`${path.sep}apps${path.sep}admin${path.sep}`);
+      const route = (adminCall ? '/admin' : '') + match[2].replace(/\$\{[^}]+\}/g, 'x').split('?')[0];
+      const literal = /method:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/i.exec(match[3]);
+      const conditional = [...match[3].matchAll(/['"](GET|POST|PUT|PATCH|DELETE)['"]/g)].map((m) => m[1].toLowerCase());
       const wanted = literal ? [literal[1].toLowerCase()] : conditional.length ? conditional : ['get'];
       checked += 1;
       // A call-site `x` (a template value) may stand for a literal segment such as an action name.

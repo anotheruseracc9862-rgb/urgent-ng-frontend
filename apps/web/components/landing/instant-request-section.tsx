@@ -59,7 +59,7 @@ export function InstantRequestSection({ categories = [] }: { categories?: Popula
     <RevealSection id="instant-request" className="bg-gradient-to-b from-cn-blue-50 to-white py-16 md:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="mb-12 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-cn-green-50 px-4 py-2 text-sm font-medium text-cn-green-700">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-cn-green-50 px-4 py-2 text-sm font-medium text-cn-green-800">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-cn-green-400 opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-cn-green-500" />

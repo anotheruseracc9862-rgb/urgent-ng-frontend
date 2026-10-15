@@ -20,7 +20,8 @@ const envelope = (data: unknown, meta: unknown = {}) => HttpResponse.json({ data
 const conversation = {
   id: 'c1', errandId: 'e1', errandTitle: 'Pick up parcel', muted: false, canSend: true,
   readOnlyReason: null, unreadCount: 0, lastMessageAt: null, createdAt: '2026-10-15T08:00:00Z',
-  counterpart: { userId: 'user-2', firstName: 'Tobi', photoMediaId: null },
+  counterpart: { userId: 'user-2', firstName: 'Tobi', lastName: 'Ade', photoMediaId: null, role: 'RUNNER', rating: 4.9, ratingCount: 12 },
+  lastMessagePreview: 'On my way', errandStatus: 'IN_PROGRESS', amountMinor: 300_000, amountKind: 'AGREED', pickupArea: 'Yaba', destinationArea: 'Ikeja', assignmentId: 'a1',
 };
 
 function renderThread() {
@@ -69,7 +70,7 @@ describe('ConversationThreadPage', () => {
       http.get('*/conversations/c1/messages', () => envelope([])),
     );
     renderThread();
-    expect(await screen.findByText(/read-only because the errand has ended/i)).toBeTruthy();
+    expect(await screen.findByText(/This errand ended, so the conversation is read-only/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
   });
 

@@ -62,6 +62,11 @@ For payments, set the backend `PAYSTACK_CALLBACK_URL` to `<web origin>/checkout/
 | `npm run build -w web && npm run budgets` | first-load JavaScript budget per route (`scripts/budgets.json`) |
 | `npm run start -w web -- -p 4001` then `npm run responsive` | no horizontal overflow at 360, 768 and 1280 px and no Content-Security-Policy violation on public routes (needs Chrome; set `CHROME_PATH` if it is not found) |
 
+| `node scripts/check-axe.mjs <baseUrl> <route> …` (or `npm run a11y:browser -- …`) | real-browser axe run, including colour contrast, at 360 and 1280 px; start the app with `next start` first (Git Bash on Windows: prefix `MSYS_NO_PATHCONV=1`) |
+| `npm run budgets -w admin` | first-load JavaScript budgets for the admin app (build it first with `npm run build -w admin`) |
+
+The admin app needs `NEXT_PUBLIC_APP_URL` (see `apps/admin/.env.example`) to build.
+
 When the backend contract changes: `npm run generate -w @urgent/api-client`, fix compile errors,
 then `npm run contract:check`.
 

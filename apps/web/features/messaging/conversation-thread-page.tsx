@@ -1,35 +1,42 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronLeft, ImagePlus, Info, Send } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { MediaUpload } from '@/components/media/MediaUpload';
-import { BlockUserButton } from '@/features/blocks/block-user-button';
-import { isApiError } from '@/lib/api/client';
+import { api, isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
-import { api } from '@/lib/api/client';
 import { messagingApi, nextMessageIntent, type Message, type SendMessage } from './api';
+import { avatarTone, counterpartName, counterpartSubtitle, errandStatusLabel, initialsOf } from './presentation';
 
-const READ_ONLY_COPY: Record<NonNullable<Awaited<ReturnType<typeof messagingApi.conversation>>['readOnlyReason']>, string> = {
-  BLOCKED: 'This conversation is read-only because one of you blocked the other.',
-  ERRAND_ENDED: 'This conversation is read-only because the errand has ended.',
-  NO_ACTIVE_OFFER: 'This conversation is read-only because there is no active offer.',
-  COMPLETION_WINDOW_ENDED: 'This conversation is read-only because the completion window has ended.',
+const READ_ONLY_COPY: Record<string, string> = {
+  BLOCKED: 'You blocked this person, so the conversation is read-only.',
+  ERRAND_ENDED: 'This errand ended, so the conversation is read-only.',
+  NO_ACTIVE_OFFER: 'This offer is closed, so the conversation is read-only.',
+  COMPLETION_WINDOW_ENDED: 'The window after completion has ended, so the conversation is read-only.',
 };
 
-export function ConversationThreadPage({ conversationId }: { conversationId: string }) {
+const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+
+/**
+ * One conversation: header, errand ribbon, the stream and the composer (demo `.chat-thread-pane`).
+ * Mute, block, report and payment terms live in the details pane next to it.
+ */
+export function ConversationThreadPage({ conversationId, onShowDetails }: { conversationId: string; onShowDetails?: () => void }) {
   const { me } = useSession();
   const client = useQueryClient();
   const [body, setBody] = React.useState('');
   const [imageId, setImageId] = React.useState<string | undefined>();
+  const [attachOpen, setAttachOpen] = React.useState(false);
   const intent = React.useRef<{ signature: string; clientMessageId: string } | null>(null);
-  const conversationKey = queryKeys.conversations.detail(conversationId);
+  const streamEnd = React.useRef<HTMLDivElement>(null);
 
   const conversation = useQuery({
-    queryKey: conversationKey,
+    queryKey: queryKeys.conversations.detail(conversationId),
     queryFn: () => messagingApi.conversation(conversationId),
   });
   const messages = useInfiniteQuery({
@@ -40,6 +47,7 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
     enabled: conversation.isSuccess,
   });
   const messageList = messages.data?.pages.slice().reverse().flatMap((page) => page.data.slice().reverse()) ?? [];
+  const latestId = messageList.at(-1)?.id;
 
   const markRead = useMutation({
     mutationFn: (messageId: string) => messagingApi.read(conversationId, messageId),
@@ -54,7 +62,11 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
     if (latest && latest.senderId !== me.id) markRead.mutate(latest.id);
   // The most recent message id is sufficient; unrelated renders must not repeat the request.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, messageList.at(-1)?.id, me.id]);
+  }, [conversationId, latestId, me.id]);
+
+  React.useEffect(() => {
+    streamEnd.current?.scrollIntoView?.({ block: 'end' });
+  }, [latestId, conversationId]);
 
   const send = useMutation({
     mutationFn: (input: SendMessage) => messagingApi.send(conversationId, input),
@@ -62,18 +74,11 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
       intent.current = null;
       setBody('');
       setImageId(undefined);
+      setAttachOpen(false);
       await Promise.all([
         client.invalidateQueries({ queryKey: queryKeys.conversations.messages(conversationId) }),
         client.invalidateQueries({ queryKey: queryKeys.conversations.all() }),
       ]);
-    },
-  });
-  const mute = useMutation({
-    mutationFn: (next: boolean) => messagingApi.mute(conversationId, next),
-    onSuccess: async (result) => {
-      client.setQueryData(conversationKey, (current: typeof conversation.data) =>
-        current ? { ...current, muted: result.muted } : current);
-      await client.invalidateQueries({ queryKey: queryKeys.conversations.all() });
     },
   });
   const remove = useMutation({
@@ -89,17 +94,20 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
     const input: SendMessage = imageId
       ? { type: 'IMAGE', mediaId: imageId }
       : { type: 'TEXT', body: body.trim() };
+    if (input.type === 'TEXT' && !input.body) return;
     const signature = JSON.stringify(input);
     intent.current = nextMessageIntent(intent.current, signature);
     send.mutate({ ...input, clientMessageId: intent.current.clientMessageId });
   };
 
-  if (conversation.isLoading) return <div className="mx-auto grid max-w-3xl gap-3" aria-label="Loading conversation"><Skeleton className="h-16" /><Skeleton className="h-72" /></div>;
+  if (conversation.isLoading) {
+    return <div className="grid gap-3 p-4" aria-label="Loading conversation"><Skeleton className="h-14" /><Skeleton className="h-72" /></div>;
+  }
   if (conversation.error || !conversation.data) {
     const notFound = isApiError(conversation.error) && conversation.error.status === 404;
     return (
-      <div className="mx-auto grid max-w-3xl gap-4">
-        <h1 className="text-2xl font-extrabold text-ink">Conversation</h1>
+      <div className="grid gap-4 p-5">
+        <h1 className="text-xl font-extrabold text-ink">Conversation</h1>
         <Alert variant="danger" role="alert">
           <p>{notFound ? 'This conversation was not found.' : 'We could not load this conversation.'}</p>
           {isApiError(conversation.error) && conversation.error.requestId ? <p className="mt-1 text-xs">Request ID: {conversation.error.requestId}</p> : null}
@@ -110,99 +118,147 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
   }
 
   const current = conversation.data;
-  const readOnlyMessage = current.readOnlyReason ? READ_ONLY_COPY[current.readOnlyReason] : null;
+  const readOnlyMessage = current.readOnlyReason ? READ_ONLY_COPY[current.readOnlyReason] ?? 'This conversation is read-only.' : null;
+  const status = errandStatusLabel(current.errandStatus);
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-4">
-      <header className="flex flex-wrap items-center gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        <Link href="/messages" aria-label="Back to messages" className="grid size-10 place-items-center rounded-full bg-panel font-bold text-ink">←</Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-extrabold text-ink">{current.counterpart.firstName}</h1>
-          <p className="truncate text-xs text-muted">{current.errandTitle}</p>
-        </div>
-        <Button type="button" variant="ghost" size="sm" disabled={mute.isPending} onClick={() => mute.mutate(!current.muted)}>
-          {current.muted ? 'Unmute' : 'Mute'}
-        </Button>
-        <BlockUserButton userId={current.counterpart.userId} userName={current.counterpart.firstName} />
-        <Link
-          href={`/report?targetType=USER&targetId=${encodeURIComponent(current.counterpart.userId)}`}
-          className="inline-flex min-h-10 items-center rounded-full px-3 text-xs font-bold text-muted underline"
-        >
-          Report
+    <>
+      <header className="flex items-center gap-3 border-b border-line px-[18px] py-3.5">
+        <Link href="/messages" aria-label="Back to conversations" className="grid size-[42px] place-items-center rounded-full bg-panel text-ink-2 hover:bg-tint-2 lg:hidden">
+          <ChevronLeft aria-hidden="true" className="size-5" />
         </Link>
+        <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full text-[13px] font-extrabold ${avatarTone(current.id)}`}>
+          {initialsOf(current.counterpart.firstName, current.counterpart.lastName)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-sm font-extrabold text-ink">{counterpartName(current.counterpart)}</h1>
+          <p className="truncate text-xs text-muted">{counterpartSubtitle(current.counterpart)}</p>
+        </div>
+        {onShowDetails ? (
+          <button
+            type="button"
+            onClick={onShowDetails}
+            aria-label="Errand details"
+            className="grid size-[42px] place-items-center rounded-full bg-panel text-ink-2 hover:bg-tint-2 xl:hidden"
+          >
+            <Info aria-hidden="true" className="size-[19px]" />
+          </button>
+        ) : null}
       </header>
 
-      {readOnlyMessage ? <Alert variant="info" role="status"><p>{readOnlyMessage}</p></Alert> : null}
-      {messages.error ? (
-        <Alert variant="danger" role="alert">
-          <p>We could not load the messages.</p>
-          {isApiError(messages.error) && messages.error.requestId ? <p className="mt-1 text-xs">Request ID: {messages.error.requestId}</p> : null}
-          <Button type="button" variant="ghost" size="sm" onClick={() => void messages.refetch()}>Try again</Button>
-        </Alert>
-      ) : null}
+      <div className="flex items-center justify-between gap-3 bg-tint px-[18px] py-2.5 text-[12.5px] font-bold text-green-900">
+        <span className="min-w-0 truncate">{current.errandTitle}</span>
+        <span className="shrink-0 rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold">{status}</span>
+      </div>
 
-      <section aria-label="Conversation messages" className="flex min-h-[55vh] flex-col rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+      <div aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-panel p-5">
+        {messages.error ? (
+          <Alert variant="danger" role="alert">
+            <p>We could not load the messages.</p>
+            {isApiError(messages.error) && messages.error.requestId ? <p className="mt-1 text-xs">Request ID: {messages.error.requestId}</p> : null}
+            <Button type="button" variant="ghost" size="sm" onClick={() => void messages.refetch()}>Try again</Button>
+          </Alert>
+        ) : null}
         {messages.isLoading ? <Skeleton className="h-40" aria-label="Loading messages" /> : null}
         {messages.hasNextPage ? (
-          <Button type="button" variant="ghost" size="sm" disabled={messages.isFetchingNextPage} onClick={() => void messages.fetchNextPage()}>
+          <Button type="button" variant="ghost" size="sm" className="self-center" disabled={messages.isFetchingNextPage} onClick={() => void messages.fetchNextPage()}>
             {messages.isFetchingNextPage ? 'Loading older messages…' : 'Load older messages'}
           </Button>
         ) : null}
-        <ol className="mt-3 grid content-end gap-3">
-          {messageList.map((message) => (
-            <MessageRow key={message.id} message={message} own={message.senderId === me.id} onRemove={() => remove.mutate(message.id)} busy={remove.isPending} />
-          ))}
-        </ol>
-        {!messageList.length && !messages.isLoading && !messages.error ? <p className="py-10 text-center text-sm text-muted">Start the conversation with a message about this errand.</p> : null}
-      </section>
+        {messageList.map((message) => (
+          <Bubble
+            key={message.id}
+            message={message}
+            own={message.senderId === me.id}
+            onRemove={() => remove.mutate(message.id)}
+            busy={remove.isPending}
+          />
+        ))}
+        {!messageList.length && !messages.isLoading && !messages.error ? (
+          <p className="m-auto py-10 text-center text-sm text-muted">Start the conversation with a message about this errand.</p>
+        ) : null}
+        <div ref={streamEnd} />
+      </div>
 
       {send.error ? (
-        <Alert variant="danger" role="alert">
-          <p>{isApiError(send.error) && send.error.code === 'CONVERSATION_READ_ONLY' ? 'This conversation is now read-only.' : 'Your message could not be sent. Retry to send it once.'}</p>
-          {isApiError(send.error) && send.error.requestId ? <p className="mt-1 text-xs">Request ID: {send.error.requestId}</p> : null}
-        </Alert>
+        <div className="border-t border-line p-3">
+          <Alert variant="danger" role="alert">
+            <p>{isApiError(send.error) && send.error.code === 'CONVERSATION_READ_ONLY' ? 'This conversation is now read-only.' : 'Your message could not be sent. Retry to send it once.'}</p>
+            {isApiError(send.error) && send.error.requestId ? <p className="mt-1 text-xs">Request ID: {send.error.requestId}</p> : null}
+          </Alert>
+        </div>
       ) : null}
-      {remove.error || mute.error ? <Alert variant="danger" role="alert"><p>We could not update this conversation. Please try again.</p></Alert> : null}
-      {markRead.error ? <Alert variant="danger" role="alert"><p>We could not update the read receipt. Messages will be marked read when you retry.</p></Alert> : null}
+      {remove.error || markRead.error ? (
+        <div className="border-t border-line p-3"><Alert variant="danger" role="alert"><p>We could not update this conversation. Please try again.</p></Alert></div>
+      ) : null}
 
-      <form onSubmit={submit} className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        {!readOnlyMessage && current.canSend ? (
-          <>
-            <label className="grid gap-1 text-xs font-bold text-ink-2">
-              Message
-              <textarea value={body} onChange={(event) => setBody(event.currentTarget.value)} maxLength={2000} rows={3} disabled={Boolean(imageId) || send.isPending} placeholder="Write a message…" className="rounded-xl border border-line bg-panel p-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-lime-600 disabled:opacity-60" />
-              <span className="text-right font-normal text-muted">{body.length}/2000</span>
-            </label>
+      {readOnlyMessage || !current.canSend ? (
+        <div role="status" className="border-t border-line bg-surface px-[18px] py-3.5 text-center text-[13px] font-semibold text-muted">
+          {readOnlyMessage ?? 'Messaging is unavailable for this conversation.'}
+        </div>
+      ) : (
+        <form onSubmit={submit} className="grid gap-3 border-t border-line p-3.5">
+          {attachOpen ? (
             <MediaUpload purpose="CHAT_IMAGE" maxFiles={1} value={imageId ? [imageId] : []} onChange={(ids) => setImageId(ids[0])} />
-            <div className="flex justify-end">
-              <Button type="submit" disabled={send.isPending || (!imageId && !body.trim())}>
-                {send.isPending ? 'Sending…' : send.error ? 'Retry message' : 'Send'}
-              </Button>
-            </div>
-          </>
-        ) : <p className="text-sm text-muted">Messaging is unavailable for this conversation.</p>}
-      </form>
-    </div>
+          ) : null}
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setAttachOpen((open) => !open)}
+              aria-label="Attach photo"
+              aria-pressed={attachOpen}
+              className="grid size-[42px] shrink-0 place-items-center rounded-full bg-panel text-ink-2 hover:bg-tint-2 aria-pressed:bg-tint-2"
+            >
+              <ImagePlus aria-hidden="true" className="size-[18px]" />
+            </button>
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">Message</span>
+              <input
+                value={body}
+                onChange={(event) => setBody(event.currentTarget.value)}
+                maxLength={2000}
+                disabled={Boolean(imageId) || send.isPending}
+                placeholder="Type a message"
+                autoComplete="off"
+                className="min-h-12 w-full rounded-full border border-line bg-surface px-4 text-sm outline-none focus-visible:border-lime-600 focus-visible:ring-4 focus-visible:ring-lime/25 disabled:opacity-60"
+              />
+            </label>
+            <Button type="submit" disabled={send.isPending || (!imageId && !body.trim())}>
+              <Send aria-hidden="true" className="size-4" />
+              {send.isPending ? 'Sending…' : send.error ? 'Retry message' : 'Send'}
+            </Button>
+          </div>
+        </form>
+      )}
+    </>
   );
 }
 
-function MessageRow({ message, own, onRemove, busy }: { message: Message; own: boolean; onRemove: () => void; busy: boolean }) {
+function Bubble({ message, own, onRemove, busy }: { message: Message; own: boolean; onRemove: () => void; busy: boolean }) {
+  if (message.type === 'SYSTEM') {
+    return (
+      <div className="max-w-[90%] self-center rounded-full border border-dashed border-[#cfd6c8] px-3.5 py-1.5 text-center text-xs text-muted">
+        {message.body}
+      </div>
+    );
+  }
+  const removed = message.status === 'REMOVED';
   return (
-    <li className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-      <article className={`max-w-[85%] rounded-2xl px-4 py-3 ${own ? 'bg-ink text-white' : 'bg-panel text-ink'}`}>
-        {message.status === 'REMOVED' ? <p className="text-sm italic opacity-75">This message was removed.</p>
-          : message.type === 'IMAGE' && message.mediaId ? <ChatImage mediaId={message.mediaId} />
-          : <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>}
-        <div className="mt-2 flex items-center justify-end gap-2 text-[10px] opacity-75">
-          <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
-          {own ? <span aria-label={`Message ${message.status.toLowerCase()}`}>{message.status === 'READ' ? 'Read' : message.status === 'DELIVERED' ? 'Delivered' : message.status === 'REMOVED' ? '' : 'Sent'}</span> : null}
-          {own && message.status !== 'REMOVED' ? <button type="button" disabled={busy} onClick={onRemove} className="underline">Delete</button> : null}
-          {!own && message.type !== 'SYSTEM' && message.status !== 'REMOVED' ? (
-            <Link href={`/report?targetType=MESSAGE&targetId=${encodeURIComponent(message.id)}`} className="underline">Report</Link>
-          ) : null}
-        </div>
-      </article>
-    </li>
+    <div
+      className={`max-w-[76%] rounded-[18px] px-[15px] py-[11px] text-sm shadow-[0_1px_2px_rgba(23,33,46,.06)] ${own ? 'self-end rounded-br-md bg-ink text-white' : 'self-start rounded-bl-md bg-surface text-ink'}`}
+    >
+      {removed ? <p className="italic opacity-75">This message was removed.</p>
+        : message.type === 'IMAGE' && message.mediaId ? <ChatImage mediaId={message.mediaId} />
+        : <p className="whitespace-pre-wrap break-words">{message.body}</p>}
+      <small className="mt-1 flex flex-wrap items-center justify-end gap-x-2 text-[11px] opacity-70">
+        <time dateTime={message.createdAt}>{timeOf(message.createdAt)}</time>
+        {own && !removed ? <span>{message.status === 'READ' ? 'Read' : message.status === 'DELIVERED' ? 'Delivered' : 'Sent'}</span> : null}
+        {own && !removed ? <button type="button" disabled={busy} onClick={onRemove} className="underline">Delete</button> : null}
+        {!own && !removed ? (
+          <Link href={`/report?targetType=MESSAGE&targetId=${encodeURIComponent(message.id)}`} className="underline">Report</Link>
+        ) : null}
+      </small>
+    </div>
   );
 }
 

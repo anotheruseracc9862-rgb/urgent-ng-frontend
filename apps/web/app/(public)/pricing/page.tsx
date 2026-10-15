@@ -168,7 +168,7 @@ export default async function PricingPage() {
 
       <section className="mt-4 rounded-[var(--r-lg)] bg-surface p-[22px] shadow-[var(--shadow)]">
         <h2 className="mb-4 text-base font-extrabold tracking-tight">Compare</h2>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" role="region" aria-label="Plan comparison" tabIndex={0}>
           <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs font-bold uppercase tracking-wide text-muted">

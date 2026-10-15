@@ -26,7 +26,7 @@ export function EarningsCalculator() {
             <label htmlFor="errands-slider" className="text-sm font-semibold text-cn-blue-600">
               Errands completed per day
             </label>
-            <span className="text-xl font-bold text-cn-green-600">
+            <span className="text-xl font-bold text-cn-green-800">
               {errandsPerDay} errands / day
             </span>
           </div>
@@ -47,7 +47,7 @@ export function EarningsCalculator() {
             <label htmlFor="price-slider" className="text-sm font-semibold text-cn-blue-600">
               Average earning per errand
             </label>
-            <span className="text-xl font-bold text-cn-green-600">
+            <span className="text-xl font-bold text-cn-green-800">
               ₦{avgPrice.toLocaleString()}
             </span>
           </div>
@@ -69,7 +69,7 @@ export function EarningsCalculator() {
             <label htmlFor="days-slider" className="text-sm font-semibold text-cn-blue-600">
               Working days per week
             </label>
-            <span className="text-xl font-bold text-cn-green-600">
+            <span className="text-xl font-bold text-cn-green-800">
               {daysPerWeek} days / week
             </span>
           </div>

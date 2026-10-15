@@ -250,7 +250,7 @@ export default async function PrivacyPage() {
             <div className="mt-4 p-4 bg-cn-blue-50 rounded-lg">
               <p className="text-ink-2">
                 <strong>Email:</strong>{' '}
-                <a href="mailto:privacy@urgent.ng" className="text-cn-green-600 hover:underline">
+                <a href="mailto:privacy@urgent.ng" className="text-cn-green-800 underline">
                   privacy@urgent.ng
                 </a>
               </p>

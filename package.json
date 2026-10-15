@@ -15,7 +15,8 @@
     "clean": "turbo clean && rimraf node_modules",
     "budgets": "node scripts/check-budgets.mjs",
     "audit:prod": "npm audit --omit=dev",
-    "contract:check": "node scripts/check-contract.mjs"
+    "contract:check": "node scripts/check-contract.mjs",
+    "a11y:browser": "node scripts/check-axe.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

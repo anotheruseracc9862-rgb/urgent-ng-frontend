@@ -56,15 +56,15 @@ describe('shell navigation model', () => {
     expect(primaryItemsFor('RUNNER')).toHaveLength(5);
   });
 
-  it('tells "My errands" and "Track errand" apart by the tab', () => {
+  it('sends "Track errand" to the tracking page, not the errands list', () => {
     const mine = NAV_ITEMS.find((item) => item.label === 'My errands')!;
     const track = NAV_ITEMS.find((item) => item.label === 'Track errand')!;
-    expect(hrefFor(track)).toBe('/errands?tab=ACTIVE');
-    expect(isItemActive(mine, '/errands', new URLSearchParams())).toBe(true);
-    expect(isItemActive(track, '/errands', new URLSearchParams())).toBe(false);
-    expect(isItemActive(mine, '/errands', new URLSearchParams('tab=ACTIVE'))).toBe(false);
-    expect(isItemActive(track, '/errands', new URLSearchParams('tab=ACTIVE'))).toBe(true);
+    expect(hrefFor(track)).toBe('/track');
+    expect(isItemActive(track, '/track', new URLSearchParams())).toBe(true);
+    expect(isItemActive(track, '/assignments/a1/track', new URLSearchParams())).toBe(true);
+    expect(isItemActive(mine, '/track', new URLSearchParams())).toBe(false);
     expect(isItemActive(mine, '/errands/e1', new URLSearchParams())).toBe(true);
+    expect(isItemActive(track, '/errands', new URLSearchParams('tab=ACTIVE'))).toBe(false);
   });
 
   it('derives a stable breadcrumb for nested routes without displaying record ids', () => {
@@ -101,7 +101,7 @@ describe('desktop rail', () => {
     renderWithApp(<Sidebar mode="REQUESTER" name="Ada Lovelace" />);
     const sidebar = screen.getByRole('complementary', { name: 'Main' });
     expect(within(sidebar).getByRole('link', { name: 'Post an errand' })).toHaveAttribute('href', '/errands/new');
-    expect(within(sidebar).getByRole('link', { name: /Track errand/ })).toHaveAttribute('href', '/errands?tab=ACTIVE');
+    expect(within(sidebar).getByRole('link', { name: /Track errand/ })).toHaveAttribute('href', '/track');
     expect(within(sidebar).getByRole('navigation', { name: 'Account' })).toBeInTheDocument();
     expect(await within(sidebar).findByText('4')).toBeInTheDocument();
     expect(within(sidebar).getByText('3')).toBeInTheDocument();
