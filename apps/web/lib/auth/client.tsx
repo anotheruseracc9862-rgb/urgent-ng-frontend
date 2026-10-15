@@ -8,6 +8,9 @@ import type { Me } from '@/lib/api/types';
 import { clearQueryCache, setCurrentSessionUserId } from '@/lib/query/provider';
 import { clearPendingIdentity } from '@/lib/auth/pending-identity';
 import { queryKeys } from '@/lib/query/keys';
+import { toast } from 'sonner';
+
+const WEB_PUSH_DEVICE_ID = 'urgent.web-push-device-id';
 
 interface SessionContextValue {
   me: Me;
@@ -33,6 +36,15 @@ export function SessionProvider({ children, me }: { children: React.ReactNode; m
   }, [me.id]);
 
   const signOut = React.useCallback(async () => {
+    try {
+      const deviceId = localStorage.getItem(WEB_PUSH_DEVICE_ID);
+      if (deviceId) {
+        await authApi.removeDevice(deviceId);
+        localStorage.removeItem(WEB_PUSH_DEVICE_ID);
+      }
+    } catch (error) {
+      toast.error('This browser could not be removed from push notifications before signing out.');
+    }
     try {
       await authApi.logout();
     } catch {

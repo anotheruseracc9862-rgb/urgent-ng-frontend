@@ -61,7 +61,7 @@ export function OnboardingFlow() {
 
   return (
     <>
-      <div className="flex gap-1.5" aria-label="Step 3 of 3">
+      <div className="flex gap-1.5" role="img" aria-label="Step 3 of 3">
         <i className="h-[5px] flex-1 rounded-full bg-lime-600" />
         <i className="h-[5px] flex-1 rounded-full bg-lime-600" />
         <i className="h-[5px] flex-1 rounded-full bg-lime-600" />

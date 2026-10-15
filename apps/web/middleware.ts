@@ -24,6 +24,7 @@ const PROTECTED = [
   '/safety',
   '/pro',
   '/boosts',
+  '/checkout',
   '/account',
   '/onboarding',
   '/policy-acceptance',

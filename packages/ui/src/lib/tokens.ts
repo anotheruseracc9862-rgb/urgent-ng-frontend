@@ -9,7 +9,7 @@ export const designTokens = {
     { name: "Tint 2", token: "--tint-2", value: "#eaf5cf" },
     { name: "Ink", token: "--ink", value: "#17212e" },
     { name: "Ink 2", token: "--ink-2", value: "#344154" },
-    { name: "Muted", token: "--muted", value: "#6b7788" },
+    { name: "Muted", token: "--muted", value: "#637080" },
     { name: "Faint", token: "--faint", value: "#98a2b0" },
     { name: "Line", token: "--line", value: "#e7ebe3" },
     { name: "Line 2", token: "--line-2", value: "#f0f2ec" },

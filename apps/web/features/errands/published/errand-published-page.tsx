@@ -7,6 +7,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { errandsApi } from '../api';
+import { PushOptInPrompt } from '@/features/push/push-opt-in-prompt';
 
 export function ErrandPublishedPage({ errandId }: { errandId: string }) {
   const [shareMessage, setShareMessage] = useState('');
@@ -53,6 +54,7 @@ export function ErrandPublishedPage({ errandId }: { errandId: string }) {
         {currentErrand.expiresAt ? <p className="text-sm font-semibold text-ink">Closes {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Lagos' }).format(new Date(currentErrand.expiresAt))}</p> : null}
       </section>
       <div className="grid gap-4 sm:grid-cols-2">
+        <PushOptInPrompt />
         <section className="grid content-start gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4">
           <h2 className="font-extrabold text-ink">What happens next</h2>
           <p className="text-sm text-muted">Runners nearby can review the approximate areas and send offers. Compare their details and agree on a price before work starts.</p>
@@ -62,7 +64,7 @@ export function ErrandPublishedPage({ errandId }: { errandId: string }) {
         <section className="grid content-start gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4">
           <h2 className="font-extrabold text-ink">Manage</h2>
           <Link href={`/errands/${errandId}`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-green-800 px-4 text-sm font-bold text-white hover:bg-green-900">View errand</Link>
-          <Link href="/pricing#errand-boost" className="inline-flex min-h-11 items-center justify-center rounded-full bg-surface px-4 text-sm font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel">Boost · optional</Link>
+          <Link href={`/boosts?errandId=${errandId}`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-surface px-4 text-sm font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel">Boost · optional</Link>
           <Link href="/errands" className="text-center text-sm font-bold text-green-800 underline">My errands</Link>
         </section>
       </div>

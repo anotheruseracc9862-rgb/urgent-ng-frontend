@@ -1,6 +1,8 @@
 import {
   Bell,
   Bookmark,
+  Rocket,
+  Sparkles,
   History,
   LayoutDashboard,
   MapPin,
@@ -39,6 +41,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/assignments', label: 'Assignments', icon: MapPin, mode: 'RUNNER', primary: true },
   { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true },
   { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'] },
+  { href: '/boosts', label: 'Boosts', icon: Rocket, mode: 'REQUESTER' },
+  { href: '/pro', label: 'Runner Pro', icon: Sparkles, mode: 'RUNNER' },
   { href: '/ratings', label: 'Reviews', icon: Star },
   { href: '/safety', label: 'Safety & support', icon: ShieldCheck },
   { href: '/profile', label: 'Profile & account', icon: User, primary: true, section: 'account' },
@@ -50,6 +54,10 @@ export const ROUTE_TITLES: Readonly<Record<string, string>> = {
   '/onboarding': 'Onboarding',
   '/policy-acceptance': 'Policy acceptance',
   '/verification': 'Verification',
+  '/checkout': 'Payment',
+  '/settings/orders': 'Orders and receipts',
+  '/pro': 'Runner Pro',
+  '/boosts': 'Boosts',
 };
 
 export function itemsFor(mode: ShellMode): NavItem[] {

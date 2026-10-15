@@ -40,15 +40,19 @@ export function RealtimeProvider({
     let stopped = false;
     let source: EventSource | undefined;
     let timer: number | undefined;
+    let fallbackTimer: number | undefined;
     let retry = 0;
     let lastEventId = '';
     let useTicket = false;
+    let wasDown = false;
     const seen = new Set<string>();
 
     const setOfflineState = () => {
       if (!navigator.onLine) {
         source?.close();
         if (timer !== undefined) window.clearTimeout(timer);
+        if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
+        wasDown = true;
         setStatus('offline');
       } else if (!stopped) {
         if (timer !== undefined) window.clearTimeout(timer);
@@ -87,7 +91,13 @@ export function RealtimeProvider({
       }
       source?.close();
       useTicket = true;
+      wasDown = true;
       setStatus('degraded');
+      if (fallbackTimer === undefined) {
+        fallbackTimer = window.setInterval(() => {
+          void queryClient.invalidateQueries();
+        }, 30_000);
+      }
       const base = Math.min(1000 * 2 ** retry, 30_000);
       retry += 1;
       const delay = Math.round(base * (0.75 + Math.random() * 0.5));
@@ -120,7 +130,16 @@ export function RealtimeProvider({
         source.onopen = () => {
           retry = 0;
           useTicket = ticketMode;
+          if (fallbackTimer !== undefined) {
+            window.clearInterval(fallbackTimer);
+            fallbackTimer = undefined;
+          }
           setStatus('live');
+          if (wasDown) {
+            // Events during the outage may be gone: refetch instead of trusting the stream.
+            wasDown = false;
+            void queryClient.invalidateQueries();
+          }
         };
         source.onmessage = (event) => receive(event.data, event.lastEventId);
         source.addEventListener('resync', (event) => {
@@ -141,18 +160,19 @@ export function RealtimeProvider({
       stopped = true;
       source?.close();
       if (timer !== undefined) window.clearTimeout(timer);
+      if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
       setStatus('offline');
     });
     window.addEventListener('online', setOfflineState);
     window.addEventListener('offline', setOfflineState);
-    setStatus(navigator.onLine ? 'connecting' : 'offline');
-    if (navigator.onLine) void connect(false);
+    void connect(false);
 
     return () => {
       stopped = true;
       unregister();
       source?.close();
       if (timer !== undefined) window.clearTimeout(timer);
+      if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
       window.removeEventListener('online', setOfflineState);
       window.removeEventListener('offline', setOfflineState);
     };

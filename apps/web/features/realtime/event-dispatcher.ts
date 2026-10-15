@@ -9,6 +9,8 @@ const EVENT_QUERY_KEYS: readonly [prefix: string, keys: () => QueryKey[]][] = [
   ['assignment.', () => [queryKeys.assignments.all(), queryKeys.errands.all(), queryKeys.marketplace.all(), queryKeys.conversations.all()]],
   ['errand.', () => [queryKeys.errands.all(), queryKeys.marketplace.all(), queryKeys.assignments.all(), ['dashboard']]],
   ['execution.', () => [queryKeys.assignments.all()]],
+  ['location.', () => [queryKeys.assignments.all()]],
+  ['runner.location.', () => [queryKeys.assignments.all()]],
   ['change_request.', () => [queryKeys.assignments.all()]],
   ['payment_agreement.', () => [queryKeys.assignments.all()]],
   ['no_show.', () => [queryKeys.assignments.all()]],

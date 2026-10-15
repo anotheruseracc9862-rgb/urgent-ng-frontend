@@ -389,7 +389,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           </> : null}
           {errand.status === 'OPEN' ? <>
             <Button asChild variant="ghost"><Link href={`/errands/${errandId}/edit`}>Edit</Link></Button>
-            <Button asChild variant="ghost"><Link href="/pricing#errand-boost">Boost</Link></Button>
+            <Button asChild variant="ghost"><Link href={`/boosts?errandId=${errandId}`}>Boost</Link></Button>
             <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Cancel</Link></Button>
           </> : null}
           {errand.status === 'RUNNER_SELECTED' ? <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Cancel</Link></Button> : null}

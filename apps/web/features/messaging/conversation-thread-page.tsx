@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -9,6 +10,7 @@ import { BlockUserButton } from '@/features/blocks/block-user-button';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
+import { api } from '@/lib/api/client';
 import { messagingApi, nextMessageIntent, type Message, type SendMessage } from './api';
 
 const READ_ONLY_COPY: Record<NonNullable<Awaited<ReturnType<typeof messagingApi.conversation>>['readOnlyReason']>, string> = {
@@ -39,15 +41,20 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
   });
   const messageList = messages.data?.pages.slice().reverse().flatMap((page) => page.data.slice().reverse()) ?? [];
 
+  const markRead = useMutation({
+    mutationFn: (messageId: string) => messagingApi.read(conversationId, messageId),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: queryKeys.conversations.all() });
+    },
+  });
+
   React.useEffect(() => {
     if (!messageList.length) return;
     const latest = messageList.at(-1);
-    if (latest) {
-      void messagingApi.read(conversationId, latest.id).then(() => {
-        void client.invalidateQueries({ queryKey: queryKeys.conversations.all() });
-      });
-    }
-  }, [client, conversationId, messageList.length]);
+    if (latest && latest.senderId !== me.id) markRead.mutate(latest.id);
+  // The most recent message id is sufficient; unrelated renders must not repeat the request.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, messageList.at(-1)?.id, me.id]);
 
   const send = useMutation({
     mutationFn: (input: SendMessage) => messagingApi.send(conversationId, input),
@@ -118,7 +125,7 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
         </Button>
         <BlockUserButton userId={current.counterpart.userId} userName={current.counterpart.firstName} />
         <Link
-          href={`/report?targetType=USER&targetId=${encodeURIComponent(current.counterpart.userId)}&assignmentId=${encodeURIComponent(current.errandId)}`}
+          href={`/report?targetType=USER&targetId=${encodeURIComponent(current.counterpart.userId)}`}
           className="inline-flex min-h-10 items-center rounded-full px-3 text-xs font-bold text-muted underline"
         >
           Report
@@ -156,6 +163,7 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
         </Alert>
       ) : null}
       {remove.error || mute.error ? <Alert variant="danger" role="alert"><p>We could not update this conversation. Please try again.</p></Alert> : null}
+      {markRead.error ? <Alert variant="danger" role="alert"><p>We could not update the read receipt. Messages will be marked read when you retry.</p></Alert> : null}
 
       <form onSubmit={submit} className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
         {!readOnlyMessage && current.canSend ? (
@@ -179,22 +187,32 @@ export function ConversationThreadPage({ conversationId }: { conversationId: str
 }
 
 function MessageRow({ message, own, onRemove, busy }: { message: Message; own: boolean; onRemove: () => void; busy: boolean }) {
-  const [imageError, setImageError] = React.useState(false);
   return (
     <li className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
       <article className={`max-w-[85%] rounded-2xl px-4 py-3 ${own ? 'bg-ink text-white' : 'bg-panel text-ink'}`}>
         {message.status === 'REMOVED' ? <p className="text-sm italic opacity-75">This message was removed.</p>
-          : message.type === 'IMAGE' && message.mediaId ? (
-            imageError
-              ? <p role="status" className="text-xs">Image unavailable.</p>
-              : <img src={`/api/v1/media/${encodeURIComponent(message.mediaId)}/content`} alt="Shared image" onError={() => setImageError(true)} className="max-h-72 max-w-full rounded-lg object-contain" />
-          ) : <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>}
+          : message.type === 'IMAGE' && message.mediaId ? <ChatImage mediaId={message.mediaId} />
+          : <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>}
         <div className="mt-2 flex items-center justify-end gap-2 text-[10px] opacity-75">
           <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
           {own ? <span aria-label={`Message ${message.status.toLowerCase()}`}>{message.status === 'READ' ? 'Read' : message.status === 'DELIVERED' ? 'Delivered' : message.status === 'REMOVED' ? '' : 'Sent'}</span> : null}
           {own && message.status !== 'REMOVED' ? <button type="button" disabled={busy} onClick={onRemove} className="underline">Delete</button> : null}
+          {!own && message.type !== 'SYSTEM' && message.status !== 'REMOVED' ? (
+            <Link href={`/report?targetType=MESSAGE&targetId=${encodeURIComponent(message.id)}`} className="underline">Report</Link>
+          ) : null}
         </div>
       </article>
     </li>
   );
+}
+
+function ChatImage({ mediaId }: { mediaId: string }) {
+  const image = useQuery({
+    queryKey: queryKeys.media.url(mediaId),
+    queryFn: () => api<{ url: string }>(`/media/${encodeURIComponent(mediaId)}/url`),
+    staleTime: 2 * 60_000,
+  });
+  if (image.isLoading) return <Skeleton className="h-40 w-56" aria-label="Loading shared image" />;
+  if (image.error || !image.data?.url) return <p role="status" className="text-xs">Image unavailable.</p>;
+  return <Image src={image.data.url} alt="Shared image" width={640} height={480} unoptimized className="max-h-72 w-auto rounded-lg object-contain" />;
 }

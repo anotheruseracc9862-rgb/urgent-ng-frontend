@@ -12,7 +12,10 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "check": "turbo lint typecheck test",
-    "clean": "turbo clean && rimraf node_modules"
+    "clean": "turbo clean && rimraf node_modules",
+    "budgets": "node scripts/check-budgets.mjs",
+    "audit:prod": "npm audit --omit=dev",
+    "contract:check": "node scripts/check-contract.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

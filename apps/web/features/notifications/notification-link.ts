@@ -14,6 +14,17 @@ export function notificationHref(notification: Notification): string {
     return `/messages/${conversationId}`;
   }
 
+  const disputeId = dataId(notification, 'disputeId');
+  if (type.startsWith('dispute.') && disputeId) return `/disputes/${disputeId}`;
+
+  const reportId = dataId(notification, 'reportId');
+  if (type.startsWith('report.') && reportId) return `/reports/${reportId}`;
+
+  if (type.startsWith('enforcement.')) return '/account/standing';
+  if (type.startsWith('verification.')) return '/verification';
+  if (type.startsWith('badge.') || type.startsWith('rating.')) return '/ratings';
+  if (type.startsWith('account.')) return '/settings/security';
+
   const assignmentId = dataId(notification, 'assignmentId');
   if ((type.startsWith('assignment.') || type.startsWith('execution.') ||
     type.startsWith('change_request.') || type.startsWith('payment_agreement.') ||

@@ -69,6 +69,7 @@ describe('Phase 4 offer and assignment flows', () => {
     await user.click(screen.getByRole('button', { name: 'Send offer' }));
 
     await waitFor(() => expect(requestKey).toBeTruthy());
+    await user.click(await screen.findByRole('button', { name: 'Continue to offer' }));
     expect(navigation.push).toHaveBeenCalledWith('/offers/offer-created-1');
   });
 

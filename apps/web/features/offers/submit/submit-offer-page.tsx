@@ -9,6 +9,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '../api';
+import { PushOptInPrompt } from '@/features/push/push-opt-in-prompt';
 
 const money = (minor: number | null) =>
   minor === null
@@ -60,7 +61,6 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
         queryClient.invalidateQueries({ queryKey: queryKeys.runner.offerLimit() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.runner.offers({}) }),
       ]);
-      router.push(`/offers/${offer.id}`);
     },
   });
 
@@ -84,6 +84,20 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
         ? 'You are not eligible to send an offer right now. Check your runner eligibility below.'
         : submit.error.message
     : submit.error instanceof Error ? submit.error.message : null;
+
+  if (submit.data) {
+    return (
+      <main className="mx-auto grid max-w-3xl gap-5">
+        <header>
+          <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Offer sent</p>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Your offer is on its way</h1>
+          <p className="mt-1 text-sm text-muted">You can get notified if the requester replies while you are away.</p>
+        </header>
+        <PushOptInPrompt />
+        <Button type="button" onClick={() => router.push(`/offers/${submit.data.id}`)}>Continue to offer</Button>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto grid max-w-5xl gap-4">

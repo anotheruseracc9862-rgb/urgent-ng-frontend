@@ -1,0 +1,44 @@
+{
+  "_comment": "Gzipped first-load JavaScript per route, measured from the production build of apps/web. The React and Next.js framework alone is about 128 kB, so these limits sit about 8% above the measured size of each group. Lower them when a route gets lighter; a route that goes over must be fixed or the limit raised with a reason in the pull request.",
+  "defaultMaxKb": 260,
+  "groups": [
+    {
+      "name": "public pages",
+      "maxKb": 190,
+      "routes": [
+        "^/$",
+        "^/pricing$",
+        "^/help$",
+        "^/terms$",
+        "^/privacy$",
+        "^/link-expired$",
+        "^/session$",
+        "^/verify$",
+        "^/shared/",
+        "^/onboarding$",
+        "^/policy-acceptance$"
+      ]
+    },
+    {
+      "name": "auth forms",
+      "maxKb": 285,
+      "routes": [
+        "^/login$",
+        "^/register$",
+        "^/forgot-password$",
+        "^/reset-password$"
+      ]
+    },
+    {
+      "name": "signed-in",
+      "maxKb": 250,
+      "routes": [
+        ".*"
+      ]
+    }
+  ],
+  "mapRoutes": [
+    "/assignments/[id]/track",
+    "/shared/[token]"
+  ]
+}

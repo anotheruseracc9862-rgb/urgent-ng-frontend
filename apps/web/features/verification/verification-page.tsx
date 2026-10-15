@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -10,6 +10,7 @@ import { MediaUpload } from '@/components/media-upload/media-upload';
 import { useSession } from '@/lib/auth/client';
 import { ApiError, isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
+import { rememberPendingOrder } from '@/features/billing/checkout';
 import { verificationApi, type BillingOrder, type VerificationAttempt } from './api';
 
 type Identity = components['schemas']['IdentityDetailsDto'];
@@ -132,6 +133,8 @@ export function VerificationPage() {
   const [feeOrder, setFeeOrder] = useState<BillingOrder>();
   const [feeError, setFeeError] = useState<unknown>();
   const [feeBusy, setFeeBusy] = useState(false);
+  /** One key per fee purchase, so a retry never creates a second order. */
+  const feeKey = useRef<string | null>(null);
   const [now, setNow] = useState<number>();
 
   const overview = useQuery({
@@ -228,7 +231,8 @@ export function VerificationPage() {
     setFeeBusy(true);
     setFeeError(undefined);
     try {
-      const order = await verificationApi.createFeeOrder(crypto.randomUUID());
+      feeKey.current ??= crypto.randomUUID();
+      const order = await verificationApi.createFeeOrder(feeKey.current);
       setFeeOrder(order);
       if (order.status === 'PAID') {
         await queryClient.invalidateQueries({ queryKey: queryKeys.runner.verification() });
@@ -238,6 +242,7 @@ export function VerificationPage() {
       if (url) {
         const paymentUrl = new URL(url);
         if (paymentUrl.protocol !== 'https:') throw new Error('The payment provider returned an unsafe URL.');
+        rememberPendingOrder(order.id);
         window.location.assign(paymentUrl.href);
       }
     } catch (error) {

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Bell, ChevronRight, MapPin, Phone, Shield, UserRoundX, UserRoundCog } from 'lucide-react';
+import { Bell, ChevronRight, Receipt, MapPin, Phone, Shield, UserRoundX, UserRoundCog } from 'lucide-react';
 
 export const metadata = { title: 'Settings — Urgent.ng' };
 
@@ -33,6 +33,12 @@ const SECTIONS = [
     icon: UserRoundX,
     title: 'Blocked people',
     text: 'Review people you have blocked and unblock them.',
+  },
+  {
+    href: '/settings/orders',
+    icon: Receipt,
+    title: 'Orders and receipts',
+    text: 'See Runner Pro, boost and verification payments.',
   },
   {
     href: '/settings/account',

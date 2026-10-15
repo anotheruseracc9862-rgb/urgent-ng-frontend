@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Check, Minus, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api/client';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Pricing — Urgent.ng',
   description: 'Free to use. Pay only if you want more.',
@@ -18,17 +20,12 @@ interface Product {
   periodDays: number | null;
 }
 
-/** Shown only if the API cannot be reached, so the page never renders empty. */
-const FALLBACK: Product[] = [
-  { code: 'RUNNER_PRO', name: 'Runner Pro', orderType: 'RUNNER_PRO', priceMinor: 500000, vatMinor: 0, currency: 'NGN', periodDays: 30 },
-  { code: 'PRIORITY_BOOST', name: 'Priority Boost', orderType: 'BOOST', priceMinor: 100000, vatMinor: 0, currency: 'NGN', periodDays: null },
-];
-
-async function loadProducts(): Promise<Product[]> {
+/** Null when the API cannot be reached: the page shows no price rather than an invented one. */
+async function loadProducts(): Promise<Product[] | null> {
   try {
     return await api<Product[]>('/billing/products/public');
   } catch {
-    return FALLBACK;
+    return null;
   }
 }
 
@@ -62,8 +59,8 @@ function Cell({ value }: { value: React.ReactNode }) {
 
 export default async function PricingPage() {
   const products = await loadProducts();
-  const pro = products.find((p) => p.orderType === 'RUNNER_PRO');
-  const boost = products.find((p) => p.orderType === 'BOOST');
+  const pro = products?.find((p) => p.orderType === 'RUNNER_PRO');
+  const boost = products?.find((p) => p.orderType === 'BOOST');
 
   return (
     <div className="mx-auto w-full max-w-[1120px] px-4 pb-16 pt-6">
@@ -77,6 +74,12 @@ export default async function PricingPage() {
           never take a cut.
         </p>
       </section>
+
+      {products === null ? (
+        <p role="status" className="mb-4 rounded-[var(--r)] bg-amber-bg px-4 py-3 text-center text-sm text-[#7a4800]">
+          Prices are not available right now. Please check back in a moment.
+        </p>
+      ) : null}
 
       <div className="grid items-stretch gap-4 md:grid-cols-3">
         <section id="errand-boost" className="flex flex-col gap-[18px] rounded-[var(--r-xl)] bg-surface p-7 shadow-[var(--shadow)]">
@@ -128,7 +131,7 @@ export default async function PricingPage() {
             <Feature light>Everything in Free</Feature>
           </ul>
           <Link
-            href="/register?mode=runner"
+            href="/pro"
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-lime text-[13.5px] font-bold text-ink transition-colors hover:bg-lime-600"
           >
             Get Runner Pro
@@ -146,7 +149,7 @@ export default async function PricingPage() {
               {boost ? naira(boost.priceMinor) : '—'}{' '}
               <small className="text-sm font-semibold tracking-normal text-muted">per errand</small>
             </div>
-            <div className="mt-2 text-[13px] text-muted">One-time, for 6 hours</div>
+            <div className="mt-2 text-[13px] text-muted">One-time, for a limited time and never past the errand’s own deadline</div>
           </div>
           <ul className="grid flex-1 gap-3">
             <Feature>Higher placement in the runner feed</Feature>
@@ -155,7 +158,7 @@ export default async function PricingPage() {
             <Feature>Separate from the errand amount</Feature>
           </ul>
           <Link
-            href="/register"
+            href="/boosts"
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-surface text-[13.5px] font-bold shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:bg-panel"
           >
             Boost an errand
