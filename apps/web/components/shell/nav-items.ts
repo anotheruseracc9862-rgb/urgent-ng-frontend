@@ -64,6 +64,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true, count: 'messages', countAlert: true },
   { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'], count: 'notifications' },
+  { href: '/settings', label: 'Settings', icon: Settings },
 
   { href: '/profile', label: 'Profile & account', icon: User, primary: true, section: 'account' },
 ];
@@ -89,7 +90,6 @@ export const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
   { href: '/ratings', label: 'Reviews', icon: Star },
   { href: '/settings/notifications', label: 'Notification settings', icon: Bell },
   { href: '/settings/orders', label: 'Orders and receipts', icon: Receipt },
-  { href: '/settings', label: 'Settings', icon: Settings },
   { href: '/safety', label: 'Safety & support', icon: Flag },
   { href: '/help', label: 'Help centre', icon: CircleHelp },
 ];
@@ -104,6 +104,7 @@ export const ROUTE_TITLES: Readonly<Record<string, string>> = {
   '/policy-acceptance': 'Policy acceptance',
   '/verification': 'Verification',
   '/checkout': 'Payment',
+  '/settings/notifications': 'Notifications',
   '/settings/orders': 'Orders and receipts',
   '/pro': 'Runner Pro',
   '/boosts': 'Boosts',

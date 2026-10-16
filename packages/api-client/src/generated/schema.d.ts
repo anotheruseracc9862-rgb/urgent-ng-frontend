@@ -24998,6 +24998,8 @@ export interface operations {
                 unread?: boolean;
                 /** @description Only one category: MARKETPLACE (offers and errands), TRANSACTIONAL (progress and account), MESSAGING, SAFETY. */
                 category?: "TRANSACTIONAL" | "SAFETY" | "MARKETPLACE" | "MESSAGING" | "MARKETING";
+                /** @description OFFERS includes offer negotiations. PROGRESS includes assignment, execution and errand lifecycle updates, not nearby discovery alerts. */
+                topic?: "OFFERS" | "PROGRESS";
             };
             header?: never;
             path?: never;

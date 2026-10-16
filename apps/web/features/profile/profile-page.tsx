@@ -1,13 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { ACCOUNT_MENU_ITEMS } from '@/components/shell/nav-items';
+import { accountMenuFor, type ShellMode } from '@/components/shell/nav-items';
 import * as React from 'react';
 import Image from 'next/image';
+import { Camera, Check, ChevronRight, MapPin, ShieldCheck, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Card, CardDescription, CardHeader, CardTitle, Input, Skeleton, Textarea } from '@urgent/ui';
+import {
+  Alert,
+  Button,
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Skeleton,
+  Textarea,
+} from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { MediaUpload } from '@/components/media/MediaUpload';
 import { describeAuthError } from '@/features/auth/auth-ui';
@@ -37,24 +48,29 @@ function initialDraft(me: Me): ProfileDraft {
 }
 
 function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || 'U';
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U'
+  );
 }
 
 function memberSince(date: string): string {
   const timestamp = Date.parse(date);
-  return Number.isNaN(timestamp) ? 'Member since unavailable' : `Member since ${formatDate(date, 'short')}`;
+  return Number.isNaN(timestamp)
+    ? 'Member since unavailable'
+    : `Member since ${formatDate(date, 'short')}`;
 }
 
-export function ProfilePage() {
+export function ProfilePage({ mode }: { mode: ShellMode }) {
   const { me } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [draft, setDraft] = React.useState(() => initialDraft(me));
+  const [showPhotoEditor, setShowPhotoEditor] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string>();
   const [saveError, setSaveError] = React.useState<string>();
   const [saveRequestId, setSaveRequestId] = React.useState<string>();
@@ -79,9 +95,12 @@ export function ProfilePage() {
     retry: false,
   });
 
-  const setMe = React.useCallback((updated: Me) => {
-    queryClient.setQueryData(queryKeys.auth.me(me.id), updated);
-  }, [me.id, queryClient]);
+  const setMe = React.useCallback(
+    (updated: Me) => {
+      queryClient.setQueryData(queryKeys.auth.me(me.id), updated);
+    },
+    [me.id, queryClient],
+  );
 
   const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,26 +148,29 @@ export function ProfilePage() {
     }
   };
 
-  const savePhoto = React.useCallback(async (mediaId: string) => {
-    if (photoRequest.current === mediaId || me.photoMediaId === mediaId) return;
-    photoRequest.current = mediaId;
-    setIsSavingPhoto(true);
-    setPhotoError(undefined);
-    setPhotoRequestId(undefined);
-    setFailedPhotoId(undefined);
-    try {
-      const updated = await authApi.setProfilePhoto(mediaId);
-      setMe(updated);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.media.url(mediaId) });
-    } catch (error) {
-      setFailedPhotoId(mediaId);
-      setPhotoError(describeAuthError(error));
-      setPhotoRequestId(isApiError(error) ? error.requestId : undefined);
-    } finally {
-      photoRequest.current = undefined;
-      setIsSavingPhoto(false);
-    }
-  }, [me.photoMediaId, queryClient, setMe]);
+  const savePhoto = React.useCallback(
+    async (mediaId: string) => {
+      if (photoRequest.current === mediaId || me.photoMediaId === mediaId) return;
+      photoRequest.current = mediaId;
+      setIsSavingPhoto(true);
+      setPhotoError(undefined);
+      setPhotoRequestId(undefined);
+      setFailedPhotoId(undefined);
+      try {
+        const updated = await authApi.setProfilePhoto(mediaId);
+        setMe(updated);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.media.url(mediaId) });
+      } catch (error) {
+        setFailedPhotoId(mediaId);
+        setPhotoError(describeAuthError(error));
+        setPhotoRequestId(isApiError(error) ? error.requestId : undefined);
+      } finally {
+        photoRequest.current = undefined;
+        setIsSavingPhoto(false);
+      }
+    },
+    [me.photoMediaId, queryClient, setMe],
+  );
 
   const mediaChanged = (ids: string[]) => {
     const replacement = ids.find((id) => id !== me.photoMediaId);
@@ -168,174 +190,328 @@ export function ProfilePage() {
     setValidationError(undefined);
   };
 
+  const menuItems = accountMenuFor(mode);
+  const roleLinks = menuItems.filter((item) => item.mode);
+  const sharedLinks = menuItems.filter(
+    (item) =>
+      !item.mode && !['/profile', '/ratings', '/settings/notifications'].includes(item.href),
+  );
+
   return (
-    <div className="mx-auto grid max-w-4xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Account</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Profile &amp; account</h1>
-        <p className="mt-1 text-sm text-muted">Manage your details and the way you use Urgent.ng.</p>
+    <div className="grid min-w-0 gap-4">
+      <header className="px-1.5 pt-1">
+        <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[.12em] text-green-800">
+          Your account
+        </p>
+        <h1 className="text-[clamp(24px,3vw,32px)] font-extrabold leading-[1.15] tracking-[-0.03em] text-ink">
+          Profile &amp; account
+        </h1>
+        <p className="mt-1.5 text-sm text-muted">One profile, however you use Urgent.ng.</p>
       </header>
 
-      <nav aria-label="More from your account" className="grid gap-2 rounded-[var(--r-lg)] border border-line bg-surface p-3 shadow-[var(--shadow)] sm:grid-cols-2 lg:grid-cols-3">
-        {ACCOUNT_MENU_ITEMS.filter((item) => item.href !== '/profile').map(({ href, label, icon: Icon, mode }) => (
-          <Link key={href} href={href} className="flex min-h-11 items-center gap-3 rounded-full px-3 text-[13.5px] font-semibold text-ink-2 transition-colors hover:bg-panel">
-            <Icon className="size-[18px] shrink-0 text-muted" />
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-            {mode ? <span className="rounded-full bg-panel px-2 py-0.5 text-[10px] font-bold uppercase text-muted">{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span> : null}
-          </Link>
-        ))}
-      </nav>
-
-      <Card variant="tint" className="p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative grid size-[84px] shrink-0 place-items-center overflow-hidden rounded-full bg-ink text-[26px] font-extrabold text-lime">
+      <Card variant="tint" className="border border-[#dce9c4] p-4 sm:p-[22px]">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-full bg-ink text-2xl font-extrabold text-lime ring-4 ring-white/80 sm:size-[84px]">
             {photo.data?.url ? (
-              <Image src={photo.data.url} alt={`${me.name} profile photo`} fill unoptimized sizes="84px" className="object-cover" />
-            ) : initials(me.name)}
+              <Image
+                src={photo.data.url}
+                alt={`${me.name} profile photo`}
+                fill
+                unoptimized
+                sizes="84px"
+                className="object-cover"
+              />
+            ) : (
+              initials(me.name)
+            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="break-words text-xl font-extrabold tracking-tight text-ink">{me.name}</h2>
-            <p className="mt-1 text-sm text-muted">{memberSince(me.createdAt)}</p>
-            <div className="mt-2 inline-flex rounded-full bg-lime/30 px-3 py-1 text-xs font-bold text-green-900">
-              {me.startMode === 'RUNNER' ? 'Runner account' : 'Requester account'}
+          <div className="min-w-0 flex-1 basis-40">
+            <h2 className="break-words text-xl font-extrabold tracking-tight text-ink">
+              {me.name}
+            </h2>
+            <p className="mt-1 text-xs text-muted">{memberSince(me.createdAt)}</p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-bold text-green-900">
+                {mode === 'RUNNER' ? 'Runner mode' : 'Requester mode'}
+              </span>
+              {me.phoneVerified && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-900">
+                  <ShieldCheck aria-hidden="true" className="size-3.5" /> Phone verified
+                </span>
+              )}
             </div>
+          </div>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={showPhotoEditor}
+              aria-controls="profile-photo-editor"
+              onClick={() => setShowPhotoEditor((open) => !open)}
+            >
+              <Camera aria-hidden="true" />{' '}
+              {showPhotoEditor ? 'Close photo editor' : 'Change photo'}
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/ratings">
+                <Star aria-hidden="true" /> Reviews
+              </Link>
+            </Button>
           </div>
         </div>
         {photo.isError && (
           <Alert variant="danger" role="alert" className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span>{describeAuthError(photo.error)}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => void photo.refetch()}>Retry photo</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => void photo.refetch()}>
+                Retry photo
+              </Button>
             </div>
             {isApiError(photo.error) && photo.error.requestId && (
               <p className="mt-1 text-xs">Request ID: {photo.error.requestId}</p>
             )}
           </Alert>
         )}
-      </Card>
-
-      <Stats summary={summary.data} isLoading={summary.isPending} error={summary.error} onRetry={() => void summary.refetch()} mode={me.startMode ?? 'REQUESTER'} />
-
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Personal details</CardTitle>
-            <CardDescription>Your name and profile details are shown to people you work with.</CardDescription>
-          </div>
-        </CardHeader>
-        <form className="grid gap-5" onSubmit={(event) => void saveProfile(event)} noValidate>
-          <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
-            Display name
-            <Input
-              autoComplete="name"
-              maxLength={100}
-              required
-              value={draft.name}
-              onChange={(event) => changeDraft('name', event.currentTarget.value)}
-              aria-describedby={validationError ? 'profile-form-error' : undefined}
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
-            Phone
-            <Input
-              value={me.phone ?? 'No phone added'}
-              readOnly
-              aria-describedby="profile-phone-help"
-              className="bg-panel text-muted"
-            />
-            <span id="profile-phone-help" className="text-xs font-normal text-muted">
-              {me.phoneVerified ? 'Verified phone number. Change it in contact settings.' : 'Phone number is managed in contact settings.'}
-            </span>
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
-            About you
-            <Textarea
-              maxLength={300}
-              rows={3}
-              value={draft.bio}
-              onChange={(event) => changeDraft('bio', event.currentTarget.value)}
-              placeholder="A short introduction for your public profile"
-            />
-            <span className="text-right text-xs font-normal text-muted">{draft.bio.length}/300</span>
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
-            Home area
-            <Input
-              maxLength={80}
-              value={draft.homeArea}
-              onChange={(event) => changeDraft('homeArea', event.currentTarget.value)}
-              placeholder="For example, Lekki, Lagos"
-            />
-          </label>
-
-          <fieldset className="grid gap-2">
-            <legend className="text-sm font-semibold text-ink-2">What do you want to do first?</legend>
-            <p className="text-xs text-muted">You can switch between requesting and running errands any time.</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {([
-                ['REQUESTER', 'Get an errand done', 'Post what you need and receive offers.'],
-                ['RUNNER', 'Run errands and earn', 'Find nearby errands and send offers.'],
-              ] as const).map(([mode, title, description]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  aria-pressed={draft.startMode === mode}
-                  onClick={() => changeDraft('startMode', mode)}
-                  className={`min-h-20 rounded-[var(--r)] border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 ${
-                    draft.startMode === mode ? 'border-lime-600 bg-tint' : 'border-line bg-surface hover:bg-panel'
-                  }`}
-                >
-                  <span className="block text-sm font-bold text-ink">{title}</span>
-                  <span className="mt-1 block text-xs font-normal text-muted">{description}</span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {validationError && <p id="profile-form-error" role="alert" className="text-sm font-semibold text-red">{validationError}</p>}
-          {saveError && (
-            <Alert variant="danger" role="alert">
-              <p>{saveError}</p>
-              {saveRequestId && <p className="mt-1 text-xs">Request ID: {saveRequestId}</p>}
-            </Alert>
-          )}
-          {saved && <p role="status" className="text-sm font-semibold text-green-800">Profile updated.</p>}
-
-          <div className="flex justify-end">
-            <Button type="submit" isLoading={isSaving}>Save profile</Button>
-          </div>
-        </form>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Profile photo</CardTitle>
-            <CardDescription>Choose a clear photo. JPEG, PNG, or WebP up to 5 MB.</CardDescription>
-          </div>
-        </CardHeader>
-        {photoError && (
-          <Alert variant="danger" role="alert" className="mb-4">
-            <p>{photoError}</p>
-            {photoRequestId && <p className="mt-1 text-xs">Request ID: {photoRequestId}</p>}
-            {failedPhotoId && (
-              <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={retryPhoto} isLoading={isSavingPhoto}>
-                Retry saving photo
-              </Button>
+        <div id="profile-photo-editor" hidden={!showPhotoEditor}>
+          <div className="mt-5 border-t border-[#dce9c4] pt-5">
+            <h3 className="text-sm font-extrabold text-ink">Profile photo</h3>
+            <p className="mb-4 mt-1 text-xs text-muted">
+              Choose a clear photo. JPEG, PNG, or WebP up to 5 MB.
+            </p>
+            {photoError && (
+              <Alert variant="danger" role="alert" className="mb-4">
+                <p>{photoError}</p>
+                {photoRequestId && <p className="mt-1 text-xs">Request ID: {photoRequestId}</p>}
+                {failedPhotoId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={retryPhoto}
+                    isLoading={isSavingPhoto}
+                  >
+                    Retry saving photo
+                  </Button>
+                )}
+              </Alert>
             )}
-          </Alert>
-        )}
-        {isSavingPhoto && <p role="status" className="mb-3 text-sm text-muted">Saving your new photo…</p>}
-        <MediaUpload
-          purpose="PROFILE_PHOTO"
-          value={me.photoMediaId ? [me.photoMediaId] : []}
-          maxFiles={me.photoMediaId ? 2 : 1}
-          onChange={mediaChanged}
-        />
+            {isSavingPhoto && (
+              <p role="status" className="mb-3 text-sm text-muted">
+                Saving your new photo…
+              </p>
+            )}
+            <MediaUpload
+              purpose="PROFILE_PHOTO"
+              value={me.photoMediaId ? [me.photoMediaId] : []}
+              maxFiles={me.photoMediaId ? 2 : 1}
+              onChange={mediaChanged}
+            />
+          </div>
+        </div>
       </Card>
+
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
+        <Card className="border border-line p-4 sm:p-[22px]">
+          <CardHeader>
+            <div>
+              <CardTitle>Personal details</CardTitle>
+              <CardDescription>
+                Your public details are shared across requester and runner modes.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <form className="grid gap-4" onSubmit={(event) => void saveProfile(event)} noValidate>
+            <div className="grid items-start gap-4 sm:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
+                Display name
+                <Input
+                  autoComplete="name"
+                  maxLength={100}
+                  required
+                  value={draft.name}
+                  onChange={(event) => changeDraft('name', event.currentTarget.value)}
+                  aria-describedby={validationError ? 'profile-form-error' : undefined}
+                />
+              </label>
+
+              <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
+                Phone
+                <Input
+                  value={me.phone ?? 'No phone added'}
+                  readOnly
+                  aria-describedby="profile-phone-help"
+                  className="bg-panel text-muted"
+                />
+                <span id="profile-phone-help" className="text-xs font-normal text-muted">
+                  {me.phoneVerified ? 'Verified number. ' : 'Managed in contact settings. '}
+                  <Link
+                    href="/settings/contact"
+                    className="font-semibold text-green-800 underline decoration-green-800/30 underline-offset-2 hover:decoration-green-800"
+                  >
+                    Change contact details
+                  </Link>
+                </span>
+              </label>
+            </div>
+
+            <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
+              About you
+              <Textarea
+                maxLength={300}
+                rows={3}
+                value={draft.bio}
+                onChange={(event) => changeDraft('bio', event.currentTarget.value)}
+                placeholder="A short introduction for your public profile"
+              />
+              <span className="text-right text-xs font-normal text-muted">
+                {draft.bio.length}/300
+              </span>
+            </label>
+
+            <label className="grid gap-1.5 text-sm font-semibold text-ink-2">
+              Home area
+              <Input
+                maxLength={80}
+                value={draft.homeArea}
+                onChange={(event) => changeDraft('homeArea', event.currentTarget.value)}
+                placeholder="For example, Lekki, Lagos"
+              />
+            </label>
+
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-semibold text-ink-2">Preferred starting mode</legend>
+              <p className="mb-1 mt-1 text-xs text-muted">
+                Choose where you start. You can still switch modes any time from the top bar.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ['REQUESTER', 'Get an errand done', 'Post what you need and receive offers.'],
+                    ['RUNNER', 'Run errands and earn', 'Find nearby errands and send offers.'],
+                  ] as const
+                ).map(([startMode, title, description]) => (
+                  <button
+                    key={startMode}
+                    type="button"
+                    aria-pressed={draft.startMode === startMode}
+                    onClick={() => changeDraft('startMode', startMode)}
+                    className={`min-h-24 rounded-[var(--r)] border p-3.5 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 ${
+                      draft.startMode === startMode
+                        ? 'border-lime-600 bg-tint shadow-[0_0_0_1px_var(--lime-600)]'
+                        : 'border-line bg-surface hover:bg-panel'
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-2 text-[13px] font-bold text-ink">
+                      {title}
+                      <span
+                        className={`grid size-4 shrink-0 place-items-center rounded-full border ${draft.startMode === startMode ? 'border-ink bg-ink text-lime' : 'border-line'}`}
+                      >
+                        {draft.startMode === startMode && (
+                          <Check aria-hidden="true" className="size-3" />
+                        )}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs font-normal text-muted">{description}</span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            {validationError && (
+              <p id="profile-form-error" role="alert" className="text-sm font-semibold text-red">
+                {validationError}
+              </p>
+            )}
+            {saveError && (
+              <Alert variant="danger" role="alert">
+                <p>{saveError}</p>
+                {saveRequestId && <p className="mt-1 text-xs">Request ID: {saveRequestId}</p>}
+              </Alert>
+            )}
+            {saved && (
+              <p role="status" className="text-sm font-semibold text-green-800">
+                Profile updated.
+              </p>
+            )}
+
+            <div className="flex justify-end border-t border-line pt-4">
+              <Button type="submit" isLoading={isSaving}>
+                Save profile
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        <aside className="grid gap-4">
+          <Card variant="dark" className="p-4 sm:p-[22px]">
+            <nav aria-label={mode === 'RUNNER' ? 'Runner tools' : 'Requester tools'}>
+              <h2 className="text-base font-extrabold text-white">
+                {mode === 'RUNNER' ? 'Runner tools' : 'Requester tools'}
+              </h2>
+              <p className="mb-4 mt-1 text-xs text-white/70">Shortcuts for your current mode.</p>
+              <div className="grid gap-2">
+                {mode === 'RUNNER' && (
+                  <Link
+                    href="/runner/profile"
+                    className="group flex min-h-11 items-center gap-3 rounded-xl bg-[#26323f] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#344154] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime motion-reduce:transition-none"
+                  >
+                    <MapPin aria-hidden="true" className="size-[18px] shrink-0 text-lime" />
+                    <span className="min-w-0 flex-1">Runner profile &amp; area</span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 text-white/70 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                    />
+                  </Link>
+                )}
+                {roleLinks.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="group flex min-h-11 items-center gap-3 rounded-xl bg-[#26323f] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#344154] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime motion-reduce:transition-none"
+                  >
+                    <Icon aria-hidden="true" className="size-[18px] shrink-0 text-lime" />
+                    <span className="min-w-0 flex-1">{label}</span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 text-white/70 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          </Card>
+          <Card className="border border-line p-4 sm:p-[22px]">
+            <nav aria-label="Account and support">
+              <h2 className="mb-3 text-sm font-extrabold text-ink">Account &amp; support</h2>
+              <div className="-mx-2 grid gap-1">
+                {sharedLinks.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="group flex min-h-11 items-center gap-3 rounded-xl px-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-panel focus-visible:outline-2 focus-visible:outline-green-800"
+                  >
+                    <Icon aria-hidden="true" className="size-[18px] shrink-0 text-muted" />
+                    <span className="min-w-0 flex-1">{label}</span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 text-muted transition-transform group-hover:translate-x-0.5"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          </Card>
+          <Stats
+            summary={summary.data}
+            isLoading={summary.isPending}
+            error={summary.error}
+            onRetry={() => void summary.refetch()}
+            mode={mode}
+          />
+        </aside>
+      </div>
     </div>
   );
 }
@@ -353,55 +529,56 @@ function Stats({
   onRetry: () => void;
   mode: StartMode;
 }) {
-  if (isLoading) {
-    const labels = mode === 'RUNNER'
-      ? ['Completed in 30 days', 'Offers this week', 'Active assignments']
-      : ['Errands this month', 'Completed this month', 'Open errands'];
-    return (
-      <section aria-label="Profile stats" className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-        {labels.map((label) => (
-          <Card key={label} variant="flat" className="p-4">
-            <p className="text-2xl font-extrabold tracking-tight text-ink">—</p>
-            <p className="mt-1 text-xs font-semibold text-muted">{label}</p>
-          </Card>
-        ))}
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="danger" role="alert">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p>We could not load your profile stats.</p>
-          <Button type="button" variant="ghost" size="sm" onClick={onRetry}>Retry stats</Button>
-        </div>
-        {isApiError(error) && error.requestId && <p className="mt-1 text-xs">Request ID: {error.requestId}</p>}
-      </Alert>
-    );
-  }
-
-  if (!summary) return null;
-  const stats = mode === 'RUNNER'
-    ? [
-        ['Completed in 30 days', summary.asRunner.completedLast30Days],
-        ['Offers this week', summary.asRunner.offersThisWeek],
-        ['Active assignments', summary.asRunner.activeAssignments],
-      ] as const
-    : [
-        ['Errands this month', summary.asRequester.errandsThisMonth],
-        ['Completed this month', summary.asRequester.completedThisMonth],
-        ['Open errands', summary.asRequester.openErrands],
-      ] as const;
+  const stats =
+    mode === 'RUNNER'
+      ? ([
+          ['Completed in 30 days', summary?.asRunner.completedLast30Days],
+          ['Offers this week', summary?.asRunner.offersThisWeek],
+          ['Active assignments', summary?.asRunner.activeAssignments],
+        ] as const)
+      : ([
+          ['Errands this month', summary?.asRequester.errandsThisMonth],
+          ['Completed this month', summary?.asRequester.completedThisMonth],
+          ['Open errands', summary?.asRequester.openErrands],
+        ] as const);
 
   return (
-    <section aria-label="Profile stats" className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-      {stats.map(([label, value]) => (
-        <Card key={label} variant="flat" className="p-4">
-          <p className="text-2xl font-extrabold tracking-tight text-ink">{value}</p>
-          <p className="mt-1 text-xs font-semibold text-muted">{label}</p>
-        </Card>
-      ))}
+    <section
+      aria-label="Profile stats"
+      className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]"
+    >
+      <h2 className="text-sm font-extrabold text-ink">Your activity</h2>
+      <p className="mb-2 mt-1 text-xs text-muted">
+        {mode === 'RUNNER'
+          ? 'Your running activity at a glance.'
+          : 'Your requesting activity at a glance.'}
+      </p>
+      {error ? (
+        <Alert variant="danger" role="alert" className="mt-4">
+          <p>We could not load your profile stats.</p>
+          {isApiError(error) && error.requestId && (
+            <p className="mt-1 text-xs">Request ID: {error.requestId}</p>
+          )}
+          <Button type="button" variant="ghost" size="sm" className="mt-3" onClick={onRetry}>
+            Retry stats
+          </Button>
+        </Alert>
+      ) : (
+        <dl className="divide-y divide-line">
+          {stats.map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between gap-3 py-3">
+              <dt className="text-xs font-medium text-muted">{label}</dt>
+              <dd className="text-xl font-extrabold tracking-tight text-ink">
+                {isLoading ? (
+                  <Skeleton className="h-7 w-8" aria-label={`Loading ${label}`} />
+                ) : (
+                  (value ?? '—')
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </section>
   );
 }

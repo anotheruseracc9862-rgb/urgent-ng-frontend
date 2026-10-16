@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { LockKeyhole } from 'lucide-react';
 import type { components } from '@urgent/api-client';
-import { Alert, Button } from '@urgent/ui';
+import { Alert, Button, Switch } from '@urgent/ui';
 import { api, isApiError } from '@/lib/api/client';
 
 type NotificationCategory = components['schemas']['NotificationCategory'];
@@ -23,17 +23,38 @@ const CATEGORIES: {
   description: string;
   mandatory: boolean;
 }[] = [
-  { id: 'TRANSACTIONAL', label: 'Errand updates', description: 'Progress and account notices', mandatory: true },
-  { id: 'SAFETY', label: 'Safety and account', description: 'Important safety and account notices', mandatory: true },
-  { id: 'MARKETPLACE', label: 'Nearby errands', description: 'Offers and errands near you', mandatory: false },
+  {
+    id: 'SAFETY',
+    label: 'Safety and account',
+    description: 'Important safety and account notices',
+    mandatory: true,
+  },
+  {
+    id: 'TRANSACTIONAL',
+    label: 'Errand updates',
+    description: 'Progress and account notices',
+    mandatory: true,
+  },
   { id: 'MESSAGING', label: 'Messages', description: 'New messages', mandatory: false },
-  { id: 'MARKETING', label: 'Tips and offers', description: 'Product news and promotions', mandatory: false },
+  {
+    id: 'MARKETPLACE',
+    label: 'Nearby errands',
+    description: 'Offers and errands near you',
+    mandatory: false,
+  },
+  {
+    id: 'MARKETING',
+    label: 'Tips and offers',
+    description: 'Product news and promotions',
+    mandatory: false,
+  },
 ];
 
 function getErrorMessage(error: unknown): string {
   if (isApiError(error)) {
     if (error.code === 'VALIDATION_ERROR') return 'Check the notification settings and try again.';
-    if (error.code === 'AUTH_REQUIRED') return 'Your session has expired. Sign in again to save these settings.';
+    if (error.code === 'AUTH_REQUIRED')
+      return 'Your session has expired. Sign in again to save these settings.';
     if (error.requestId) return `We could not save your settings. Request ID: ${error.requestId}`;
   }
   return 'We could not save your settings. Please try again.';
@@ -109,129 +130,182 @@ export function NotificationPreferencesForm({
   }
 
   return (
-    <form className="grid gap-5" onSubmit={saveSettings}>
-      <section className="rounded-[var(--r)] border border-line bg-surface p-4 sm:p-6">
-        <h2 className="text-lg font-extrabold">By category</h2>
-        <p className="mt-1 text-sm text-muted">Safety and account notices are always on.</p>
+    <form
+      className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,1fr)]"
+      onSubmit={saveSettings}
+    >
+      <section
+        aria-labelledby="notification-categories-heading"
+        className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]"
+      >
+        <h2 id="notification-categories-heading" className="text-base font-extrabold text-ink">
+          By category
+        </h2>
+        <div
+          role="region"
+          aria-label="Notification delivery channels"
+          className="relative mt-4 overflow-x-auto rounded-[var(--r-sm)]"
+        >
+          <table className="w-full table-fixed border-collapse text-[13px] sm:table-auto">
+            <thead>
+              <tr className="text-[11px] font-bold tracking-[0.06em] text-muted uppercase">
+                <th scope="col" className="px-1 pb-2.5 text-left sm:px-3">
+                  Category
+                </th>
+                {CHANNELS.map((channel) => (
+                  <th
+                    scope="col"
+                    key={channel.id}
+                    className="w-[54px] px-1 pb-2.5 text-center whitespace-nowrap sm:w-auto sm:px-3"
+                  >
+                    {channel.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {CATEGORIES.map((category) => (
+                <tr
+                  key={category.id}
+                  className="border-t border-line-2 transition-colors hover:bg-panel motion-reduce:transition-none"
+                >
+                  <th scope="row" className="px-1 py-3.5 text-left font-normal sm:px-3">
+                    <span className="flex items-center gap-1.5 text-sm font-bold text-ink">
+                      {category.label}
+                      {category.mandatory ? (
+                        <LockKeyhole aria-hidden="true" className="size-3 shrink-0 text-muted" />
+                      ) : null}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-muted">
+                      {category.mandatory ? 'Always on' : category.description}
+                    </span>
+                  </th>
+                  {CHANNELS.map((channel) => {
+                    const preference = preferences.find(
+                      (entry) => entry.category === category.id && entry.channel === channel.id,
+                    );
+                    const label = `${channel.label} notifications for ${category.label}`;
+                    return (
+                      <td key={channel.id} className="px-1 py-3.5 text-center sm:px-3">
+                        {category.mandatory ? (
+                          <>
+                            <input
+                              type="checkbox"
+                              checked
+                              disabled
+                              aria-label={label}
+                              className="sr-only"
+                            />
+                            <span aria-hidden="true" className="text-ink-2">
+                              On
+                            </span>
+                          </>
+                        ) : (
+                          <Switch
+                            role="checkbox"
+                            checked={preference?.enabled === true}
+                            disabled={isSaving}
+                            aria-label={label}
+                            onCheckedChange={(enabled) =>
+                              updatePreference(category.id, channel.id, enabled)
+                            }
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_repeat(3,56px)] items-center gap-x-2 gap-y-3 sm:grid-cols-[minmax(0,1fr)_repeat(3,72px)]">
-          <span className="text-xs font-bold uppercase tracking-wide text-muted">Category</span>
-          {CHANNELS.map((channel) => (
-            <span key={channel.id} className="text-center text-xs font-bold text-muted">
-              {channel.label}
-            </span>
-          ))}
-
-          {CATEGORIES.map((category) => (
-            <div key={category.id} className="col-span-4 grid grid-cols-subgrid items-center gap-x-2 border-t border-line py-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-sm font-bold text-ink">
-                  {category.label}
-                  {category.mandatory && (
-                    <LockKeyhole aria-label="Required notifications" className="size-3.5 shrink-0 text-muted" />
-                  )}
-                </div>
-                <p className="text-xs leading-5 text-muted">
-                  {category.mandatory ? 'Always on' : category.description}
-                </p>
-              </div>
-              {CHANNELS.map((channel) => {
-                const preference = preferences.find(
-                  (entry) => entry.category === category.id && entry.channel === channel.id,
-                );
-                const enabled = category.mandatory || preference?.enabled === true;
-
-                return (
-                  <label key={channel.id} className="flex min-h-11 items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={enabled}
-                      disabled={category.mandatory || isSaving}
-                      aria-label={`${channel.label} notifications for ${category.label}`}
-                      onChange={(event) =>
-                        updatePreference(category.id, channel.id, event.currentTarget.checked)
-                      }
-                      className="size-5 accent-green-700 disabled:cursor-not-allowed"
-                    />
-                  </label>
-                );
-              })}
+      <div className="grid min-w-0 gap-4">
+        <section
+          aria-labelledby="quiet-hours-heading"
+          className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="quiet-hours-heading" className="text-base font-extrabold text-ink">
+                Quiet hours
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                Marketplace push notices are held until quiet hours end. Safety and account notices
+                still come through.
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-[var(--r)] border border-line bg-surface p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-extrabold">Quiet hours</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-              Marketplace push notices are held until quiet hours end. Safety and account notices still come through.
-            </p>
+            <label className="grid shrink-0 justify-items-center text-[11px] font-semibold text-muted">
+              <Switch
+                role="checkbox"
+                checked={useCustomQuietHours}
+                disabled={isSaving}
+                aria-label="Use custom quiet hours"
+                onCheckedChange={(enabled) => {
+                  setUseCustomQuietHours(enabled);
+                  setSaved(false);
+                }}
+              />
+              Custom
+            </label>
           </div>
-          <label className="flex min-h-11 shrink-0 items-center gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              checked={useCustomQuietHours}
-              disabled={isSaving}
-              aria-label="Use custom quiet hours"
-              onChange={(event) => {
-                setUseCustomQuietHours(event.currentTarget.checked);
-                setSaved(false);
-              }}
-              className="size-5 accent-green-700"
-            />
-            Custom
-          </label>
-        </div>
-        <p className="mt-3 text-xs text-muted">
-          {useCustomQuietHours
-            ? 'Times are in Lagos time.'
-            : `Using the default quiet window: ${quietHours.start} to ${quietHours.end} Lagos time.`}
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <label className="grid gap-1.5 text-sm font-semibold">
-            From
-            <input
-              type="time"
-              value={quietStart}
-              disabled={!useCustomQuietHours || isSaving}
-              onChange={(event) => {
-                setQuietStart(event.currentTarget.value);
-                setSaved(false);
-              }}
-              className="min-h-11 rounded-xl border border-line bg-surface px-3 text-ink disabled:bg-panel disabled:text-muted"
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm font-semibold">
-            To
-            <input
-              type="time"
-              value={quietEnd}
-              disabled={!useCustomQuietHours || isSaving}
-              onChange={(event) => {
-                setQuietEnd(event.currentTarget.value);
-                setSaved(false);
-              }}
-              className="min-h-11 rounded-xl border border-line bg-surface px-3 text-ink disabled:bg-panel disabled:text-muted"
-            />
-          </label>
-        </div>
-      </section>
-
-      {errorMessage && (
-        <Alert variant="danger" role="alert">
-          {errorMessage}
-        </Alert>
-      )}
-      {saved && (
-        <Alert variant="ok" role="status">
-          Notification settings saved.
-        </Alert>
-      )}
-      <Button className="w-full sm:w-auto sm:justify-self-end" disabled={isSaving} type="submit">
-        {isSaving ? 'Saving…' : 'Save settings'}
-      </Button>
+          <p className="mt-3 text-xs text-muted">
+            {useCustomQuietHours
+              ? 'Times are in Lagos time.'
+              : quietHours.isDefault
+                ? `Using the default quiet window: ${quietHours.start} to ${quietHours.end} Lagos time.`
+                : 'The default quiet window will be restored when you save. Times are in Lagos time.'}
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <label className="grid min-w-0 gap-1.5 text-[12.5px] font-bold text-ink-2">
+              From
+              <input
+                type="time"
+                value={quietStart}
+                disabled={!useCustomQuietHours || isSaving}
+                onChange={(event) => {
+                  setQuietStart(event.currentTarget.value);
+                  setSaved(false);
+                }}
+                required={useCustomQuietHours}
+                className="min-h-12 w-full min-w-0 rounded-[var(--r-sm)] border border-line bg-surface px-4 text-sm font-normal text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 disabled:bg-panel disabled:text-muted"
+              />
+            </label>
+            <label className="grid min-w-0 gap-1.5 text-[12.5px] font-bold text-ink-2">
+              To
+              <input
+                type="time"
+                value={quietEnd}
+                disabled={!useCustomQuietHours || isSaving}
+                onChange={(event) => {
+                  setQuietEnd(event.currentTarget.value);
+                  setSaved(false);
+                }}
+                required={useCustomQuietHours}
+                className="min-h-12 w-full min-w-0 rounded-[var(--r-sm)] border border-line bg-surface px-4 text-sm font-normal text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 disabled:bg-panel disabled:text-muted"
+              />
+            </label>
+          </div>
+        </section>
+        <Button
+          className="min-h-[52px] w-full shadow-none hover:translate-y-0 hover:shadow-none motion-reduce:transform-none motion-reduce:transition-none"
+          disabled={isSaving}
+          type="submit"
+        >
+          {isSaving ? 'Saving…' : 'Save settings'}
+        </Button>
+        {errorMessage && (
+          <Alert variant="danger" role="alert">
+            {errorMessage}
+          </Alert>
+        )}
+        {saved && (
+          <Alert variant="ok" role="status">
+            Notification settings saved.
+          </Alert>
+        )}
+      </div>
     </form>
   );
 }

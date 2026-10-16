@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderComponent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { api } from '@/lib/api/client';
 import {
   NotificationPreferencesForm,
@@ -12,6 +12,25 @@ vi.mock('@/lib/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api/client')>();
   return { ...actual, api: vi.fn() };
 });
+
+// Radix measures its hidden form input; jsdom has no layout observer.
+beforeAll(() =>
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  ),
+);
+afterAll(() => vi.unstubAllGlobals());
+
+function renderForm() {
+  return renderComponent(
+    <NotificationPreferencesForm initialPreferences={preferences} initialQuietHours={quietHours} />,
+  );
+}
 
 const preferences: NotificationPreference[] = [
   { category: 'TRANSACTIONAL', channel: 'IN_APP', enabled: true },
@@ -27,12 +46,7 @@ afterEach(() => {
 
 describe('NotificationPreferencesForm', () => {
   it('keeps mandatory categories enabled and disabled', () => {
-    render(
-      <NotificationPreferencesForm
-        initialPreferences={preferences}
-        initialQuietHours={quietHours}
-      />,
-    );
+    renderForm();
 
     const transactional = screen.getByRole('checkbox', {
       name: 'In app notifications for Errand updates',
@@ -49,16 +63,9 @@ describe('NotificationPreferencesForm', () => {
 
   it('saves preference and quiet-hours changes to their API endpoints', async () => {
     const user = userEvent.setup();
-    vi.mocked(api)
-      .mockResolvedValueOnce(preferences)
-      .mockResolvedValueOnce(quietHours);
+    vi.mocked(api).mockResolvedValueOnce(preferences).mockResolvedValueOnce(quietHours);
 
-    render(
-      <NotificationPreferencesForm
-        initialPreferences={preferences}
-        initialQuietHours={quietHours}
-      />,
-    );
+    renderForm();
 
     await user.click(
       screen.getByRole('checkbox', { name: 'Push notifications for Nearby errands' }),
@@ -86,12 +93,7 @@ describe('NotificationPreferencesForm', () => {
 
   it('prevents identical quiet-hour start and end values', async () => {
     const user = userEvent.setup();
-    render(
-      <NotificationPreferencesForm
-        initialPreferences={preferences}
-        initialQuietHours={quietHours}
-      />,
-    );
+    renderForm();
 
     await user.click(screen.getByRole('checkbox', { name: 'Use custom quiet hours' }));
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '22:00' } });

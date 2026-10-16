@@ -56,6 +56,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
     staleTime: 30_000,
   });
   const crumb = titleForPath(pathname);
+  const isNotificationSettings = pathname === '/settings/notifications';
 
   const { requestSwitch: switchMode, dialog: modeDialog } = useModeSwitch(mode);
 
@@ -68,11 +69,15 @@ export function Topbar({ mode }: { mode: ShellMode }) {
       </Link>
 
       {crumb ? (
-        <div className="hidden min-w-0 items-center gap-2 truncate text-[12.5px] font-semibold text-muted sm:flex">
+        <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-2 truncate text-[12.5px] font-semibold text-muted sm:flex">
           <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
           <span aria-hidden="true">›</span>
-          <span className="truncate text-ink">{crumb}</span>
-        </div>
+          {isNotificationSettings ? <>
+            <Link href="/settings" className="shrink-0 hover:text-ink">Settings</Link>
+            <span aria-hidden="true">›</span>
+          </> : null}
+          <span aria-current="page" className="truncate text-ink">{crumb}</span>
+        </nav>
       ) : null}
 
       <form action={mode === 'RUNNER' ? '/marketplace' : '/errands'} role="search" className="ml-auto hidden min-w-32 max-w-[310px] flex-1 items-center gap-2 rounded-full bg-panel px-3 sm:flex">
@@ -176,7 +181,11 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 truncate px-3 text-xs font-semibold text-muted sm:hidden">
           <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
           <span aria-hidden="true">›</span>
-          <span className="truncate text-ink">{crumb}</span>
+          {isNotificationSettings ? <>
+            <Link href="/settings" className="shrink-0 hover:text-ink">Settings</Link>
+            <span aria-hidden="true">›</span>
+          </> : null}
+          <span aria-current="page" className="truncate text-ink">{crumb}</span>
         </nav>
       ) : null}
     </div>

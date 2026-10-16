@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -7,9 +7,10 @@ import type { Me } from '@/lib/api/types';
 import { listen, server } from '@/test/msw/server';
 import { Topbar } from './topbar';
 
+const navigation = vi.hoisted(() => ({ pathname: '/dashboard' }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => '/dashboard',
+  usePathname: () => navigation.pathname,
 }));
 
 const me: Me = {
@@ -49,6 +50,7 @@ beforeAll(() => listen());
 afterEach(() => {
   server.resetHandlers();
   cleanup();
+  navigation.pathname = '/dashboard';
 });
 afterAll(() => server.close());
 
@@ -86,6 +88,20 @@ describe('business topbar', () => {
 
   it('renders a mobile breadcrumb for the current dashboard', () => {
     renderTopbar('REQUESTER');
-    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toHaveTextContent(/Requester\s*›\s*Dashboard/);
+    for (const crumb of screen.getAllByRole('navigation', { name: 'Breadcrumb' })) {
+      expect(crumb).toHaveTextContent(/Requester\s*›\s*Dashboard/);
+    }
+  });
+
+  it.each(['REQUESTER', 'RUNNER'] as const)('shows the notification-settings hierarchy for %s on desktop and mobile', (mode) => {
+    navigation.pathname = '/settings/notifications';
+    renderTopbar(mode);
+    const crumbs = screen.getAllByRole('navigation', { name: 'Breadcrumb' });
+    expect(crumbs).toHaveLength(2);
+    for (const crumb of crumbs) {
+      expect(crumb).toHaveTextContent(mode === 'REQUESTER' ? /Requester\s*›\s*Settings\s*›\s*Notifications/ : /Runner\s*›\s*Settings\s*›\s*Notifications/);
+      expect(within(crumb).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+      expect(within(crumb).getByText('Notifications')).toHaveAttribute('aria-current', 'page');
+    }
   });
 });

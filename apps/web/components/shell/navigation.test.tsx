@@ -35,17 +35,19 @@ afterAll(() => server.close());
 describe('shell navigation model', () => {
   it('keeps the demo rail short and mode specific', () => {
     expect(itemsFor('REQUESTER').map(({ label }) => label)).toEqual([
-      'Dashboard', 'My errands', 'Track errand', 'Messages', 'Notifications', 'Profile & account',
+      'Dashboard', 'My errands', 'Track errand', 'Messages', 'Notifications', 'Settings', 'Profile & account',
     ]);
     expect(itemsFor('RUNNER').map(({ label }) => label)).toEqual([
-      'Dashboard', 'Find errands', 'My offers', 'Active task', 'Messages', 'Notifications', 'Profile & account',
+      'Dashboard', 'Find errands', 'My offers', 'Active task', 'Messages', 'Notifications', 'Settings', 'Profile & account',
     ]);
   });
 
   it('moves the extra places into the account menu', () => {
     const requester = accountMenuFor('REQUESTER').map(({ label }) => label);
     const runner = accountMenuFor('RUNNER').map(({ label }) => label);
-    expect(requester).toEqual(expect.arrayContaining(['Reviews', 'Boosts', 'Notification settings', 'Safety & support', 'Help centre', 'Settings']));
+    expect(requester).toEqual(expect.arrayContaining(['Reviews', 'Boosts', 'Notification settings', 'Safety & support', 'Help centre']));
+    expect(requester).not.toContain('Settings');
+    expect(runner).not.toContain('Settings');
     expect(requester).not.toContain('Job history');
     expect(runner).toEqual(expect.arrayContaining(['Job history', 'Saved errands', 'Verification', 'Runner Pro', 'Reviews']));
     expect(runner).not.toContain('Boosts');
@@ -68,7 +70,7 @@ describe('shell navigation model', () => {
   });
 
   it('derives a stable breadcrumb for nested routes without displaying record ids', () => {
-    expect(titleForPath('/settings/notifications')).toBe('Settings');
+    expect(titleForPath('/settings/notifications')).toBe('Notifications');
     expect(titleForPath('/errands/12345')).toBe('My errands');
     expect(titleForPath('/verification/attempt')).toBe('Verification');
     expect(titleForPath('/runner/history')).toBe('Job history');
@@ -89,6 +91,7 @@ describe('mobile bottom navigation', () => {
 
 describe('desktop rail', () => {
   it('shows the requester rail with a post action, counts and the account menu', async () => {
+    navigation.pathname = '/settings/notifications';
     server.use(
       http.get('*/me/summary', () => envelope({
         asRequester: { openErrands: 3, activeErrands: 1, errandsThisMonth: 0, completedThisMonth: 0, successRate: null, errandsWithOffers: 0, offersToReview: 0, awaitingRunnerAcceptance: 0, deliveriesToConfirm: 0, changeRequestsToAnswer: 0 },
@@ -100,6 +103,9 @@ describe('desktop rail', () => {
     );
     renderWithApp(<Sidebar mode="REQUESTER" name="Ada Lovelace" />);
     const sidebar = screen.getByRole('complementary', { name: 'Main' });
+    const main = within(sidebar).getByRole('navigation', { name: 'Main' });
+    expect(within(main).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(within(main).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
     expect(within(sidebar).getByRole('link', { name: 'Post an errand' })).toHaveAttribute('href', '/errands/new');
     expect(within(sidebar).getByRole('link', { name: /Track errand/ })).toHaveAttribute('href', '/track');
     expect(within(sidebar).getByRole('navigation', { name: 'Account' })).toBeInTheDocument();
@@ -114,6 +120,7 @@ describe('desktop rail', () => {
   });
 
   it('marks the runner offline switch and lets the runner flip it', async () => {
+    navigation.pathname = '/settings/notifications';
     let availability = 'UNAVAILABLE';
     server.use(
       http.get('*/runner/profile', () => envelope({ availability })),
@@ -127,6 +134,8 @@ describe('desktop rail', () => {
     );
     renderWithApp(<Sidebar mode="RUNNER" name="Ada Lovelace" />);
     const sidebar = screen.getByRole('complementary', { name: 'Main' });
+    const main = within(sidebar).getByRole('navigation', { name: 'Main' });
+    expect(within(main).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
     // The call-to-action and the menu item both lead to the marketplace, as in the demo.
     for (const link of within(sidebar).getAllByRole('link', { name: 'Find errands' })) expect(link).toHaveAttribute('href', '/marketplace');
     expect(await within(sidebar).findByText('You are offline')).toBeInTheDocument();
