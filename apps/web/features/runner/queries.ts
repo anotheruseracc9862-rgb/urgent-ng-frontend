@@ -4,8 +4,8 @@ import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { liveQuery, persistedQuery } from '@/lib/query/persisted-query';
 
-export type RunnerProfile = components['schemas']['RunnerProfileDto'];
-export type RunnerEligibility = components['schemas']['RunnerEligibilityDto'];
+import type { RunnerProfile, RunnerEligibility } from './api';
+export type { RunnerProfile, RunnerEligibility } from './api';
 export type RunnerOfferLimit = components['schemas']['RunnerOfferLimitDto'];
 export type RunnerPerformance = components['schemas']['RunnerPerformanceDto'];
 

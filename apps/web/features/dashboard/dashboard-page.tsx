@@ -1,7 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import {
+  ArrowRight,
   ArrowUpRight,
   Check,
   CircleCheck,
@@ -457,14 +459,16 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
   const proProduct = Array.isArray(products.data) ? products.data.find((product) => product.orderType === 'RUNNER_PRO') : undefined;
 
   const reasons: Record<string, { message: string; href: string; action: string }> = {
-    PHONE_NOT_VERIFIED: { message: 'Verify your phone number before offering.', href: '/profile', action: 'Review profile' },
-    NOT_VERIFIED: { message: 'Complete identity verification before offering.', href: '/verification', action: 'Verify identity' },
-    VERIFICATION_PENDING: { message: 'Your identity check is being reviewed.', href: '/verification', action: 'View verification' },
-    NO_RUNNER_PROFILE: { message: 'Your runner profile and operating-area setup are not available here yet. Contact support for help getting set up.', href: '/help', action: 'Get help' },
-    UNAVAILABLE: { message: 'You are offline. Switch availability on when you are ready.', href: '/dashboard', action: 'Availability settings' },
     RESTRICTED: { message: 'Your account has a restriction that prevents offers.', href: '/account/standing', action: 'View account standing' },
     ACCOUNT_NOT_ACTIVE: { message: 'Your account is not active for runner tasks.', href: '/account/standing', action: 'View account standing' },
   };
+  const eligibilityReasons = !eligibility.isLoading && eligibility.data && (!eligibility.data.canBrowseFeed || !eligibility.data.canOffer)
+    ? eligibility.data.reasons
+    : [];
+  const verificationRequired = eligibilityReasons.some((reason) => reason === 'NOT_VERIFIED' || reason === 'PHONE_NOT_VERIFIED');
+  const verificationPending = eligibilityReasons.includes('VERIFICATION_PENDING');
+  const runnerSetupRequired = eligibilityReasons.some((reason) => reason === 'NO_RUNNER_PROFILE' || reason === 'OPERATING_AREA_REQUIRED');
+  const accountBlockers = eligibilityReasons.filter((reason) => reasons[reason]);
 
   const completionPercent = performance.data && performance.data.cancellation.sample > 0
     ? Math.max(0, Math.min(100, Math.round(100 - (performance.data.cancellation.percent ?? 0))))
@@ -514,13 +518,41 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
         <Stat icon={Star} value={performance.data?.rating.average ?? '—'} label={`Rating · ${performance.data?.completedErrands ?? 0} errands`} href="/ratings" tone="violet" />
       </section>
 
-      {!eligibility.isLoading && eligibility.data && (!eligibility.data.canBrowseFeed || !eligibility.data.canOffer) && (
+      {(verificationRequired || verificationPending || runnerSetupRequired) && (
+        <section aria-labelledby="runner-setup-title" className="grid grid-cols-[minmax(0,1fr)_64px] items-center gap-4 overflow-hidden rounded-[var(--r-lg)] bg-gradient-to-br from-tint to-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_100px] sm:gap-6 sm:p-5">
+          <div className="min-w-0">
+            <h2 id="runner-setup-title" className="text-lg font-extrabold tracking-tight text-ink">
+              {verificationPending && !verificationRequired ? 'Your verification is in progress' : 'Your next errand starts here'}
+            </h2>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">
+              {verificationRequired
+                ? 'Complete runner verification to browse nearby errands and send offers.'
+                : verificationPending
+                  ? 'Your identity check is being reviewed. You can check its progress any time.'
+                  : 'Choose your operating area and travel preferences to start finding nearby errands.'}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button asChild size="sm">
+                <Link href={verificationRequired || verificationPending ? '/verification' : '/runner/profile'}>
+                  {verificationRequired ? 'Continue verification' : verificationPending ? 'View verification' : 'Set up runner profile'}
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              </Button>
+              {runnerSetupRequired && (verificationRequired || verificationPending) && (
+                <Button asChild size="sm" variant="ghost"><Link href="/runner/profile">Set up runner profile</Link></Button>
+              )}
+            </div>
+          </div>
+          <Image src="/assets/mascot.png" alt="" width={100} height={106} className="h-auto w-full" />
+        </section>
+      )}
+      {accountBlockers.length > 0 && (
         <Alert variant="warn">
           <div className="grid gap-2">
             <strong>Before you can take on more errands</strong>
-            {eligibility.data.reasons.filter((reason) => reason !== 'UNAVAILABLE').map((reason) => {
+            {accountBlockers.map((reason) => {
               const info = reasons[reason];
-              return info ? <p key={reason} className="text-sm">{info.message} <Link href={info.href} className="font-bold underline">{info.action}</Link></p> : null;
+              return <p key={reason} className="text-sm">{info.message} <Link href={info.href} className="font-bold underline">{info.action}</Link></p>;
             })}
           </div>
         </Alert>

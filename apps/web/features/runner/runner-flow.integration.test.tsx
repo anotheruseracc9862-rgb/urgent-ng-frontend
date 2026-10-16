@@ -2,8 +2,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { listen, server } from '@/test/msw/server';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiError, listen, server } from '@/test/msw/server';
 import { VerificationPage } from '@/features/verification/verification-page';
 import { RunnerProfilePage } from './runner-profile-page';
 import { MarketplaceFeedPage } from '@/features/marketplace/feed/marketplace-feed-page';
@@ -38,7 +38,12 @@ function renderStage(client: QueryClient, children: React.ReactNode) {
   return render(<QueryClientProvider client={client}>{children}</QueryClientProvider>);
 }
 
+const serviceAreas = { states: [
+  { id: 'ng-lagos', name: 'Lagos', lgas: [{ id: 'ng-lagos:ikeja', name: 'Ikeja' }, { id: 'ng-lagos:lagos-mainland', name: 'Lagos Mainland' }] },
+  { id: 'ng-ogun', name: 'Ogun', lgas: [{ id: 'ng-ogun:abeokuta-north', name: 'Abeokuta North' }] },
+], interstateEnabled: false };
 beforeAll(() => listen());
+beforeEach(() => server.use(http.get('*/api/v1/reference/service-areas', () => envelope(serviceAreas))));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
@@ -69,7 +74,7 @@ describe('F5 runner end-to-end flow', () => {
       category: { id: 'category-health', key: 'health', name: 'Health' },
       pickup: { area: 'Yaba' },
       destination: { area: 'Surulere' },
-      distance: { label: '2–5 km', minKm: 2, maxKm: 5 },
+      distance: null,
       timeMode: 'ASAP',
       priority: 'STANDARD',
       scheduledAt: null,
@@ -140,6 +145,7 @@ describe('F5 runner end-to-end flow', () => {
       http.get('*/api/v1/runner/profile', () => envelope(profile())),
       http.put('*/api/v1/runner/profile', async ({ request }) => {
         const body = await request.json() as { areaCenter: { lat: number; lng: number } };
+        expect(body).toMatchObject({ areaMode: 'RADIUS', areaStateIds: [], areaLgaIds: [], areaCenter: { lat: 6.5, lng: 3.4 } });
         areaCenter = body.areaCenter;
         return envelope(profile());
       }),
@@ -204,6 +210,7 @@ describe('F5 runner end-to-end flow', () => {
 
     const feedStage = renderStage(client, <MarketplaceFeedPage />);
     expect(await screen.findByRole('link', { name: 'Collect medicine' })).toHaveAttribute('href', '/marketplace/runner-flow-errand');
+    expect(screen.queryByText(/<\s*0\.5\s*km/)).not.toBeInTheDocument();
     feedStage.unmount();
 
     const offerStage = renderStage(client, <SubmitOfferPage errandId={errand.id} />);
@@ -220,5 +227,167 @@ describe('F5 runner end-to-end flow', () => {
     await user.click(screen.getByRole('button', { name: 'Accept assignment' }));
     expect(await screen.findByText('Assignment accepted')).toBeInTheDocument();
     expect(accepted).toBe(true);
+  });
+
+  it('discards profile edits, retains them after a save failure, and persists a successful retry', async () => {
+    const user = userEvent.setup();
+    let stored = {
+      transport: 'MOTORCYCLE', areaCenter: { lat: 6.5153, lng: 3.3792 }, areaRadiusKm: 7.5,
+      areaMode: 'RADIUS', areaStateIds: ['ng-lagos'], areaLgaIds: [],
+      availability: 'UNAVAILABLE', excludedCategoryIds: ['health'],
+    };
+    let failSave = true;
+    server.use(
+      http.get('*/api/v1/runner/profile', () => envelope(stored)),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: ['UNAVAILABLE'], canOffer: false, canBrowseFeed: false })),
+      http.get('*/api/v1/reference/categories', () => envelope([{ id: 'health', name: 'Health' }, { id: 'delivery', name: 'Delivery' }])),
+      http.put('*/api/v1/runner/profile', async ({ request }) => {
+        if (failSave) return apiError(503, 'SERVICE_UNAVAILABLE', 'Temporarily unavailable.');
+        stored = { ...stored, ...await request.json() as Partial<typeof stored>, areaStateIds: ['ng-lagos'] };
+        return envelope(stored);
+      }),
+    );
+    const stage = renderStage(new QueryClient({ defaultOptions: { queries: { retry: false } } }), <RunnerProfilePage />);
+
+    const save = await screen.findByRole('button', { name: 'Save runner profile' });
+    expect(save).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Motorcycle' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Car' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Health' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Delivery' }));
+    await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(screen.getByRole('radio', { name: 'Motorcycle' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Health' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Delivery' })).not.toBeChecked();
+    expect(save).toBeDisabled();
+
+    await user.click(screen.getByRole('radio', { name: 'Bicycle' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Delivery' }));
+    await user.click(save);
+    expect(await screen.findByRole('alert')).toHaveTextContent('We could not save your runner profile. Try again.');
+    expect(screen.getByRole('radio', { name: 'Bicycle' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Delivery' })).toBeChecked();
+
+    failSave = false;
+    await user.click(save);
+    expect(await screen.findByText('Runner profile saved.')).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Car' }));
+    expect(screen.queryByText('Runner profile saved.')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(screen.getByRole('radio', { name: 'Bicycle' })).toBeChecked();
+    stage.unmount();
+
+    renderStage(new QueryClient({ defaultOptions: { queries: { retry: false } } }), <RunnerProfilePage />);
+    expect(await screen.findByRole('radio', { name: 'Bicycle' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Health' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Delivery' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Save runner profile' })).toBeDisabled();
+  });
+
+  it('confirms an existing radius without requiring an unrelated profile edit', async () => {
+    const user = userEvent.setup();
+    let confirmed = false;
+    const stored = () => ({ areaMode: 'RADIUS', areaStateIds: confirmed ? ['ng-lagos'] : [], areaLgaIds: [], areaCenter: { lat: 6.5153, lng: 3.3792 }, areaRadiusKm: 5, transport: 'WALKING', excludedCategoryIds: [], availability: 'AVAILABLE' });
+    server.use(
+      http.get('*/api/v1/runner/profile', () => envelope(stored())),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: confirmed ? [] : ['OPERATING_AREA_REQUIRED'], canOffer: confirmed, canBrowseFeed: confirmed })),
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.put('*/api/v1/runner/profile', async ({ request }) => {
+        expect(await request.json()).toMatchObject({ areaMode: 'RADIUS', areaCenter: { lat: 6.5153, lng: 3.3792 } });
+        confirmed = true;
+        return envelope(stored());
+      }),
+    );
+    renderStage(new QueryClient({ defaultOptions: { queries: { retry: false } } }), <RunnerProfilePage />);
+    const save = await screen.findByRole('button', { name: 'Save runner profile' });
+    expect(save).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard changes' })).toBeDisabled();
+    await user.click(save);
+    expect(await screen.findByText('Runner profile saved.')).toBeInTheDocument();
+    expect(confirmed).toBe(true);
+    expect(save).toBeDisabled();
+  });
+
+  it('defaults to entire state, saves without a point, and enables availability after saving', async () => {
+    const user = userEvent.setup();
+    let stored: Record<string, unknown> | undefined;
+    server.use(
+      http.get('*/api/v1/runner/profile', () => stored ? envelope(stored) : apiError(404, 'RESOURCE_NOT_FOUND', 'No runner profile.')),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: [stored ? 'UNAVAILABLE' : 'NO_RUNNER_PROFILE'], canOffer: false, canBrowseFeed: false })),
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.put('*/api/v1/runner/profile', async ({ request }) => {
+        stored = { ...await request.json() as Record<string, unknown>, availability: 'UNAVAILABLE' };
+        return envelope(stored);
+      }),
+    );
+    renderStage(new QueryClient({ defaultOptions: { queries: { retry: false } } }), <RunnerProfilePage />);
+
+    const create = await screen.findByRole('button', { name: 'Create runner profile' });
+    expect(screen.getByRole('radio', { name: 'Entire state' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Car' }));
+    expect(create).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Set available' })).toBeDisabled();
+    (await screen.findByRole('combobox', { name: 'State' })).focus();
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    await user.keyboard('Lagos{Enter}');
+    expect(screen.queryByRole('button', { name: 'Choose test area' })).not.toBeInTheDocument();
+    expect(create).toBeEnabled();
+    await user.click(create);
+    expect(await screen.findByText('Runner profile saved.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set available' })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: 'Car' })).toBeChecked();
+    expect(stored).toMatchObject({ areaMode: 'STATE', areaStateIds: ['ng-lagos'], areaLgaIds: [], areaCenter: null });
+  });
+
+  it('saves multiple LGAs, removes selections, and clears them when changing state', async () => {
+    const user = userEvent.setup();
+    let stored: Record<string, unknown> = { areaMode: 'STATE', areaStateIds: ['ng-lagos'], areaLgaIds: [], areaCenter: null, areaRadiusKm: 5, transport: 'WALKING', excludedCategoryIds: [], availability: 'UNAVAILABLE' };
+    server.use(
+      http.get('*/api/v1/runner/profile', () => envelope(stored)),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: ['UNAVAILABLE'], canOffer: false, canBrowseFeed: false })),
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.put('*/api/v1/runner/profile', async ({ request }) => { stored = { ...stored, ...await request.json() as Record<string, unknown> }; return envelope(stored); }),
+    );
+    renderStage(new QueryClient({ defaultOptions: { queries: { retry: false } } }), <RunnerProfilePage />);
+    await user.click(await screen.findByRole('radio', { name: 'Specific LGAs' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Ikeja' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Lagos Mainland' }));
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save runner profile' }));
+    expect(await screen.findByText('Runner profile saved.')).toBeInTheDocument();
+    expect(stored).toMatchObject({ areaMode: 'LGAS', areaStateIds: ['ng-lagos'], areaLgaIds: ['ng-lagos:ikeja', 'ng-lagos:lagos-mainland'], areaCenter: null });
+    await user.click(screen.getByRole('button', { name: 'Remove Ikeja' }));
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    screen.getByRole('combobox', { name: 'State' }).focus();
+    await user.keyboard('{Enter}{ArrowDown}{Enter}');
+    expect(screen.getByText('0 selected')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remove Lagos Mainland' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save runner profile' })).toBeDisabled();
+    await user.click(screen.getByRole('checkbox', { name: 'Abeokuta North' }));
+    await user.click(screen.getByRole('button', { name: 'Save runner profile' }));
+    await waitFor(() => expect(stored.areaLgaIds).toEqual(['ng-ogun:abeokuta-north']));
+  });
+
+  it('recovers coverage loading after a retry without blocking the radius option', async () => {
+    const user = userEvent.setup();
+    let failAreas = true;
+    server.use(
+      http.get('*/api/v1/runner/profile', () => apiError(404, 'RESOURCE_NOT_FOUND', 'No profile.')),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: ['NO_RUNNER_PROFILE'], canOffer: false, canBrowseFeed: false })),
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.get('*/api/v1/reference/service-areas', () => failAreas ? apiError(503, 'SERVICE_UNAVAILABLE', 'Try later.') : envelope(serviceAreas)),
+    );
+    renderStage(new QueryClient({ defaultOptions: { queries: { retry: false } } }), <RunnerProfilePage />);
+    expect(await screen.findByText('We could not load coverage areas.')).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Nearby radius' }));
+    await user.click(await screen.findByRole('button', { name: 'Choose test area' }));
+    expect(screen.getByRole('button', { name: 'Create runner profile' })).toBeEnabled();
+    await user.click(screen.getByRole('radio', { name: 'Entire state' }));
+    failAreas = false;
+    await user.click(screen.getByRole('button', { name: 'Reload areas' }));
+    (await screen.findByRole('combobox', { name: 'State' })).focus();
+    await user.keyboard('{Enter}{Enter}');
+    expect(screen.getByRole('button', { name: 'Create runner profile' })).toBeEnabled();
   });
 });

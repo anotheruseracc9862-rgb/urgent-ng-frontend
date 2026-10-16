@@ -2,13 +2,14 @@
 
 import { persistedQuery } from '@/lib/query/persisted-query';
 import { useApiMutation } from '@/lib/query/mutations';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData, keepPreviousData } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
-import { MapPin, Search } from 'lucide-react';
+import { ArrowRight, MapPin, Search, ShieldCheck } from 'lucide-react';
 import { api, apiResponse, isApiError, type ApiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { runnerApi } from '@/features/runner/api';
@@ -194,6 +195,40 @@ export function MarketplaceFeedPage() {
   const sort = searchParams.get('sort') ?? 'recommended';
   const timeMode = searchParams.get('timeMode') ?? '';
 
+  if (isApiError(errands.error) && errands.error.code === 'VERIFICATION_REQUIRED') {
+    return (
+      <main className="grid min-w-0 content-start gap-4 pb-10">
+        <PageHead eyebrow="Marketplace" title="Find errands near you" />
+        <section aria-labelledby="marketplace-verification-title" className="overflow-hidden rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)]">
+          <div className="grid items-center gap-6 bg-gradient-to-br from-tint to-surface p-6 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-8 lg:p-10">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-green-800">
+                <ShieldCheck aria-hidden="true" className="size-4" />
+                A trusted community
+              </span>
+              <h2 id="marketplace-verification-title" className="mt-4 text-2xl font-extrabold tracking-tight text-ink sm:text-[28px]">
+                Your next errand starts here
+              </h2>
+              <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-2">
+                Complete your runner verification to browse nearby errands and send offers. It helps requesters know who they can trust.
+              </p>
+              <Button asChild className="mt-5">
+                <Link href="/verification">Continue verification<ArrowRight aria-hidden="true" /></Link>
+              </Button>
+            </div>
+            <Image
+              src="/assets/mascot.png"
+              alt=""
+              width={180}
+              height={190}
+              className="row-start-1 mx-auto h-36 w-auto sm:col-start-2 sm:row-start-1 sm:h-48"
+            />
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (categoryOptions.error || errands.error) {
     const error = categoryOptions.error ?? errands.error;
     return (
@@ -203,16 +238,11 @@ export function MarketplaceFeedPage() {
           <div className="grid gap-2">
             <p>{isApiError(error) && error.code === 'RATE_LIMITED'
               ? 'You have made several feed requests. Please wait a moment before trying again.'
-              : isApiError(error) && error.code === 'VERIFICATION_REQUIRED'
-                ? 'Complete runner verification to browse marketplace errands.'
-                : isApiError(error) && error.code === 'OFFER_NOT_ELIGIBLE'
-                  ? 'Your runner account is not currently eligible to browse errands.'
-                  : 'We could not load the marketplace feed.'}</p>
+              : isApiError(error) && error.code === 'OFFER_NOT_ELIGIBLE'
+                ? 'Your runner account is not currently eligible to browse errands.'
+                : 'We could not load the marketplace feed.'}</p>
             {isApiError(error) && error.requestId && <p className="text-xs">Request ID: {error.requestId}</p>}
             <div className="flex gap-2">
-              {isApiError(error) && error.code === 'VERIFICATION_REQUIRED'
-                ? <Button asChild><Link href="/verification">Go to verification</Link></Button>
-                : null}
               <Button type="button" variant="ghost" onClick={() => { void categoryOptions.refetch(); void errands.refetch(); }}>Try again</Button>
             </div>
           </div>

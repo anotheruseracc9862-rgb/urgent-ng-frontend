@@ -28,6 +28,7 @@ const eligibilityMessages: Record<string, string> = {
   NOT_VERIFIED: 'Complete runner verification before sending offers.',
   VERIFICATION_PENDING: 'Runner verification is still being reviewed.',
   NO_RUNNER_PROFILE: 'Complete your runner profile before sending offers.',
+  OPERATING_AREA_REQUIRED: 'Confirm your operating area and save your runner profile before sending offers.',
   UNAVAILABLE: 'Set your runner availability to available before sending offers.',
   RESTRICTED: 'Your account currently has a restriction that prevents new offers.',
 };

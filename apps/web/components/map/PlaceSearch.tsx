@@ -19,6 +19,9 @@ export function PlaceSearch({ onSelect, onError }: {
     if (!libraries || !holder.current) return;
     const search = new libraries.places.PlaceAutocompleteElement({ includedRegionCodes: ['ng'] });
     search.setAttribute('aria-label', 'Search for an address in Nigeria');
+    search.setAttribute('placeholder', 'Search an area or address');
+    search.style.colorScheme = 'light';
+    search.style.borderRadius = 'inherit';
     const onPlaceSelect = (event: Event) => {
       void (async () => {
         try {
@@ -47,5 +50,5 @@ export function PlaceSearch({ onSelect, onError }: {
     };
   }, [libraries, onError, onSelect]);
 
-  return <div ref={holder} className="min-h-11" />;
+  return <div ref={holder} className="min-h-11 rounded-[var(--r-sm)] border border-line bg-surface focus-within:ring-2 focus-within:ring-green-700" />;
 }

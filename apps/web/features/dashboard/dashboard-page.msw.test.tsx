@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { SessionProvider } from '@/lib/auth/client';
 import type { Me } from '@/lib/api/types';
-import { listen, server } from '@/test/msw/server';
+import { apiError, listen, server } from '@/test/msw/server';
 import { DashboardPage } from './dashboard-page';
 
 const me: Me = {
@@ -117,10 +117,16 @@ describe('business dashboard', () => {
     expect(screen.getByRole('link', { name: /Collect a package/ })).toHaveAttribute('href', '/errands/errand-1');
   });
 
-  it('shows an eligibility blocker and its fix link for an unverified runner', async () => {
+  it.each([
+    { reasons: ['NOT_VERIFIED'], title: 'Your next errand starts here', action: 'Continue verification', href: '/verification' },
+    { reasons: ['PHONE_NOT_VERIFIED', 'NOT_VERIFIED', 'NO_RUNNER_PROFILE'], title: 'Your next errand starts here', action: 'Continue verification', href: '/verification' },
+    { reasons: ['VERIFICATION_PENDING'], title: 'Your verification is in progress', action: 'View verification', href: '/verification' },
+    { reasons: ['NO_RUNNER_PROFILE'], title: 'Your next errand starts here', action: 'Set up runner profile', href: '/runner/profile' },
+    { reasons: ['RESTRICTED'], title: 'Before you can take on more errands', action: 'View account standing', href: '/account/standing' },
+  ])('shows the appropriate runner next step for $reasons without hiding active tasks', async ({ reasons, title, action, href }) => {
     server.use(
       http.get('*/api/v1/me/summary', () => envelope(summary)),
-      http.get('*/api/v1/runner/profile', () => envelope({
+      http.get('*/api/v1/runner/profile', () => reasons.includes('NO_RUNNER_PROFILE') ? apiError(404, 'NOT_FOUND', 'Runner profile not found.') : envelope({
         transport: 'WALKING',
         areaCenter: { lat: 6.5, lng: 3.4 },
         availability: 'AVAILABLE',
@@ -128,7 +134,7 @@ describe('business dashboard', () => {
         areaRadiusKm: 5,
       })),
       http.get('*/api/v1/runner/eligibility', () => envelope({
-        reasons: ['NOT_VERIFIED'],
+        reasons,
         canOffer: false,
         canBrowseFeed: false,
       })),
@@ -181,13 +187,32 @@ describe('business dashboard', () => {
 
     renderDashboard('RUNNER');
 
-    expect(await screen.findByText(/Complete identity verification before offering/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Verify identity' })).toHaveAttribute('href', '/verification');
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: action })).toHaveAttribute('href', href);
+    if (reasons.includes('RESTRICTED')) {
+      expect(screen.getByText('Your account has a restriction that prevents offers.')).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Your next errand starts here' })).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByRole('region', { name: title })).toBeInTheDocument();
+      expect(screen.queryByText('Before you can take on more errands')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Contact support for help getting set up/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Get help' })).not.toBeInTheDocument();
+    }
+    if (reasons.includes('NO_RUNNER_PROFILE')) {
+      expect(screen.getByRole('link', { name: 'Set up runner profile' })).toHaveAttribute('href', '/runner/profile');
+    }
+    if (reasons.includes('VERIFICATION_PENDING')) {
+      expect(screen.queryByRole('link', { name: 'Continue verification' })).not.toBeInTheDocument();
+    }
     expect(await screen.findByText(/You were selected for “Collect car documents”/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Respond/ })).toHaveAttribute('href', '/assignments/assignment-1');
     expect(await screen.findByText('Deliver a document envelope')).toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Task progress: picked up' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Go offline' })).toBeInTheDocument());
+    if (reasons.includes('NO_RUNNER_PROFILE')) {
+      expect(screen.queryByRole('button', { name: 'Go offline' })).not.toBeInTheDocument();
+    } else {
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Go offline' })).toBeInTheDocument());
+    }
     expect(screen.getByRole('link', { name: 'Mark delivered' })).toHaveAttribute('href', '/assignments/active-assignment-1');
     expect(screen.getByRole('link', { name: 'Message Ife' })).toHaveAttribute('href', '/messages/conversation-9');
   });
@@ -238,5 +263,7 @@ describe('business dashboard', () => {
     expect(screen.getByRole('img', { name: /Offers sent and times selected in the last seven days/ })).toBeInTheDocument();
     expect(await screen.findByText('Replies in ~6 min')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Your next errand starts here' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Before you can take on more errands')).not.toBeInTheDocument();
   });
 });

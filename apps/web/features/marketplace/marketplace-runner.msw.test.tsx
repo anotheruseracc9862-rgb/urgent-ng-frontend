@@ -7,8 +7,9 @@ import type { ApiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { SessionProvider } from '@/lib/auth/client';
 import type { Me } from '@/lib/api/types';
-import { listen, server } from '@/test/msw/server';
+import { apiError, listen, server } from '@/test/msw/server';
 import { MarketplaceFeedPage } from './feed/marketplace-feed-page';
+import { MarketplacePage } from './marketplace-page';
 import { MarketplaceErrandPage } from './detail/marketplace-errand-page';
 import { SavedErrandsPage } from './saved/saved-errands-page';
 import { RunnerHistoryPage } from '@/features/runner/history/runner-history-page';
@@ -37,12 +38,77 @@ beforeAll(() => listen());
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  window.sessionStorage.clear();
   window.history.replaceState({}, '', '/');
   vi.clearAllMocks();
 });
 afterAll(() => server.close());
 
 describe('runner marketplace phase', () => {
+  it('checks runner eligibility before mounting the feed', async () => {
+    let categoryRequests = 0;
+    let feedRequests = 0;
+    server.use(
+      http.get('*/api/v1/reference/categories', () => {
+        categoryRequests += 1;
+        return envelope([]);
+      }),
+      http.get('*/api/v1/marketplace/errands', () => {
+        feedRequests += 1;
+        return envelope([]);
+      }),
+    );
+
+    renderWithClient(<MarketplacePage eligibility={{
+      canBrowseFeed: false,
+      canOffer: false,
+      reasons: ['NOT_VERIFIED', 'NO_RUNNER_PROFILE'],
+    }} />);
+
+    expect(screen.getByRole('heading', { name: 'Your next errand starts here' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Continue verification' })).toHaveAttribute('href', '/verification');
+    expect(screen.queryByRole('button', { name: 'Apply filters' })).not.toBeInTheDocument();
+    expect(categoryRequests).toBe(0);
+    expect(feedRequests).toBe(0);
+  });
+
+  it('invites an unverified runner to verify without treating it as a feed failure', async () => {
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands', () => apiError(403, 'VERIFICATION_REQUIRED', 'Identity verification is required.')),
+    );
+
+    renderWithClient(<MarketplaceFeedPage />);
+
+    expect(await screen.findByRole('heading', { name: 'Your next errand starts here' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Continue verification' })).toHaveAttribute('href', '/verification');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Request ID:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply filters' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [429, 'RATE_LIMITED', 'You have made several feed requests. Please wait a moment before trying again.'],
+    [500, 'INTERNAL_ERROR', 'We could not load the marketplace feed.'],
+  ])('keeps genuine feed failures actionable (%s)', async (status, code, message) => {
+    let failed = true;
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands', () => failed ? apiError(status, code, 'Request failed.') : envelope([])),
+    );
+
+    renderWithClient(<MarketplaceFeedPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByText('Request ID: req-msw')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Continue verification' })).not.toBeInTheDocument();
+    failed = false;
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('No errands match your filters right now.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('restores filters from a shared URL and only renders approximate feed areas', async () => {
     window.history.replaceState({}, '', '/marketplace?category=cat-1&q=pharmacy&budgetMin=5000');
     let receivedUrl: URL | undefined;

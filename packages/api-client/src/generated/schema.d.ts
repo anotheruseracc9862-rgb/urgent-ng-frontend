@@ -696,6 +696,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reference/service-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReferenceData_serviceAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reference/categories": {
         parameters: {
             query?: never;
@@ -5056,6 +5072,19 @@ export interface components {
             /** @description A note shown with the decision. */
             note?: string;
         };
+        ServiceLgaDto: {
+            id: string;
+            name: string;
+        };
+        ServiceStateDto: {
+            id: string;
+            name: string;
+            lgas: components["schemas"]["ServiceLgaDto"][];
+        };
+        ServiceAreasDto: {
+            states: components["schemas"]["ServiceStateDto"][];
+            interstateEnabled: boolean;
+        };
         CategoryDto: {
             id: string;
             /** @description Stable key, for example `delivery`. */
@@ -5232,15 +5261,26 @@ export interface components {
         RunnerAvailability: "AVAILABLE" | "UNAVAILABLE";
         RunnerProfileDto: {
             transport: components["schemas"]["TransportMethod"];
-            areaCenter: components["schemas"]["LatLngDto"];
+            /** @enum {string} */
+            areaMode: "STATE" | "LGAS" | "RADIUS";
+            areaStateIds: string[];
+            areaLgaIds: string[];
+            areaCenter: components["schemas"]["LatLngDto"] | null;
             availability: components["schemas"]["RunnerAvailability"];
             excludedCategoryIds: string[];
             areaRadiusKm: number;
         };
         UpdateRunnerProfileDto: {
             transport: components["schemas"]["TransportMethod"];
-            /** @description Centre of the operating circle. */
-            areaCenter: components["schemas"]["LatLngDto"];
+            /**
+             * @default RADIUS
+             * @enum {string}
+             */
+            areaMode: "STATE" | "LGAS" | "RADIUS";
+            areaStateIds?: string[];
+            areaLgaIds?: string[];
+            /** @description Required only for a radius. Administrative coverage has no centre. */
+            areaCenter?: components["schemas"]["LatLngDto"] | null;
             /** @description Radius in km, one decimal. Must be within the configured range (default 1 to 20); default 5. */
             areaRadiusKm?: number;
             /** @description Categories the runner never wants to see. Default none. */
@@ -5250,7 +5290,7 @@ export interface components {
             availability: components["schemas"]["RunnerAvailability"];
         };
         RunnerEligibilityDto: {
-            reasons: ("ACCOUNT_NOT_ACTIVE" | "PHONE_NOT_VERIFIED" | "NOT_VERIFIED" | "VERIFICATION_PENDING" | "NO_RUNNER_PROFILE" | "UNAVAILABLE" | "RESTRICTED")[];
+            reasons: ("ACCOUNT_NOT_ACTIVE" | "PHONE_NOT_VERIFIED" | "NOT_VERIFIED" | "VERIFICATION_PENDING" | "NO_RUNNER_PROFILE" | "OPERATING_AREA_REQUIRED" | "UNAVAILABLE" | "RESTRICTED")[];
             note?: string;
             /** @description True when the runner may submit offers right now. */
             canOffer: boolean;
@@ -7404,7 +7444,7 @@ export interface components {
             category: components["schemas"]["FeedCategoryDto"];
             pickup: components["schemas"]["PublicAreaDto"] | null;
             destination: components["schemas"]["PublicAreaDto"] | null;
-            /** @description From the centre of your operating area, rounded into a bucket. Null when you have no operating area. */
+            /** @description From the centre of a radius, rounded into a bucket. Null for state/LGA coverage (no centre). */
             distance: components["schemas"]["DistanceBucketDto"] | null;
             timeMode: components["schemas"]["TimeMode"];
             priority: components["schemas"]["ErrandPriority"];
@@ -7429,7 +7469,7 @@ export interface components {
             approx: components["schemas"]["LatLngDto"];
             priority: components["schemas"]["ErrandPriority"];
             suggestedBudgetMinor: number | null;
-            distance: components["schemas"]["DistanceBucketDto"];
+            distance: components["schemas"]["DistanceBucketDto"] | null;
             id: string;
             title: string;
             categoryKey: string;
@@ -7446,7 +7486,7 @@ export interface components {
             category: components["schemas"]["FeedCategoryDto"];
             pickup: components["schemas"]["PublicAreaDto"] | null;
             destination: components["schemas"]["PublicAreaDto"] | null;
-            /** @description From the centre of your operating area, rounded into a bucket. Null when you have no operating area. */
+            /** @description From the centre of a radius, rounded into a bucket. Null for state/LGA coverage (no centre). */
             distance: components["schemas"]["DistanceBucketDto"] | null;
             timeMode: components["schemas"]["TimeMode"];
             priority: components["schemas"]["ErrandPriority"];
@@ -7476,7 +7516,7 @@ export interface components {
             category: components["schemas"]["FeedCategoryDto"];
             pickup: components["schemas"]["PublicAreaDto"] | null;
             destination: components["schemas"]["PublicAreaDto"] | null;
-            /** @description From the centre of your operating area, rounded into a bucket. Null when you have no operating area. */
+            /** @description From the centre of a radius, rounded into a bucket. Null for state/LGA coverage (no centre). */
             distance: components["schemas"]["DistanceBucketDto"] | null;
             timeMode: components["schemas"]["TimeMode"];
             priority: components["schemas"]["ErrandPriority"];
@@ -10567,6 +10607,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
+    ReferenceData_serviceAreas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ServiceAreasDto"];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
                 };
             };
         };
