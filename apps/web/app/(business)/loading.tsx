@@ -1,14 +1,9 @@
-import { Skeleton } from '@urgent/ui';
+import { LoadingFrame } from '@/components/shell/loading-frame';
 
 /**
- * Shown inside the signed-in shell while a page is being prepared, so the sidebar and top bar stay.
- * Only a few card-shaped placeholders: the page's own heading appears with the page.
+ * Shown inside the signed-in shell while a route is being prepared. The sidebar and top bar stay;
+ * the pulsing mascot fills the content area. Pages show their own card skeletons once they mount.
  */
 export default function BusinessLoading() {
-  return (
-    <div aria-busy="true" aria-label="Loading page" className="grid content-start gap-4">
-      <Skeleton className="h-40 rounded-[var(--r-lg)]" />
-      <Skeleton className="h-40 rounded-[var(--r-lg)]" />
-    </div>
-  );
+  return <LoadingFrame inShell />;
 }

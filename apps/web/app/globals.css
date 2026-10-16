@@ -135,6 +135,10 @@ body {
 
 h1, h2, h3 { letter-spacing: -0.03em; }
 
+@keyframes mascot-pulse {
+  0%, 100% { opacity: .55; transform: scale(.94); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
 @keyframes heroFadeUp {
   from { opacity: 0; transform: translateY(28px); }
   to { opacity: 1; transform: translateY(0); }
@@ -300,3 +304,27 @@ html { scroll-padding-top: 84px; scroll-behavior: smooth; }
 .mascot-dash { animation: mascot-dash 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .mascot-bob { animation: mascot-bob 2.4s ease-in-out infinite; }
 .speed-line { animation: speed-line 1.1s ease-out infinite; }
+
+/* Popover menu: grows out of its trigger on open and fades on close. Radix sets the origin. */
+@keyframes menu-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes menu-pop-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(6px) scale(.96); }
+}
+.menu-pop {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+.menu-pop[data-state="open"] { animation: menu-pop-in 180ms cubic-bezier(.16, 1, .3, 1); }
+.menu-pop[data-state="closed"] { animation: menu-pop-out 120ms ease-in forwards; }
+.menu-pop[data-state="open"] > * { animation: menu-pop-in 220ms cubic-bezier(.16, 1, .3, 1) backwards; }
+.menu-pop[data-state="open"] > *:nth-child(2) { animation-delay: 20ms; }
+.menu-pop[data-state="open"] > *:nth-child(3) { animation-delay: 40ms; }
+.menu-pop[data-state="open"] > *:nth-child(4) { animation-delay: 60ms; }
+.menu-pop[data-state="open"] > *:nth-child(5) { animation-delay: 80ms; }
+.menu-pop[data-state="open"] > *:nth-child(n+6) { animation-delay: 100ms; }
+@media (prefers-reduced-motion: reduce) {
+  .menu-pop, .menu-pop > * { animation: none !important; }
+}

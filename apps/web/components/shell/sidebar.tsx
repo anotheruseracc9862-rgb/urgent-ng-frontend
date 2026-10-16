@@ -127,7 +127,7 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
       aria-label="Main"
       className="sticky top-4 hidden h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[var(--r-xl)] bg-surface p-[18px_14px_14px] shadow-[var(--shadow)] lg:flex"
     >
-      <Link href="/dashboard" className="px-2 pb-[18px]">
+      <Link href="/" aria-label="Urgent.ng home" className="px-2 pb-[18px]">
         <Image src="/assets/logo.png" alt="Urgent.ng" width={130} height={32} className="h-8 w-auto" priority />
       </Link>
 
@@ -154,16 +154,16 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label="Account menu"
-          className="mt-2 flex w-full shrink-0 items-center gap-2.5 rounded-2xl bg-panel p-2.5 text-left transition-colors hover:bg-tint-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 data-[state=open]:bg-tint-2"
+          className="group mt-2 flex w-full shrink-0 items-center gap-2.5 rounded-2xl bg-panel p-2.5 text-left transition-colors hover:bg-tint-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-600 data-[state=open]:bg-tint-2"
         >
           <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-extrabold text-lime">{initialsOf(display)}</span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-bold text-ink">{display}</span>
             <span className="block text-[11px] text-muted">{mode === 'RUNNER' ? 'Runner mode' : 'Requester mode'}</span>
           </span>
-          <ChevronRight aria-hidden="true" className="size-4 shrink-0 -rotate-90 text-muted" />
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 -rotate-90 text-muted transition-transform duration-200 group-data-[state=open]:rotate-90" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="min-w-[240px]">
+        <DropdownMenuContent side="top" align="start" className="menu-pop min-w-[240px]">
           {menu.map(({ href, label, icon: Icon }) => (
             <DropdownMenuItem key={href} onSelect={() => router.push(href)}>
               <Icon className="mr-2 size-4 text-muted" /> {label}
