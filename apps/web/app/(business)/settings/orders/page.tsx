@@ -1,8 +1,5 @@
-import type { Metadata } from 'next';
-import { OrdersPage } from '@/features/billing/orders-page';
-
-export const metadata: Metadata = { title: 'Orders and receipts — Urgent.ng' };
+import { redirect } from 'next/navigation';
 
 export default function OrdersRoute() {
-  return <OrdersPage />;
+  redirect('/profile/orders');
 }

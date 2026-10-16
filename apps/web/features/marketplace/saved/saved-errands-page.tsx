@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
+import { Bookmark, MapPin } from 'lucide-react';
+import { PageHead } from '@/components/shell/page-head';
 import { isApiError, type ApiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { marketplaceApi, type FeedItem, type SavedErrand } from '../api';
@@ -61,17 +63,29 @@ export function SavedErrandsPage() {
   const errands = list.data?.pages.flatMap((page) => page.data) ?? [];
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3 rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:p-6">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Runner workspace</p>
-          <h1 className="mt-2 text-2xl font-extrabold text-ink sm:text-3xl">Saved errands</h1>
-          <p className="mt-2 text-sm text-muted">Open errands can still receive offers. Closed errands remain visible for reference.</p>
-        </div>
-        <Button asChild variant="ghost"><Link href="/marketplace">Browse marketplace</Link></Button>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Runner"
+        title="Saved errands"
+        description="Open errands can still receive offers. Closed errands remain visible for reference."
+        actions={<Button asChild variant="ghost"><Link href="/marketplace">Browse marketplace</Link></Button>}
+      />
 
-      {list.isPending ? <div className="grid gap-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-36 rounded-[var(--r-lg)]" />)}</div> : null}
+      {list.isPending ? (
+        <section aria-label="Loading saved errands" className="grid gap-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_auto] sm:p-[22px]">
+              <div className="grid gap-3">
+                <div className="flex gap-2"><Skeleton className="h-6 w-24 rounded-full" /><Skeleton className="h-6 w-20 rounded-full" /></div>
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+              <div className="flex gap-2 sm:flex-col"><Skeleton className="h-10 w-24 rounded-full" /><Skeleton className="h-10 w-28 rounded-full" /></div>
+            </div>
+          ))}
+        </section>
+      ) : null}
       {list.error ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(list.error) && list.error.code === 'RESOURCE_NOT_FOUND' ? 'Saved errands are not available to this account.' : 'We could not load saved errands.'}</p>
@@ -80,13 +94,14 @@ export function SavedErrandsPage() {
         </Alert>
       ) : null}
       {!list.isPending && !list.error && errands.length === 0 ? (
-        <section className="rounded-[var(--r-lg)] border border-dashed border-line bg-surface p-8 text-center">
+        <section className="grid justify-items-center gap-2.5 rounded-[var(--r-lg)] bg-surface px-5 py-10 text-center shadow-[var(--shadow)]" role="status">
+          <span aria-hidden="true" className="grid size-14 place-items-center rounded-[18px] bg-panel text-muted"><Bookmark className="size-6" /></span>
           <h2 className="font-extrabold text-ink">No saved errands</h2>
           <p className="mt-2 text-sm text-muted">Save an errand from the marketplace to keep it here.</p>
           <Button asChild className="mt-4"><Link href="/marketplace">Find errands</Link></Button>
         </section>
       ) : null}
-      <section className="grid gap-3">
+      <section className="grid gap-3" aria-label="Saved errands">
         {errands.map((item) => (
           <SavedErrandCard key={item.id} item={item} removing={remove.isPending && remove.variables === item.id} onRemove={() => remove.mutate(item.id)} />
         ))}
@@ -104,19 +119,19 @@ export function SavedErrandsPage() {
 function SavedErrandCard({ item, removing, onRemove }: { item: SavedErrand; removing: boolean; onRemove: () => void }) {
   const isOpen = item.status === 'OPEN';
   return (
-    <article className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_auto]">
+    <article className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_auto] sm:p-[22px]">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-bold text-green-800">{item.category.name}</span>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isOpen ? 'bg-green-bg text-green-900' : 'bg-panel text-muted'}`}>{statusLabel(item.status)}</span>
-          {item.boosted ? <span className="rounded-full bg-amber-bg px-2.5 py-1 text-xs font-bold text-amber">Boosted</span> : null}
+          <span className="rounded-full bg-tint-2 px-2.5 py-1 text-[11px] font-extrabold text-green-900">{item.category.name}</span>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${isOpen ? 'bg-ok-bg text-ok' : 'bg-panel text-muted'}`}>{statusLabel(item.status)}</span>
+          {item.boosted ? <span className="rounded-full bg-amber-bg px-2.5 py-1 text-[11px] font-extrabold text-amber">Boosted</span> : null}
         </div>
-        <h2 className="mt-2 text-lg font-extrabold text-ink">
+        <h2 className="mt-2 text-base font-extrabold tracking-tight text-ink">
           {isOpen ? <Link href={`/marketplace/${item.id}`} className="hover:underline">{item.title}</Link> : item.title}
         </h2>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{item.description}</p>
-        <p className="mt-2 text-sm text-ink-2">{item.pickup?.area ?? 'Pickup area unavailable'}{item.destination?.area ? ` → ${item.destination.area}` : ''}</p>
-        <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted">
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-2"><MapPin aria-hidden="true" className="size-3.5 shrink-0 text-muted" />{item.pickup?.area ?? 'Pickup area unavailable'}{item.destination?.area ? ` → ${item.destination.area}` : ''}</p>
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
           <span>{money(item.suggestedBudgetMinor)}</span>
           {item.distance ? <span>{item.distance.label}</span> : null}
           <span>{item.offerCount} offers</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { PageLoading } from '@/components/shell/page-loading';
+import { PageHead } from '@/components/shell/page-head';
 import { useQuery } from '@tanstack/react-query';
 import { useApiMutation } from '@/lib/query/mutations';
 import { UserRoundX } from 'lucide-react';
@@ -34,8 +34,8 @@ function BlockedPersonRow({ person, busy, onUnblock }: {
 }) {
   const initials = `${person.firstName.charAt(0)}${person.lastInitial}`.toUpperCase();
   return (
-    <li className="flex flex-col gap-3 border-b border-line py-4 last:border-0 sm:flex-row sm:items-center">
-      <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-tint text-sm font-extrabold text-green-900">
+    <li className="flex min-w-0 flex-col gap-3 border-t border-line-2 px-1 py-4 first:border-0 sm:flex-row sm:items-center">
+      <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-sm font-extrabold text-green-900">
         {initials}
       </span>
       <div className="min-w-0 flex-1">
@@ -60,37 +60,57 @@ export function BlockedPeoplePage() {
   });
 
   if (blockedUsers.isPending) {
-    return <PageLoading title="Blocked people" eyebrow="Settings" width="max-w-3xl" />;
+    return (
+      <div className="grid min-w-0 content-start gap-4 pb-10" aria-busy="true">
+        <PageHead
+          eyebrow="Settings"
+          title="Blocked people"
+          description="Blocked people cannot offer on your errands, and you will not see theirs. Existing chats become read-only."
+        />
+        <section aria-label="Loading blocked people" className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="flex items-center gap-3 border-t border-line-2 px-1 py-4 first:border-0">
+              <Skeleton className="size-10 shrink-0 rounded-[13px]" />
+              <div className="grid min-w-0 flex-1 gap-2">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-3 w-48 max-w-full" />
+              </div>
+              <Skeleton className="h-9 w-20 shrink-0 rounded-full" />
+            </div>
+          ))}
+        </section>
+      </div>
+    );
   }
 
   if (blockedUsers.error || !blockedUsers.data) {
     return (
-      <div className="mx-auto grid max-w-3xl gap-4">
-        <h1 className="text-2xl font-extrabold text-ink">Blocked people</h1>
+      <div className="grid min-w-0 content-start gap-4">
+        <PageHead eyebrow="Settings" title="Blocked people" />
         <ErrorPanel error={blockedUsers.error} onRetry={() => { unblock.reset(); void blockedUsers.refetch(); }} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Privacy &amp; safety</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Blocked people</h1>
-        <p className="mt-1 text-sm leading-relaxed text-muted">Blocked people cannot offer on your errands, and you will not see theirs. Existing chats become read-only.</p>
-      </header>
+    <div className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Settings"
+        title="Blocked people"
+        description="Blocked people cannot offer on your errands, and you will not see theirs. Existing chats become read-only."
+      />
 
       {unblock.error ? <ErrorPanel error={unblock.error} onRetry={() => { unblock.reset(); void blockedUsers.refetch(); }} /> : null}
 
-      <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5" aria-label="Blocked people list">
+      <section className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-label="Blocked people list">
         {!blockedUsers.data.length ? (
-          <div className="grid justify-items-center gap-3 py-10 text-center">
-            <span className="grid size-12 place-items-center rounded-2xl bg-panel text-muted">
+          <div className="grid justify-items-center gap-2.5 px-5 py-10 text-center" role="status">
+            <span aria-hidden="true" className="grid size-14 place-items-center rounded-[18px] bg-panel text-ink-2">
               <UserRoundX className="size-6" aria-hidden="true" />
             </span>
             <div>
-              <h2 className="text-sm font-extrabold text-ink">No blocked people</h2>
-              <p className="mt-1 text-xs text-muted">People you block from their profile will appear here.</p>
+              <h2 className="text-[15px] font-extrabold text-ink">No blocked people</h2>
+              <p className="mt-1 text-sm text-muted">People you block from their profile will appear here.</p>
             </div>
           </div>
         ) : (
@@ -102,7 +122,7 @@ export function BlockedPeoplePage() {
         )}
       </section>
 
-      <Alert variant="info">
+      <Alert variant="info" role="note">
         <p>Blocking does not cancel an errand already in progress. Cancel it first if you need to.</p>
       </Alert>
     </div>

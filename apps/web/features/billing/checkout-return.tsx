@@ -14,7 +14,7 @@ export function CheckoutReturn() {
 
   React.useEffect(() => {
     const orderId = readPendingOrder();
-    router.replace(orderId ? `/checkout/${encodeURIComponent(orderId)}` : '/settings/orders');
+    router.replace(orderId ? `/checkout/${encodeURIComponent(orderId)}` : '/profile/orders');
   }, [router]);
 
   return (

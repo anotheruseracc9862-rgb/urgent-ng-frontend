@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { Check, Zap } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
+import { PageHead } from '@/components/shell/page-head';
 import { isApiError } from '@/lib/api/client';
 import { errandsApi } from '@/features/errands/api';
 import { queryKeys } from '@/lib/query/keys';
@@ -35,31 +37,40 @@ function BoostRow({ errandId, title, boostedOrder, price, selected }: {
   const live = boostedOrder?.status === 'PAID';
 
   return (
-    <li className={`grid gap-3 rounded-[var(--r)] border p-4 sm:grid-cols-[1fr_auto] sm:items-center ${selected ? 'border-lime-600' : 'border-line'}`}>
-      <div className="min-w-0">
-        <Link href={`/errands/${encodeURIComponent(errandId)}`} className="block truncate text-sm font-extrabold text-ink hover:underline">{title}</Link>
-        {live ? (
-          <p className="mt-1 text-xs text-ok">
-            Boosted since {boostedOrder.paidAt ? formatDate(boostedOrder.paidAt, 'medium') : 'now'}. It ends when the boost period passes or the errand closes.
-          </p>
-        ) : pending ? (
-          <p className="mt-1 text-xs text-muted">
-            A boost payment is waiting. <Link className="underline" href={`/checkout/${encodeURIComponent(boostedOrder.id)}`}>Check payment</Link>
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-muted">Shown higher in the runner feed{price ? ` for ${price}, VAT included` : ''}.</p>
-        )}
-        {buy.error ? (
-          <p role="alert" className="mt-2 text-xs font-bold text-danger">
-            {billingErrorMessage(buy.error)}
-            {isApiError(buy.error) && buy.error.requestId ? ` (Request ID: ${buy.error.requestId})` : ''}
-          </p>
-        ) : null}
+    <li className={`grid min-w-0 gap-3 rounded-[var(--r-lg)] border p-4 transition-colors sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${
+      selected ? 'border-lime-600 bg-tint-2/40 ring-2 ring-lime-600/20' : 'border-line-2 bg-panel/50'
+    }`}>
+      <div className="flex min-w-0 items-start gap-3">
+        <span className={`grid size-10 shrink-0 place-items-center rounded-[13px] ${live ? 'bg-ok-bg text-ok' : 'bg-tint-2 text-green-900'}`}>
+          {live ? <Check aria-hidden="true" className="size-[18px]" /> : <Zap aria-hidden="true" className="size-[18px]" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <Link href={`/errands/${encodeURIComponent(errandId)}`} className="block truncate text-sm font-extrabold text-ink hover:underline">{title}</Link>
+          {live ? (
+            <p className="mt-1 text-xs leading-relaxed text-ok">
+              Boosted since {boostedOrder.paidAt ? formatDate(boostedOrder.paidAt, 'medium') : 'now'}. It ends when the boost period passes or the errand closes.
+            </p>
+          ) : pending ? (
+            <p className="mt-1 text-xs leading-relaxed text-muted">A boost payment is waiting to be confirmed.</p>
+          ) : (
+            <p className="mt-1 text-xs leading-relaxed text-muted">Shown higher in the runner feed{price ? ` for ${price}, VAT included` : ''}.</p>
+          )}
+          {buy.error ? (
+            <p role="alert" className="mt-2 text-xs font-bold text-danger">
+              {billingErrorMessage(buy.error)}
+              {isApiError(buy.error) && buy.error.requestId ? ` (Request ID: ${buy.error.requestId})` : ''}
+            </p>
+          ) : null}
+        </div>
       </div>
       {live ? (
-        <span className="rounded-full bg-ok-bg px-3 py-1 text-xs font-extrabold text-[#145c30]">Boosted</span>
+        <span className="inline-flex min-h-9 items-center justify-center rounded-full bg-ok-bg px-3.5 text-xs font-extrabold text-[#145c30]">Boosted</span>
+      ) : pending ? (
+        <Button asChild size="sm" className="w-full sm:w-auto">
+          <Link href={`/checkout/${encodeURIComponent(boostedOrder.id)}`}>Check payment</Link>
+        </Button>
       ) : (
-        <Button type="button" size="sm" disabled={buy.isPending || pending} onClick={() => buy.mutate()}>
+        <Button type="button" size="sm" disabled={buy.isPending} onClick={() => buy.mutate()} className="w-full sm:w-auto">
           {buy.isPending ? 'Starting…' : 'Boost this errand'}
         </Button>
       )}
@@ -86,15 +97,12 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
   const errands = open.data?.data ?? [];
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Boosts</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Get your errand seen sooner</h1>
-        <p className="mt-1 text-sm text-muted">
-          A boost lifts an open errand in the runner feed{product?.periodDays ? ` for ${product.periodDays} days` : ''}.
-          Only open errands without a selected runner can be boosted.
-        </p>
-      </header>
+    <div className="grid min-w-0 gap-4">
+      <PageHead
+        eyebrow="Boosts"
+        title="Get your errand seen sooner"
+        description={`A boost lifts an open errand in the runner feed${product?.periodDays ? ` for ${product.periodDays} days` : ''}. Only open errands without a selected runner can be boosted.`}
+      />
 
       {open.error ? (
         <Alert variant="danger" role="alert">
@@ -104,14 +112,30 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
         </Alert>
       ) : null}
 
-      <section aria-label="Open errands" className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+      <section aria-label="Open errands" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
         {open.isPending ? (
-          <div className="grid gap-3" aria-label="Loading errands"><Skeleton className="h-16" /><Skeleton className="h-16" /></div>
+          <div className="grid gap-3" role="status" aria-label="Loading errands" aria-busy="true">
+            {[0, 1].map((row) => (
+              <div key={row} className="grid gap-3 rounded-[var(--r-lg)] border border-line-2 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="size-10 shrink-0 rounded-[13px]" />
+                  <div className="grid flex-1 gap-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-5/6" />
+                  </div>
+                </div>
+                <Skeleton className="h-9 w-full rounded-full sm:w-36" />
+              </div>
+            ))}
+          </div>
         ) : !errands.length && !open.error ? (
-          <div className="py-10 text-center">
-            <h2 className="text-sm font-extrabold text-ink">No open errands to boost</h2>
-            <p className="mt-1 text-sm text-muted">Post an errand first, then come back to boost it.</p>
-            <Link href="/errands/new" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-green-800 px-5 text-sm font-bold text-white">Post an errand</Link>
+          <div className="grid justify-items-center gap-2.5 px-5 py-10 text-center" role="status">
+            <span aria-hidden="true" className="grid size-14 place-items-center rounded-[18px] bg-panel text-ink-2">
+              <Zap className="size-6" />
+            </span>
+            <h2 className="text-[15px] font-extrabold text-ink">No open errands to boost</h2>
+            <p className="max-w-md text-sm text-muted">Post an errand first, then come back to boost it.</p>
+            <Button asChild className="mt-1"><Link href="/errands/new">Post an errand</Link></Button>
           </div>
         ) : (
           <ul className="grid gap-3">

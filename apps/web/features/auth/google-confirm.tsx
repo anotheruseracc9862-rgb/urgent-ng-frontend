@@ -35,7 +35,7 @@ export function GoogleConfirm({ onToken }: { onToken: (idToken: string) => void 
 
   return (
     <div>
-      <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" onLoad={() => setReady(true)} />
+      <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" onReady={() => setReady(true)} />
       <div ref={holder} className="flex min-h-[44px] justify-start" />
     </div>
   );

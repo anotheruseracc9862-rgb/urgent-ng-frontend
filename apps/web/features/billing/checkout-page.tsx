@@ -4,7 +4,7 @@ import { PageLoading } from '@/components/shell/page-loading';
 import * as React from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Skeleton } from '@urgent/ui';
+import { Alert, Button } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -102,7 +102,7 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
           {isApiError(checked.error) && checked.error.requestId ? <p className="mt-1 text-xs">Request ID: {checked.error.requestId}</p> : null}
           {!notFound ? <Button type="button" variant="ghost" size="sm" onClick={() => void checked.refetch()}>Try again</Button> : null}
         </Alert>
-        <Link href="/settings/orders" className="text-sm font-bold text-green-800 underline">See your orders</Link>
+        <Link href="/profile/orders" className="text-sm font-bold text-green-800 underline">See your orders</Link>
       </div>
     );
   }
@@ -159,7 +159,7 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
         {order.status === 'FAILED' || order.status === 'CANCELLED' ? (
           <Link href={retryLink(order).href} className="inline-flex min-h-11 items-center rounded-full bg-green-800 px-5 text-sm font-bold text-white">{retryLink(order).label}</Link>
         ) : null}
-        <Link href="/settings/orders" className="inline-flex min-h-11 items-center rounded-full px-5 text-sm font-bold text-green-800 underline">Orders and receipts</Link>
+        <Link href="/profile/orders" className="inline-flex min-h-11 items-center rounded-full px-5 text-sm font-bold text-green-800 underline">Orders and receipts</Link>
       </div>
     </div>
   );

@@ -1,17 +1,18 @@
 'use client';
 
-import { PageLoading } from '@/components/shell/page-loading';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
+import { PageHead } from '@/components/shell/page-head';
 import { MediaUpload } from '@/components/media-upload/media-upload';
 import { useSession } from '@/lib/auth/client';
 import { ApiError, isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { rememberPendingOrder } from '@/features/billing/checkout';
+import { ContactMethodsForm } from '@/features/settings/contact-methods-form';
 import { verificationApi, type BillingOrder, type VerificationAttempt } from './api';
 
 type Identity = components['schemas']['IdentityDetailsDto'];
@@ -98,11 +99,13 @@ function StatusCard({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="grid max-w-3xl gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)] sm:p-7">
-      <span className="grid size-14 place-items-center rounded-2xl bg-tint text-green-900"><ShieldCheck aria-hidden="true" className="size-7" /></span>
-      <div>
-        <h1 className="text-2xl font-extrabold text-ink">{title}</h1>
-        <div className="mt-2 text-sm leading-6 text-muted">{children}</div>
+    <section className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-green-900"><ShieldCheck aria-hidden="true" className="size-[18px]" /></span>
+        <div>
+          <h1 className="text-base font-extrabold tracking-tight text-ink">{title}</h1>
+          <div className="mt-1 text-xs leading-5 text-muted">{children}</div>
+        </div>
       </div>
       {action}
     </section>
@@ -271,17 +274,44 @@ export function VerificationPage() {
   };
 
   if (overview.isPending) {
-    return <PageLoading title="Verify your identity" eyebrow="Runner" />;
+    return (
+      <main className="grid min-w-0 content-start gap-4 pb-10" aria-busy="true">
+        <PageHead
+          eyebrow="Runner"
+          title="Verify your identity"
+          description="One short check builds trust and unlocks offers. Your identity details are only shared with the verification team."
+        />
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <section aria-label="Loading identity verification" className="grid gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+            <div className="grid grid-cols-5 gap-2">{[0, 1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-8" />)}</div>
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-11 w-full rounded-[var(--r-sm)]" />
+            <Skeleton className="h-11 w-full rounded-[var(--r-sm)]" />
+            <Skeleton className="h-11 w-36 justify-self-end rounded-full" />
+          </section>
+          <section aria-label="Loading verification information" className="grid content-start gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+            <Skeleton className="h-5 w-36" />
+            {[0, 1, 2].map((item) => <Skeleton key={item} className="h-4 w-full" />)}
+            <Skeleton className="h-3 w-32" />
+          </section>
+        </div>
+      </main>
+    );
   }
   if (overview.error || !overview.data) {
-    return <main className="mx-auto max-w-4xl"><ErrorNotice error={overview.error} onRetry={() => void overview.refetch()} /></main>;
+    return (
+      <main className="grid min-w-0 content-start gap-4 pb-10">
+        <PageHead eyebrow="Runner" title="Verify your identity" />
+        <ErrorNotice error={overview.error} onRetry={() => void overview.refetch()} />
+      </main>
+    );
   }
 
   const data = overview.data;
   const retryOverview = () => void overview.refetch();
   if (data.verified || currentAttempt?.displayStatus === 'VERIFIED') {
     return (
-      <main className="mx-auto max-w-5xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <StatusCard title="You’re verified">
           <p>Your runner identity check is complete. You can now send offers.</p>
           {data.expiresAt && <p className="mt-2">Verified until {dateLabel(data.expiresAt)} (Lagos time).</p>}
@@ -292,11 +322,12 @@ export function VerificationPage() {
 
   if (!data.phoneVerified || !me.phoneVerified) {
     return (
-      <main className="mx-auto max-w-5xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <StatusCard title="Verify your phone first">
           <p>A verified phone number is required before an identity check can begin.</p>
+          <p className="mt-2">Confirm your number below. Once it’s verified, you can continue here.</p>
         </StatusCard>
-        <Button asChild className="mt-4"><Link href="/settings/contact">Go to contact settings</Link></Button>
+        <div className="max-w-3xl"><ContactMethodsForm phoneOnly /></div>
       </main>
     );
   }
@@ -304,7 +335,7 @@ export function VerificationPage() {
   if (isPending(currentAttempt) || data.status === 'REVIEW_REQUIRED' || data.status === 'PENDING') {
     const review = currentAttempt?.failureReason === 'MANUAL_REVIEW_REQUIRED' || data.status === 'REVIEW_REQUIRED';
     return (
-      <main className="mx-auto max-w-5xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <StatusCard title={review ? 'Your verification needs review' : 'Verification in progress'}>
           <p>{review ? failureCopy.MANUAL_REVIEW_REQUIRED : 'We are checking your details. This usually takes 2 to 4 hours. You can leave this page; we will keep checking for an update.'}</p>
           {currentAttempt && <p className="mt-2">Attempt {currentAttempt.attemptNumber} · started {dateLabel(currentAttempt.startedAt)} (Lagos time)</p>}
@@ -318,12 +349,12 @@ export function VerificationPage() {
   const cooldown = data.nextAttemptAt && now !== undefined && new Date(data.nextAttemptAt).getTime() > now;
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-4">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Runner</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">Verify your identity</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">One short check builds trust and unlocks offers. Your identity details are only shared with the verification team.</p>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Runner"
+        title="Verify your identity"
+        description="One short check builds trust and unlocks offers. Your identity details are only shared with the verification team."
+      />
 
       {failure && (
         <Alert variant={currentAttempt?.failureReason === 'DUPLICATE_IDENTITY' ? 'danger' : 'warn'} role="status">
@@ -343,7 +374,7 @@ export function VerificationPage() {
       )}
 
       {data.feeRequired && (
-        <section className="grid gap-3 rounded-[var(--r-lg)] border border-amber-border bg-amber-bg p-4 sm:flex sm:items-center sm:justify-between sm:p-5">
+        <section className="grid gap-3 rounded-[var(--r-lg)] bg-amber-bg p-4 shadow-[var(--shadow)] sm:flex sm:items-center sm:justify-between sm:p-[22px]">
           <div>
             <h2 className="font-extrabold text-ink">A verification fee is required</h2>
             <p className="mt-1 text-sm text-muted">{data.attemptsRemaining} verification {data.attemptsRemaining === 1 ? 'attempt' : 'attempts'} remaining. Payment is handled securely by our payment provider.</p>
@@ -361,8 +392,8 @@ export function VerificationPage() {
       )}
 
       {data.canStart && !data.feeRequired && !cooldown && (
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-6">
+        <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <ol aria-label="Verification steps" className="mb-6 grid grid-cols-5 gap-2">
               {['Identity', 'ID & NIN', 'Selfie', 'Guarantor', 'Review'].map((label, index) => (
                 <li key={label} className={`border-t-2 pt-2 text-[10px] font-bold sm:text-xs ${step === index + 1 ? 'border-lime-600 text-ink' : step > index + 1 ? 'border-green-700 text-green-800' : 'border-line text-muted'}`}>
@@ -375,13 +406,13 @@ export function VerificationPage() {
               <form className="grid gap-4" aria-labelledby="verification-identity-heading" onSubmit={(event) => { event.preventDefault(); setStep(2); }}>
                 <div><h2 id="verification-identity-heading" className="text-lg font-extrabold text-ink">Who are you?</h2><p className="text-sm text-muted">Use the names exactly as they appear on your ID.</p></div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">First name<input required autoComplete="given-name" value={identity.firstName} onChange={(event) => updateIdentity('firstName', event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Last name<input required autoComplete="family-name" value={identity.lastName} onChange={(event) => updateIdentity('lastName', event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">First name<input required autoComplete="given-name" value={identity.firstName} onChange={(event) => updateIdentity('firstName', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Last name<input required autoComplete="family-name" value={identity.lastName} onChange={(event) => updateIdentity('lastName', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 </div>
-                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Home address<input required autoComplete="street-address" value={identity.addressLine} onChange={(event) => updateIdentity('addressLine', event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
+                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Home address<input required autoComplete="street-address" value={identity.addressLine} onChange={(event) => updateIdentity('addressLine', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Local government area<input required value={identity.lga} onChange={(event) => updateIdentity('lga', event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Date of birth<input required type="date" max={dateOfBirthMax} value={identity.dateOfBirth} onChange={(event) => updateIdentity('dateOfBirth', event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Local government area<input required value={identity.lga} onChange={(event) => updateIdentity('lga', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Date of birth<input required type="date" max={dateOfBirthMax} value={identity.dateOfBirth} onChange={(event) => updateIdentity('dateOfBirth', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 </div>
                 <div className="flex justify-end"><Button type="submit">Continue</Button></div>
               </form>
@@ -391,12 +422,12 @@ export function VerificationPage() {
               <form className="grid gap-4" aria-labelledby="verification-id-heading" onSubmit={(event) => { event.preventDefault(); setStep(3); }}>
                 <div><h2 id="verification-id-heading" className="text-lg font-extrabold text-ink">Government ID</h2><p className="text-sm text-muted">The ID photo is optional and used only if a manual review is needed.</p></div>
                 <label className="grid gap-1.5 text-sm font-bold text-ink-2">Document type
-                  <select value={documentType} onChange={(event) => setDocumentType(event.target.value as IdDocumentType)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal">
+                  <select value={documentType} onChange={(event) => setDocumentType(event.target.value as IdDocumentType)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
                     <option value="NIN_SLIP">NIN slip or card</option><option value="VOTERS_CARD">Voter’s card</option><option value="DRIVERS_LICENCE">Driver’s licence</option><option value="INTERNATIONAL_PASSPORT">International passport</option>
                   </select>
                 </label>
                 <label className="grid gap-1.5 text-sm font-bold text-ink-2">11-digit NIN
-                  <input required autoComplete="off" type="password" inputMode="numeric" maxLength={11} pattern="[0-9]{11}" value={nin} onChange={(event) => setNin(event.target.value.replace(/\D/g, '').slice(0, 11))} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" aria-describedby="nin-privacy-note" />
+                  <input required autoComplete="off" type="password" inputMode="numeric" maxLength={11} pattern="[0-9]{11}" value={nin} onChange={(event) => setNin(event.target.value.replace(/\D/g, '').slice(0, 11))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" aria-describedby="nin-privacy-note" />
                 </label>
                 <p id="nin-privacy-note" className="text-xs text-muted">Your NIN is sent once for verification. It is never saved in your account or browser storage.</p>
                 <div><p className="mb-2 text-sm font-bold text-ink-2">Optional ID photo</p><MediaUpload purpose="VERIFICATION_INPUT" maxFiles={1} value={documentMediaId ? [documentMediaId] : []} onChange={(ids) => setDocumentMediaId(ids[0])} /></div>
@@ -415,10 +446,10 @@ export function VerificationPage() {
             {step === 4 && (
               <section className="grid gap-4" aria-labelledby="verification-guarantor-heading">
                 <div><h2 id="verification-guarantor-heading" className="text-lg font-extrabold text-ink">Guarantor <span className="text-sm font-medium text-muted">(optional)</span></h2><p className="text-sm text-muted">A trusted person who can vouch for you. This is only used if a safety issue needs review.</p></div>
-                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Full name<input autoComplete="name" value={guarantorName} onChange={(event) => setGuarantorName(event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
+                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Full name<input autoComplete="name" value={guarantorName} onChange={(event) => setGuarantorName(event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Relationship<select value={guarantorRelationship} onChange={(event) => setGuarantorRelationship(event.target.value as Relationship)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal"><option value="FAMILY">Family</option><option value="FRIEND">Friend</option><option value="EMPLOYER">Employer</option><option value="NEIGHBOUR">Neighbour</option></select></label>
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Phone number<input autoComplete="tel" inputMode="tel" value={guarantorPhone} onChange={(event) => setGuarantorPhone(event.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal" /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Relationship<select value={guarantorRelationship} onChange={(event) => setGuarantorRelationship(event.target.value as Relationship)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700"><option value="FAMILY">Family</option><option value="FRIEND">Friend</option><option value="EMPLOYER">Employer</option><option value="NEIGHBOUR">Neighbour</option></select></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Phone number<input autoComplete="tel" inputMode="tel" value={guarantorPhone} onChange={(event) => setGuarantorPhone(event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 </div>
                 <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setStep(3)}>Back</Button><div className="flex gap-2"><Button type="button" variant="ghost" onClick={() => setStep(5)}>Skip</Button><Button type="button" onClick={() => setStep(5)}>Continue</Button></div></div>
               </section>
@@ -427,7 +458,7 @@ export function VerificationPage() {
             {step === 5 && (
               <form className="grid gap-4" onSubmit={(event) => void startVerification(event)}>
                 <div><h2 className="text-lg font-extrabold text-ink">Review and submit</h2><p className="text-sm text-muted">Check your details before you send them for verification.</p></div>
-                <dl className="grid gap-2 rounded-xl bg-panel p-4 text-sm sm:grid-cols-2">
+                <dl className="grid gap-2 rounded-[var(--r-sm)] bg-panel p-4 text-sm sm:grid-cols-2">
                   <div><dt className="text-muted">Name</dt><dd className="font-bold text-ink">{identity.firstName} {identity.lastName}</dd></div>
                   <div><dt className="text-muted">Date of birth</dt><dd className="font-bold text-ink">{identity.dateOfBirth}</dd></div>
                   <div><dt className="text-muted">Address</dt><dd className="font-bold text-ink">{identity.addressLine}, {identity.lga}</dd></div>
@@ -438,8 +469,8 @@ export function VerificationPage() {
               </form>
             )}
           </div>
-          <aside className="grid content-start gap-3 rounded-[var(--r-lg)] border border-line bg-tint p-4 sm:p-5">
-            <h2 className="font-extrabold text-ink">Why we verify</h2>
+          <aside className="grid content-start gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+            <h2 className="text-base font-extrabold tracking-tight text-ink">Why we verify</h2>
             <p className="flex gap-2 text-sm text-ink-2"><CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-green-800" />Requesters can trust the runner badge.</p>
             <p className="flex gap-2 text-sm text-ink-2"><CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-green-800" />Your identity is never shown to requesters.</p>
             <p className="flex gap-2 text-sm text-ink-2"><CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-green-800" />Most reviews finish in 2 to 4 hours.</p>

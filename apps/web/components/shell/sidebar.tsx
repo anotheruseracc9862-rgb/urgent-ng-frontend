@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronRight, Compass, LogOut, Plus } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { components } from '@urgent/api-client';
 import {
   cn,
   DropdownMenu,
@@ -15,6 +17,8 @@ import {
   Switch,
 } from '@urgent/ui';
 import { useSession } from '@/lib/auth/client';
+import { api } from '@/lib/api/client';
+import { queryKeys } from '@/lib/query/keys';
 import { runnerApi } from '@/features/runner/api';
 import { runnerQueries } from '@/features/runner/queries';
 import { useApiMutation } from '@/lib/query/mutations';
@@ -108,6 +112,14 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
   const search = useSearchParams();
   const router = useRouter();
   const { me, signOut } = useSession();
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string>();
+  const photo = useQuery({
+    queryKey: queryKeys.media.url(me.photoMediaId ?? ''),
+    queryFn: () => api<components['schemas']['MediaUrlDto']>(`/media/${me.photoMediaId}/url`),
+    enabled: Boolean(me.photoMediaId),
+    staleTime: 4 * 60 * 1000,
+    retry: false,
+  });
   const counts: NavCounts = useNavCounts(mode, me.id);
   const display = name ?? me.name;
   const items = itemsFor(mode);
@@ -156,7 +168,21 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
           aria-label="Account menu"
           className="group mt-2 flex w-full shrink-0 items-center gap-2.5 rounded-2xl bg-panel p-2.5 text-left transition-colors hover:bg-tint-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-600 data-[state=open]:bg-tint-2"
         >
-          <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-[11px] font-extrabold text-lime">{initialsOf(display)}</span>
+          <span className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-ink text-[11px] font-extrabold text-lime">
+            {photo.data?.url && photo.data.url !== failedPhotoUrl ? (
+              <Image
+                src={photo.data.url}
+                alt="Your profile photo"
+                fill
+                unoptimized
+                sizes="36px"
+                className="object-cover"
+                onError={() => setFailedPhotoUrl(photo.data?.url)}
+              />
+            ) : (
+              <span aria-hidden="true">{initialsOf(display)}</span>
+            )}
+          </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-bold text-ink">{display}</span>
             <span className="block text-[11px] text-muted">{mode === 'RUNNER' ? 'Runner mode' : 'Requester mode'}</span>

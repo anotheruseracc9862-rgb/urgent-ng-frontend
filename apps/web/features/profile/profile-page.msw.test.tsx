@@ -2,6 +2,7 @@ import * as React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ShellMode } from '@/components/shell/nav-items';
+import { Sidebar } from '@/components/shell/sidebar';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionProvider } from '@/lib/auth/client';
@@ -112,7 +113,7 @@ describe('profile page', () => {
       ).not.toBeInTheDocument();
       expect(support.getByRole('link', { name: 'Orders and receipts' })).toHaveAttribute(
         'href',
-        '/settings/orders',
+        '/profile/orders',
       );
       const stats = within(screen.getByRole('region', { name: 'Profile stats' }));
       if (mode === 'REQUESTER') {
@@ -300,7 +301,7 @@ describe('profile page', () => {
     ).toBeInTheDocument();
   });
 
-  it('sets the profile photo after upload processing and displays its signed URL', async () => {
+  it('sets the uploaded profile photo in the profile and sidebar without a reload', async () => {
     const pendingPhoto = {
       id: 'photo-2',
       purpose: 'PROFILE_PHOTO',
@@ -316,6 +317,8 @@ describe('profile page', () => {
     };
     let photoBody: unknown;
     server.use(
+      http.get('*/api/v1/conversations', () => envelope([])),
+      http.get('*/api/v1/notifications/unread-count', () => envelope({ count: 0 })),
       http.get('*/api/v1/me/summary', () =>
         envelope({
           asRequester: {
@@ -370,7 +373,17 @@ describe('profile page', () => {
       ),
     );
 
-    renderProfile();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <SessionProvider me={me}>
+          <Sidebar mode="REQUESTER" name={me.name} />
+          <ProfilePage mode="REQUESTER" />
+        </SessionProvider>
+      </QueryClientProvider>,
+    );
+    const account = within(screen.getByRole('button', { name: 'Account menu' }));
+    expect(account.getByText('AL')).toBeInTheDocument();
     expect(screen.getByLabelText('Choose images')).not.toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Change photo' }));
     expect(screen.getByLabelText('Choose images')).toBeVisible();
@@ -383,6 +396,15 @@ describe('profile page', () => {
     expect(
       await screen.findByRole('img', { name: 'Ada Lovelace profile photo' }, { timeout: 5_000 }),
     ).toHaveAttribute('src', 'https://media.example/profile.png');
+    expect(await account.findByRole('img', { name: 'Your profile photo' })).toHaveAttribute(
+      'src',
+      'https://media.example/profile.png',
+    );
+    expect(account.queryByText('AL')).not.toBeInTheDocument();
     expect(photoBody).toEqual({ mediaId: 'photo-2' });
+
+    fireEvent.error(account.getByRole('img', { name: 'Your profile photo' }));
+    expect(account.getByText('AL')).toBeInTheDocument();
+    expect(account.queryByRole('img')).not.toBeInTheDocument();
   });
 });

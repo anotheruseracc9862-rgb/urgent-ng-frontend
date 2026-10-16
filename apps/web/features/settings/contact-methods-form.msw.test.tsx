@@ -18,6 +18,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next/script', () => ({ default: () => null }));
+vi.mock('@/features/auth/google-confirm', () => ({
+  GoogleConfirm: ({ onToken }: { onToken: (token: string) => void }) => (
+    <button onClick={() => onToken('test-google-confirmation')}>Confirm with Google</button>
+  ),
+}));
 
 const ME: Me = {
   id: 'u1',
@@ -70,6 +75,56 @@ describe('ContactMethodsForm', () => {
     expect(screen.getByRole('button', { name: 'Add email' })).toBeInTheDocument();
   });
 
+  it('validates the phone on blur, not while typing, and clears the error after correction', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole('button', { name: 'Change' }));
+    const phone = screen.getByLabelText('New phone number');
+    expect(screen.queryByText(/Use 11 digits/)).not.toBeInTheDocument();
+    await user.type(phone, '+2348147877487');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.tab();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid 11-digit Nigerian mobile number');
+    expect(phone).toHaveAttribute('aria-invalid', 'true');
+    await user.clear(phone);
+    await user.type(phone, '08147877487');
+    await user.tab();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(phone).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('sends codes only for 11-digit local Nigerian mobile numbers', async () => {
+    const sent: string[] = [];
+    server.use(http.post('*/api/v1/me/contact', async ({ request }) => {
+      const body = await request.json() as { phone: string };
+      sent.push(body.phone);
+      return envelope({ sentTo: 'Your phone' });
+    }));
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole('button', { name: 'Change' }));
+    const phone = screen.getByLabelText('New phone number');
+    await user.type(screen.getByLabelText('Your password'), 'local-format-proof');
+
+    for (const invalid of ['+2348147877487', '2348147877487', '8147877487', '0814787748', '081478774870', '07601234567', '0814787a487', '0803 123 4567']) {
+      await user.clear(phone);
+      await user.type(phone, invalid);
+      await user.click(screen.getByRole('button', { name: 'Send code' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid 11-digit Nigerian mobile number');
+      expect(screen.queryByRole('group', { name: '6-digit code' })).not.toBeInTheDocument();
+    }
+    expect(sent).toEqual([]);
+
+    for (const valid of ['07031234567', '08031234567', '08147877487', '09031234567', '09131234567']) {
+      await user.clear(screen.getByLabelText('New phone number'));
+      await user.type(screen.getByLabelText('New phone number'), valid);
+      await user.click(screen.getByRole('button', { name: 'Send code' }));
+      expect(await screen.findByRole('group', { name: '6-digit code' })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+    }
+    expect(sent).toEqual(['+2347031234567', '+2348031234567', '+2348147877487', '+2349031234567', '+2349131234567']);
+  });
+
   it('adds an email: password proof, code, then verified', async () => {
     const calls: Array<{ path: string; body: Record<string, unknown> }> = [];
     server.use(
@@ -88,6 +143,12 @@ describe('ContactMethodsForm', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add email' }));
     await user.type(screen.getByLabelText('Email'), 'Ada@Example.com');
+    const sendCode = screen.getByRole('button', { name: 'Send code' });
+    expect(sendCode).toBeDisabled();
+    await user.type(screen.getByLabelText('Your password'), 'temporary-proof');
+    expect(sendCode).toBeEnabled();
+    await user.clear(screen.getByLabelText('Your password'));
+    expect(sendCode).toBeDisabled();
     await user.type(screen.getByLabelText('Your password'), 'correct horse');
     await user.click(screen.getByRole('button', { name: 'Send code' }));
 
@@ -118,7 +179,12 @@ describe('ContactMethodsForm', () => {
     expect(await screen.findByText(/already exists/i)).toBeInTheDocument();
   });
 
-  it('asks a Google-only account to confirm with Google instead of a password', async () => {
+  it('enables sending only after Google confirmation and clears confirmation when cancelled', async () => {
+    let body: unknown;
+    server.use(http.post('*/api/v1/me/contact', async ({ request }) => {
+      body = await request.json();
+      return envelope({ sentTo: 'a***@example.com' });
+    }));
     const user = userEvent.setup();
     renderForm({ ...ME, hasPassword: false, googleLinked: true });
 
@@ -126,5 +192,17 @@ describe('ContactMethodsForm', () => {
 
     expect(screen.queryByLabelText('Your password')).not.toBeInTheDocument();
     expect(screen.getByText(/signs in with Google and has no password/i)).toBeInTheDocument();
+    const sendCode = screen.getByRole('button', { name: 'Send code' });
+    await user.type(screen.getByLabelText('Email'), 'ada@example.com');
+    expect(sendCode).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Confirm with Google' }));
+    expect(sendCode).toBeEnabled();
+    await user.click(sendCode);
+    expect(await screen.findByRole('group', { name: '6-digit code' })).toBeInTheDocument();
+    expect(body).toEqual({ email: 'ada@example.com', googleIdToken: 'test-google-confirmation' });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await user.click(screen.getByRole('button', { name: 'Add email' }));
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Confirm with Google' })).toBeInTheDocument();
   });
 });

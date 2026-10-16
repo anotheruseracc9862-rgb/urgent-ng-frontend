@@ -93,15 +93,37 @@ describe('business topbar', () => {
     }
   });
 
-  it.each(['REQUESTER', 'RUNNER'] as const)('shows the notification-settings hierarchy for %s on desktop and mobile', (mode) => {
-    navigation.pathname = '/settings/notifications';
+  it.each(['REQUESTER', 'RUNNER'] as const)('shows the settings hierarchy for %s on desktop and mobile', (mode) => {
+    const settingsPages = [
+      ['/settings/contact', 'Contact methods'],
+      ['/settings/notifications', 'Notifications'],
+      ['/settings/privacy', 'Privacy'],
+      ['/settings/security', 'Security'],
+      ['/settings/blocked', 'Blocked people'],
+      ['/settings/account', 'Account'],
+    ] as const;
+
+    for (const [pathname, title] of settingsPages) {
+      navigation.pathname = pathname;
+      const { unmount } = renderTopbar(mode);
+      const crumbs = screen.getAllByRole('navigation', { name: 'Breadcrumb' });
+      expect(crumbs).toHaveLength(2);
+      for (const crumb of crumbs) {
+        expect(crumb).toHaveTextContent(new RegExp(`${mode === 'REQUESTER' ? 'Requester' : 'Runner'}\\s*›\\s*Settings\\s*›\\s*${title}`));
+        expect(within(crumb).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+        expect(within(crumb).getByText(title)).toHaveAttribute('aria-current', 'page');
+      }
+      unmount();
+    }
+  });
+
+  it.each(['REQUESTER', 'RUNNER'] as const)('shows the profile hierarchy for orders in %s mode', (mode) => {
+    navigation.pathname = '/profile/orders';
     renderTopbar(mode);
-    const crumbs = screen.getAllByRole('navigation', { name: 'Breadcrumb' });
-    expect(crumbs).toHaveLength(2);
-    for (const crumb of crumbs) {
-      expect(crumb).toHaveTextContent(mode === 'REQUESTER' ? /Requester\s*›\s*Settings\s*›\s*Notifications/ : /Runner\s*›\s*Settings\s*›\s*Notifications/);
-      expect(within(crumb).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
-      expect(within(crumb).getByText('Notifications')).toHaveAttribute('aria-current', 'page');
+    for (const crumb of screen.getAllByRole('navigation', { name: 'Breadcrumb' })) {
+      expect(crumb).toHaveTextContent(new RegExp(`${mode === 'REQUESTER' ? 'Requester' : 'Runner'}\\s*›\\s*Profile & account\\s*›\\s*Orders and receipts`));
+      expect(within(crumb).getByRole('link', { name: 'Profile & account' })).toHaveAttribute('href', '/profile');
+      expect(within(crumb).getByText('Orders and receipts')).toHaveAttribute('aria-current', 'page');
     }
   });
 });

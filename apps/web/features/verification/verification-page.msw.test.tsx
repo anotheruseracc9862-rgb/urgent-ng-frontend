@@ -3,14 +3,16 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { listen, server } from '@/test/msw/server';
+import { apiError, listen, server } from '@/test/msw/server';
+import { SessionProvider } from '@/lib/auth/client';
+import type { Me } from '@/lib/api/types';
 import { VerificationPage } from './verification-page';
 
-vi.mock('@/lib/auth/client', () => ({
-  useSession: () => ({
-    me: { id: 'runner-1', firstName: 'Ada', lastName: 'Lovelace', phoneVerified: true },
-  }),
-}));
+const me = {
+  id: 'runner-1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace',
+  phone: '+2348031234567', phoneVerified: true, email: null, emailVerified: false,
+  hasPassword: true, status: 'ACTIVE', startMode: 'RUNNER',
+} as Me;
 
 vi.mock('@/components/media-upload/media-upload', () => ({
   MediaUpload: ({ capture, onChange }: { capture?: string; onChange?: (ids: string[]) => void }) => (
@@ -36,13 +38,13 @@ const overview = {
   canStart: true,
 };
 
-function renderPage() {
+function renderPage(profile: Me = me) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <VerificationPage />
+      <SessionProvider me={profile}><VerificationPage /></SessionProvider>
     </QueryClientProvider>,
   );
 }
@@ -56,6 +58,52 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('runner verification flow', () => {
+  it.each([
+    { phone: '+2348031234567', feeRequired: false },
+    { phone: null, feeRequired: true },
+  ])('verifies a phone inline and preserves fee eligibility ($phone, fee=$feeRequired)', async ({ phone, feeRequired }) => {
+    const user = userEvent.setup();
+    let verified = false;
+    let sent: unknown;
+    let confirmed: unknown;
+    const profile = { ...me, phone, phoneVerified: false };
+    server.use(
+      http.get('*/api/v1/verification', () => envelope({
+        ...overview, phoneVerified: verified, canStart: verified && !feeRequired, feeRequired: verified && feeRequired,
+      })),
+      http.get('*/api/v1/me', () => envelope({ ...profile, phone: '+2348031234567', phoneVerified: verified })),
+      http.post('*/api/v1/me/contact', async ({ request }) => {
+        sent = await request.json();
+        return envelope({ sentTo: '+234803***4567' });
+      }),
+      http.post('*/api/v1/me/contact/verify', async ({ request }) => {
+        const body = await request.json() as { code: string };
+        confirmed = body;
+        if (body.code !== '123456') return apiError(400, 'OTP_INVALID', 'Invalid code.');
+        verified = true;
+        return envelope({ kind: 'phone', value: '+234803***4567' });
+      }),
+    );
+    renderPage(profile);
+    const number = await screen.findByLabelText('Phone number');
+    expect(number).toHaveValue(phone ? '08031234567' : '');
+    expect(screen.queryByRole('link', { name: 'Go to contact settings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Email' })).not.toBeInTheDocument();
+    await user.clear(number);
+    await user.type(number, '08031234567');
+    await user.type(screen.getByLabelText('Your password'), 'verification-proof');
+    await user.click(screen.getByRole('button', { name: 'Send code' }));
+    expect(sent).toEqual({ phone: '+2348031234567', currentPassword: 'verification-proof' });
+    await user.type(await screen.findByLabelText('Digit 1'), '654321');
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Who are you?' })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Digit 1'), '123456');
+    expect(await screen.findByRole('heading', { name: feeRequired ? 'A verification fee is required' : 'Who are you?' })).toBeInTheDocument();
+    expect(confirmed).toEqual({ phone: '+2348031234567', code: '123456' });
+    expect(screen.queryByRole('heading', { name: 'Verify your phone first' })).not.toBeInTheDocument();
+    if (feeRequired) expect(screen.queryByRole('heading', { name: 'Who are you?' })).not.toBeInTheDocument();
+  });
+
   it('submits an 11-digit NIN once, then clears it from form state', async () => {
     const user = userEvent.setup();
     let submittedBody: unknown;

@@ -8,6 +8,8 @@ import { useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
+import { BriefcaseBusiness, ChartNoAxesCombined, FileDown, Medal } from 'lucide-react';
+import { PageHead } from '@/components/shell/page-head';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
@@ -72,17 +74,25 @@ export function RunnerHistoryPage() {
   const exportHref = `/api/v1/runner/assignments/export.csv${exportParams.size ? `?${exportParams}` : ''}`;
 
   return (
-    <main className="mx-auto grid max-w-6xl gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3 rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:p-6">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Runner workspace</p>
-          <h1 className="mt-2 text-2xl font-extrabold text-ink sm:text-3xl">Job history & performance</h1>
-          <p className="mt-2 text-sm text-muted">Review your assignments and the figures used on your runner profile.</p>
-        </div>
-        <Button asChild variant="ghost"><a href={exportHref}>Export CSV</a></Button>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Runner"
+        title="Job history & performance"
+        description="Review your assignments and the figures used on your runner profile."
+        actions={<Button asChild variant="ghost"><a href={exportHref}><FileDown aria-hidden="true" />Export CSV</a></Button>}
+      />
 
-      {performance.isPending ? <div className="grid gap-3 sm:grid-cols-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
+      {performance.isPending ? (
+        <section aria-label="Loading runner performance" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <div key={item} className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-3 w-36 max-w-full" />
+            </div>
+          ))}
+        </section>
+      ) : null}
       {performance.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load runner performance.</p>
@@ -111,10 +121,15 @@ export function RunnerHistoryPage() {
         </section>
       ) : null}
       {performance.data ? (
-        <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-          <div>
-            <h2 className="font-extrabold text-ink">Runner badges</h2>
-            <p className="mt-1 text-sm text-muted">Reliable service and completed errands help build your runner reputation.</p>
+        <section aria-labelledby="runner-badges-heading" className="grid gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          <div className="flex items-start gap-3">
+            <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-amber-bg text-amber">
+              <Medal className="size-[18px]" />
+            </span>
+            <div>
+              <h2 id="runner-badges-heading" className="text-base font-extrabold tracking-tight text-ink">Runner badges</h2>
+              <p className="mt-1 text-xs leading-5 text-muted">Reliable service and completed errands help build your runner reputation.</p>
+            </div>
           </div>
           {performance.data.badges.length ? (
             <ul className="flex flex-wrap gap-2">
@@ -124,7 +139,17 @@ export function RunnerHistoryPage() {
         </section>
       ) : null}
 
-      {summary.isPending ? <Skeleton className="h-56 rounded-[var(--r-lg)]" /> : null}
+      {summary.isPending ? (
+        <section aria-label="Loading monthly history summary" className="grid gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          <div className="grid gap-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3 w-60 max-w-full" />
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {[0, 1, 2, 3, 4, 5].map((month) => <Skeleton key={month} className="h-36 rounded-[var(--r-sm)]" />)}
+          </div>
+        </section>
+      ) : null}
       {summary.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your monthly history summary.</p>
@@ -134,23 +159,28 @@ export function RunnerHistoryPage() {
       ) : null}
       {summary.data ? <HistorySummaryChart months={summary.data.months} completed={summary.data.completed} total={summary.data.total} /> : null}
 
-      <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        <div>
-          <h2 className="text-lg font-extrabold text-ink">Assignments</h2>
-          <p className="text-sm text-muted">Locations shown here are approximate until an assignment is accepted.</p>
+      <section aria-labelledby="runner-assignments-heading" className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+        <div className="flex items-start gap-3">
+          <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-green-900">
+            <BriefcaseBusiness className="size-[18px]" />
+          </span>
+          <div>
+            <h2 id="runner-assignments-heading" className="text-base font-extrabold tracking-tight text-ink">Assignments</h2>
+            <p className="mt-1 text-xs leading-5 text-muted">Locations shown here are approximate until an assignment is accepted.</p>
+          </div>
         </div>
         <form onSubmit={applyFilters} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="grid gap-1 text-xs font-bold text-muted">Search
-            <input name="q" defaultValue={filters.q ?? ''} className="min-h-10 rounded-lg border border-line bg-panel px-3 text-sm text-ink" />
+            <input name="q" defaultValue={filters.q ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
           </label>
           <label className="grid gap-1 text-xs font-bold text-muted">From
-            <input name="from" type="date" defaultValue={filters.from ?? ''} className="min-h-10 rounded-lg border border-line bg-panel px-3 text-sm text-ink" />
+            <input name="from" type="date" defaultValue={filters.from ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
           </label>
           <label className="grid gap-1 text-xs font-bold text-muted">To
-            <input name="to" type="date" defaultValue={filters.to ?? ''} className="min-h-10 rounded-lg border border-line bg-panel px-3 text-sm text-ink" />
+            <input name="to" type="date" defaultValue={filters.to ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
           </label>
           <label className="grid gap-1 text-xs font-bold text-muted">Status
-            <select name="status" defaultValue={filters.status ?? ''} className="min-h-10 rounded-lg border border-line bg-panel px-3 text-sm text-ink">
+            <select name="status" defaultValue={filters.status ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
               <option value="">All statuses</option>
               {(['ACTIVE', 'PAST', 'PENDING_ACCEPTANCE', 'ACCEPTED', 'DECLINED', 'TIMED_OUT', 'CANCELLED', 'COMPLETED'] as const).map((status) => <option key={status} value={status}>{titleCase(status)}</option>)}
             </select>
@@ -159,7 +189,21 @@ export function RunnerHistoryPage() {
         </form>
       </section>
 
-      {list.isPending ? <div className="grid gap-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
+      {list.isPending ? (
+        <section aria-label="Loading assignments" className="grid gap-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-[22px]">
+              <div className="grid gap-3">
+                <div className="flex gap-2"><Skeleton className="h-6 w-24 rounded-full" /><Skeleton className="h-4 w-28" /></div>
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-10 w-36 rounded-full" />
+            </div>
+          ))}
+        </section>
+      ) : null}
       {list.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load assignment history.</p>
@@ -168,7 +212,8 @@ export function RunnerHistoryPage() {
         </Alert>
       ) : null}
       {!list.isPending && !list.error && assignments.length === 0 ? (
-        <section className="rounded-[var(--r-lg)] border border-dashed border-line bg-surface p-8 text-center">
+        <section className="grid justify-items-center gap-2.5 rounded-[var(--r-lg)] bg-surface px-5 py-10 text-center shadow-[var(--shadow)]" role="status">
+          <span aria-hidden="true" className="grid size-14 place-items-center rounded-[18px] bg-panel text-muted"><ChartNoAxesCombined className="size-6" /></span>
           <h2 className="font-extrabold text-ink">No assignments found</h2>
           <p className="mt-2 text-sm text-muted">Try changing your filters, or browse open errands when you are ready for your next job.</p>
           <Button asChild className="mt-4"><Link href="/marketplace">Browse errands</Link></Button>
@@ -188,7 +233,7 @@ export function RunnerHistoryPage() {
 
 function Metric({ title, value, detail }: { title: string; value: string; detail: string }) {
   return (
-    <article className="grid content-between gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+    <article className="grid content-between gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
       <h2 className="text-xs font-extrabold uppercase tracking-wide text-muted">{title}</h2>
       <p className="text-2xl font-extrabold text-ink">{value}</p>
       <p className="text-xs text-muted">{detail}</p>
@@ -203,7 +248,7 @@ function HistorySummaryChart({ months, completed, total }: {
 }) {
   const max = Math.max(1, ...months.map((month) => month.completed + month.cancelled + month.notAccepted));
   return (
-    <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+    <section className="grid gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
       <div>
         <h2 className="font-extrabold text-ink">Last six months</h2>
         <p className="mt-1 text-sm text-muted">{completed} completed from {total} selected assignments</p>
@@ -228,7 +273,7 @@ function HistorySummaryChart({ months, completed, total }: {
 
 function AssignmentCard({ assignment }: { assignment: Assignment }) {
   return (
-    <article className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <article className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-[22px]">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusStyle(assignment.status)}`}>{titleCase(assignment.status)}</span>

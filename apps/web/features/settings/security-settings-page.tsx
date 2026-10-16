@@ -1,9 +1,9 @@
 'use client';
 
-import { PageLoading } from '@/components/shell/page-loading';
+import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Monitor, Smartphone } from 'lucide-react';
+import { Bell, Monitor, ShieldCheck, Smartphone } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
@@ -34,9 +34,9 @@ function SessionRow({ session, busy, onRevoke }: {
   onRevoke: (sessionId: string) => void;
 }) {
   return (
-    <li className="flex flex-col gap-3 border-b border-line py-4 last:border-0 sm:flex-row sm:items-center">
-      <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${session.current ? 'bg-tint text-green-800' : 'bg-panel text-muted'}`}>
-        <Monitor className="size-5" aria-hidden="true" />
+    <li className="flex min-w-0 flex-col gap-3 border-t border-line-2 px-1 py-4 first:border-0 sm:flex-row sm:items-center">
+      <span className={`grid size-10 shrink-0 place-items-center rounded-[13px] ${session.current ? 'bg-tint-2 text-green-900' : 'bg-panel text-muted'}`}>
+        <Monitor className="size-[18px]" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -68,9 +68,9 @@ function DeviceRow({ device, busy, onRemove }: {
   const isMobile = device.type === 'MOBILE_PUSH';
   const Icon = isMobile ? Smartphone : Monitor;
   return (
-    <li className="flex flex-col gap-3 border-b border-line py-4 last:border-0 sm:flex-row sm:items-center">
-      <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${device.active ? 'bg-tint text-green-800' : 'bg-panel text-muted'}`}>
-        <Icon className="size-5" aria-hidden="true" />
+    <li className="flex min-w-0 flex-col gap-3 border-t border-line-2 px-1 py-4 first:border-0 sm:flex-row sm:items-center">
+      <span className={`grid size-10 shrink-0 place-items-center rounded-[13px] ${device.active ? 'bg-tint-2 text-green-900' : 'bg-panel text-muted'}`}>
+        <Icon className="size-[18px]" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -105,7 +105,38 @@ export function SecuritySettingsPage() {
   const removeDevice = useApiMutation({ affects: ['security'], mutationFn: authApi.removeDevice, onSuccess: refresh });
 
   if (sessions.isPending || devices.isPending) {
-    return <PageLoading title="Security" eyebrow="Account" description="Manage where you are signed in and devices that can receive notifications." width="max-w-4xl" cards={[288, 288]} />;
+    return (
+      <div className="grid min-w-0 content-start gap-4 pb-10" aria-busy="true">
+        <PageHead
+          eyebrow="Account"
+          title="Security"
+          description="Manage where you are signed in and devices that can receive notifications."
+        />
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          {[0, 1].map((card) => (
+            <section key={card} aria-label={card === 0 ? 'Loading signed-in sessions' : 'Loading notification devices'} className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+              <div className="flex items-start gap-3">
+                <Skeleton className="size-10 shrink-0 rounded-[13px]" />
+                <div className="grid flex-1 gap-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-56 max-w-full" />
+                </div>
+              </div>
+              {[0, 1].map((row) => (
+                <div key={row} className="flex items-center gap-3 border-t border-line-2 px-1 py-4 first:border-0">
+                  <Skeleton className="size-10 shrink-0 rounded-[13px]" />
+                  <div className="grid min-w-0 flex-1 gap-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-5/6" />
+                  </div>
+                  <Skeleton className="h-9 w-20 shrink-0 rounded-full" />
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const errors = [sessions.error, devices.error, revokeSession.error, removeDevice.error].filter(Boolean);
@@ -117,25 +148,33 @@ export function SecuritySettingsPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Account</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Security</h1>
-        <p className="mt-1 text-sm text-muted">Manage where you are signed in and devices that can receive notifications.</p>
-      </header>
+    <div className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Account"
+        title="Security"
+        description="Manage where you are signed in and devices that can receive notifications."
+      />
 
       {errors.map((error, index) => <ErrorPanel key={index} error={error} onRetry={retry} />)}
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5">
-          <header className="border-b border-line pb-3">
-            <h2 className="text-base font-extrabold text-ink">Signed-in sessions</h2>
-            <p className="mt-1 text-xs text-muted">Revoke a session to sign that device out.</p>
+        <section aria-labelledby="security-sessions-heading" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          <header className="mb-2 flex items-start gap-3">
+            <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-green-900">
+              <ShieldCheck className="size-[18px]" />
+            </span>
+            <div>
+              <h2 id="security-sessions-heading" className="text-base font-extrabold tracking-tight text-ink">Signed-in sessions</h2>
+              <p className="mt-1 text-xs leading-5 text-muted">Revoke a session to sign that device out.</p>
+            </div>
           </header>
           {sessions.error && !sessions.data ? (
-            <p className="py-5 text-sm text-muted">Signed-in sessions could not be loaded.</p>
+            <p className="px-1 py-5 text-sm text-muted">Signed-in sessions could not be loaded.</p>
           ) : !sessions.data?.length ? (
-            <p className="py-5 text-sm text-muted">No signed-in sessions were found.</p>
+            <div className="grid justify-items-center gap-2 px-4 py-8 text-center" role="status">
+              <span aria-hidden="true" className="grid size-12 place-items-center rounded-[16px] bg-panel text-ink-2"><Monitor className="size-5" /></span>
+              <p className="text-sm font-bold text-ink">No signed-in sessions were found</p>
+            </div>
           ) : (
             <ul aria-label="Signed-in sessions">
               {sessions.data.map((session) => (
@@ -148,18 +187,27 @@ export function SecuritySettingsPage() {
               ))}
             </ul>
           )}
-          <p className="border-t border-line pt-3 text-xs leading-relaxed text-muted">This session cannot be revoked here. Use Log out to sign out of this device.</p>
+          <p className="mt-1 border-t border-line-2 px-1 pt-3 text-xs leading-relaxed text-muted">This session cannot be revoked here. Use Log out to sign out of this device.</p>
         </section>
 
-        <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5">
-          <header className="border-b border-line pb-3">
-            <h2 className="text-base font-extrabold text-ink">Notification devices</h2>
-            <p className="mt-1 text-xs text-muted">Remove a device to stop sending notifications to it.</p>
+        <section aria-labelledby="security-devices-heading" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          <header className="mb-2 flex items-start gap-3">
+            <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-blue-bg text-blue">
+              <Bell className="size-[18px]" />
+            </span>
+            <div>
+              <h2 id="security-devices-heading" className="text-base font-extrabold tracking-tight text-ink">Notification devices</h2>
+              <p className="mt-1 text-xs leading-5 text-muted">Remove a device to stop sending notifications to it.</p>
+            </div>
           </header>
           {devices.error && !devices.data ? (
-            <p className="py-5 text-sm text-muted">Notification devices could not be loaded.</p>
+            <p className="px-1 py-5 text-sm text-muted">Notification devices could not be loaded.</p>
           ) : !devices.data?.length ? (
-            <p className="py-5 text-sm text-muted">No notification devices are registered. Devices appear here after push notifications are enabled.</p>
+            <div className="grid justify-items-center gap-2 px-4 py-8 text-center" role="status">
+              <span aria-hidden="true" className="grid size-12 place-items-center rounded-[16px] bg-panel text-ink-2"><Bell className="size-5" /></span>
+              <p className="max-w-sm text-sm font-bold text-ink">No notification devices are registered</p>
+              <p className="max-w-sm text-xs leading-relaxed text-muted">Devices appear here after push notifications are enabled.</p>
+            </div>
           ) : (
             <ul aria-label="Notification devices">
               {devices.data.map((device) => (

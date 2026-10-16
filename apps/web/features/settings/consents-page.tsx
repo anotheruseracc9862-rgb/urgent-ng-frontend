@@ -1,6 +1,6 @@
 'use client';
 
-import { PageLoading } from '@/components/shell/page-loading';
+import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -144,14 +144,83 @@ export function ConsentsPage() {
   const isBusy = acceptConsent.isPending || withdrawConsent.isPending;
 
   if (history.isLoading || policies.isPending) {
-    return <PageLoading title="Privacy & consents" eyebrow="Account" width="max-w-4xl" cards={[320, 320]} />;
+    return (
+      <div className="grid min-w-0 content-start gap-4 pb-10" aria-busy="true">
+        <PageHead
+          eyebrow="Account"
+          title="Privacy & consents"
+          description="Review the policies you’ve accepted and control optional location sharing and marketing permissions."
+        />
+        <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,1fr)]">
+          <div className="grid content-start gap-4">
+            <section aria-label="Loading optional consents" className="grid gap-4 rounded-[var(--r-lg)] bg-gradient-to-br from-[#f1fadb] to-surface p-4 sm:p-[22px]">
+              <div className="grid gap-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-3 w-full max-w-xl" />
+              </div>
+              {[0, 1].map((card) => (
+                <div key={card} className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="grid flex-1 gap-2">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-3 w-56 max-w-full" />
+                    </div>
+                    <Skeleton className="h-6 w-20 shrink-0 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-48 max-w-full" />
+                  <div className="flex justify-between gap-3 border-t border-line pt-3">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-9 w-28 rounded-full" />
+                  </div>
+                </div>
+              ))}
+              <Skeleton className="h-14 rounded-xl bg-white/70" />
+            </section>
+
+            <section aria-label="Loading required policies" className="grid gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+              <div className="grid gap-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-3 w-full max-w-xl" />
+              </div>
+              {[0, 1, 2, 3, 4].map((row) => (
+                <div key={row} className="flex items-center gap-3 border-t border-line-2 py-3 first:border-0">
+                  <Skeleton className="size-9 shrink-0 rounded-[13px]" />
+                  <div className="grid min-w-0 flex-1 gap-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-5/6" />
+                  </div>
+                  <Skeleton className="h-6 w-20 shrink-0 rounded-full" />
+                  <Skeleton className="h-4 w-8 shrink-0" />
+                </div>
+              ))}
+            </section>
+          </div>
+
+          <section aria-label="Loading consent history" className="grid content-start gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+            <div className="grid gap-2">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-3 w-full max-w-sm" />
+            </div>
+            {[0, 1, 2, 3].map((row) => (
+              <div key={row} className="flex gap-3">
+                <Skeleton className="size-7 shrink-0 rounded-full" />
+                <div className="grid flex-1 gap-2 border-b border-line-2 pb-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </section>
+        </div>
+      </div>
+    );
   }
 
   if (history.error || policies.error || !history.data || !policies.data) {
     const retry = () => { void history.refetch(); void policies.refetch(); };
     return (
-      <div className="mx-auto grid max-w-3xl gap-4">
-        <h1 className="text-2xl font-extrabold text-ink">Privacy &amp; consents</h1>
+      <div className="grid min-w-0 content-start gap-4">
+        <PageHead eyebrow="Account" title="Privacy & consents" />
         {history.error ? <ErrorPanel error={history.error} onRetry={retry} /> : null}
         {policies.error ? <ErrorPanel error={policies.error} onRetry={retry} /> : null}
         {!history.error && !policies.error && (!history.data || !policies.data) ? (
@@ -169,12 +238,12 @@ export function ConsentsPage() {
   const outstandingTypes = new Set(history.data.outstanding.map((policy) => policy.type));
 
   return (
-    <div className="mx-auto grid max-w-5xl content-start gap-5">
-      <header className="px-1">
-        <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-green">Account</p>
-        <h1 className="mt-1 text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[32px]">Privacy &amp; consents</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">Review the policies you’ve accepted and control optional location sharing and marketing permissions.</p>
-      </header>
+    <div className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Account"
+        title="Privacy & consents"
+        description="Review the policies you’ve accepted and control optional location sharing and marketing permissions."
+      />
 
       {outstandingTypes.size > 0 && (
         <Alert variant="info" className="flex flex-wrap items-center justify-between gap-3">

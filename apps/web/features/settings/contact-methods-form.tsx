@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { Mail, Phone } from 'lucide-react';
 import { Alert, Badge, Button, Input, Label } from '@urgent/ui';
 import { isValidPhone, normalizePhone } from '@urgent/utils';
 import { authApi, type Identifier } from '@/lib/api/auth';
@@ -14,15 +15,17 @@ import { GoogleConfirm } from '@/features/auth/google-confirm';
 type Kind = 'phone' | 'email';
 type Step = 'enter' | 'code';
 
+const PHONE_ERROR = 'Enter a valid 11-digit Nigerian mobile number, e.g. 08031234567.';
+
 const COPY: Record<Kind, { title: string; add: string; change: string; placeholder: string; input: string }> = {
-  phone: { title: 'Phone number', add: 'Add phone', change: 'Change', placeholder: '0803 123 4567', input: 'tel' },
+  phone: { title: 'Phone number', add: 'Add phone', change: 'Change', placeholder: '08031234567', input: 'tel' },
   email: { title: 'Email', add: 'Add email', change: 'Change', placeholder: 'you@email.com', input: 'email' },
 };
 
 function toIdentifier(kind: Kind, raw: string): Identifier | null {
   const value = raw.trim();
   if (kind === 'phone') {
-    if (!isValidPhone(value)) return null;
+    if (!/^0\d{10}$/.test(value) || !isValidPhone(value)) return null;
     return { phone: normalizePhone(value) ?? value };
   }
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? { email: value.toLowerCase() } : null;
@@ -32,13 +35,13 @@ function toIdentifier(kind: Kind, raw: string): Identifier | null {
  * Add or change the phone number and email of this account (one account, several ways to sign in).
  * The new value gets a code; nothing changes until the code is confirmed.
  */
-export function ContactMethodsForm() {
+export function ContactMethodsForm({ phoneOnly = false }: { phoneOnly?: boolean }) {
   const { me } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [editing, setEditing] = React.useState<Kind | null>(null);
+  const [editing, setEditing] = React.useState<Kind | null>(phoneOnly ? 'phone' : null);
   const [step, setStep] = React.useState<Step>('enter');
-  const [value, setValue] = React.useState('');
+  const [value, setValue] = React.useState(phoneOnly ? me.phone?.replace(/^\+234/, '0') ?? '' : '');
   const [password, setPassword] = React.useState('');
   const [googleToken, setGoogleToken] = React.useState<string | null>(null);
   const [code, setCode] = React.useState('');
@@ -67,7 +70,7 @@ export function ContactMethodsForm() {
     setError('');
     const identifier = toIdentifier(kind, value);
     if (!identifier) {
-      setError(kind === 'phone' ? 'Enter a valid Nigerian phone number.' : 'Enter a valid email address.');
+      setError(kind === 'phone' ? PHONE_ERROR : 'Enter a valid email address.');
       return;
     }
     if (me.hasPassword ? password.length === 0 : !googleToken) {
@@ -94,7 +97,13 @@ export function ContactMethodsForm() {
     setError('');
     try {
       await authApi.verifyContact({ ...identifier, code: next });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me(me.id) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.auth.me(me.id) }),
+        ...(kind === 'phone' ? [
+          queryClient.invalidateQueries({ queryKey: queryKeys.runner.verification() }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.runner.eligibility() }),
+        ] : []),
+      ]);
       setNotice(kind === 'phone' ? 'Your phone number is saved and verified.' : 'Your email is saved and verified.');
       reset();
       router.refresh();
@@ -110,20 +119,26 @@ export function ContactMethodsForm() {
     <div className="grid gap-4">
       {notice ? <Alert variant="ok">{notice}</Alert> : null}
 
-      {rows.map(({ kind, current, verified }) => {
+      {rows.filter(({ kind }) => !phoneOnly || kind === 'phone').map(({ kind, current, verified }) => {
         const copy = COPY[kind];
+        const Icon = kind === 'phone' ? Phone : Mail;
         const isEditing = editing === kind;
         return (
-          <section key={kind} className="rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-sm font-extrabold text-ink">{copy.title}</h2>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-                  <span className="truncate">{current ?? 'Not added'}</span>
-                  {current ? (
-                    <Badge variant={verified ? 'green' : 'amber'}>{verified ? 'Verified' : 'Not verified'}</Badge>
-                  ) : null}
-                </p>
+          <section key={kind} className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-[13px] ${kind === 'phone' ? 'bg-tint-2 text-green-900' : 'bg-blue-bg text-blue'}`}>
+                  <Icon className="size-[18px]" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-extrabold text-ink">{copy.title}</h2>
+                  <p className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted">
+                    <span className="break-all">{current ?? 'Not added'}</span>
+                    {current ? (
+                      <Badge variant={verified ? 'green' : 'amber'}>{verified ? 'Verified' : 'Not verified'}</Badge>
+                    ) : null}
+                  </p>
+                </div>
               </div>
               {!isEditing ? (
                 <Button
@@ -134,17 +149,18 @@ export function ContactMethodsForm() {
                     reset();
                     setNotice('');
                     setEditing(kind);
+                    if (phoneOnly) setValue(current?.replace(/^\+234/, '0') ?? '');
                   }}
                 >
-                  {current ? copy.change : copy.add}
+                  {phoneOnly ? 'Verify phone' : current ? copy.change : copy.add}
                 </Button>
               ) : null}
             </div>
 
             {isEditing ? (
-              <div className="mt-4 grid gap-3 border-t border-line pt-4">
+              <div className="mt-4 grid gap-3 border-t border-line-2 pt-4">
                 {error ? (
-                  <Alert variant="danger" role="alert">
+                  <Alert id={`contact-${kind}-error`} variant="danger" role="alert">
                     {error}
                   </Alert>
                 ) : null}
@@ -152,16 +168,23 @@ export function ContactMethodsForm() {
                 {step === 'enter' ? (
                   <>
                     <div>
-                      <Label htmlFor={`new-${kind}`}>{current ? `New ${copy.title.toLowerCase()}` : copy.title}</Label>
+                      <Label htmlFor={`new-${kind}`}>{current && !phoneOnly ? `New ${copy.title.toLowerCase()}` : copy.title}</Label>
                       <Input
                         id={`new-${kind}`}
                         className="mt-1.5"
                         type={copy.input}
                         inputMode={kind === 'phone' ? 'tel' : 'email'}
                         autoComplete={kind === 'phone' ? 'tel' : 'email'}
+                        aria-describedby={error ? `contact-${kind}-error` : undefined}
+                        aria-invalid={kind === 'phone' && error === PHONE_ERROR || undefined}
                         placeholder={copy.placeholder}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
+                        onBlur={() => {
+                          if (kind !== 'phone') return;
+                          if (!toIdentifier(kind, value)) setError(PHONE_ERROR);
+                          else setError((current) => current === PHONE_ERROR ? '' : current);
+                        }}
                       />
                     </div>
                     {me.hasPassword ? (
@@ -188,7 +211,7 @@ export function ContactMethodsForm() {
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" disabled={busy} onClick={() => void sendCode(kind)}>
+                      <Button type="button" disabled={busy || (me.hasPassword ? password.length === 0 : !googleToken)} onClick={() => void sendCode(kind)}>
                         {busy ? 'Sending…' : 'Send code'}
                       </Button>
                       <Button type="button" variant="ghost" onClick={reset}>
@@ -232,10 +255,10 @@ export function ContactMethodsForm() {
         );
       })}
 
-      <p className="text-xs text-muted">
+      {!phoneOnly && <p className="rounded-[var(--r-lg)] bg-panel px-4 py-3 text-xs leading-relaxed text-muted sm:px-5">
         One account, several ways to sign in. A verified phone or email can be used to log in, and you keep a
         single profile for both Requester and Runner modes.
-      </p>
+      </p>}
     </div>
   );
 }

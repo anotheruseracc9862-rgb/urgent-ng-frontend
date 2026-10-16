@@ -70,7 +70,13 @@ describe('shell navigation model', () => {
   });
 
   it('derives a stable breadcrumb for nested routes without displaying record ids', () => {
+    expect(titleForPath('/settings/contact')).toBe('Contact methods');
     expect(titleForPath('/settings/notifications')).toBe('Notifications');
+    expect(titleForPath('/profile/orders')).toBe('Orders and receipts');
+    expect(titleForPath('/settings/privacy')).toBe('Privacy');
+    expect(titleForPath('/settings/security')).toBe('Security');
+    expect(titleForPath('/settings/blocked')).toBe('Blocked people');
+    expect(titleForPath('/settings/account')).toBe('Account');
     expect(titleForPath('/errands/12345')).toBe('My errands');
     expect(titleForPath('/verification/attempt')).toBe('Verification');
     expect(titleForPath('/runner/history')).toBe('Job history');

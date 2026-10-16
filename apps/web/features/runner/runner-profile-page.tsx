@@ -1,11 +1,12 @@
 'use client';
 
-import { PageLoading } from '@/components/shell/page-loading';
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
+import { Bike, MapPin, ShieldCheck } from 'lucide-react';
+import { PageHead } from '@/components/shell/page-head';
 import { useSession } from '@/lib/auth/client';
 import { isApiError } from '@/lib/api/client';
 import type { PinValue } from '@/components/map/PinPicker';
@@ -161,12 +162,37 @@ export function RunnerProfilePage() {
 
   const missingProfile = isApiError(profile.error) && profile.error.status === 404;
   if (profile.isPending || eligibility.isPending || categories.isPending) {
-    return <PageLoading title="Runner profile" eyebrow="Runner" width="max-w-5xl" />;
+    return (
+      <div className="grid min-w-0 content-start gap-4 pb-10" aria-busy="true">
+        <PageHead
+          eyebrow="Runner"
+          title="Runner profile & area"
+          description="Set where you work and what you can carry. Your exact operating-area centre is private and is never shown to requesters."
+        />
+        <section aria-label="Loading operating area" className="grid gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          <div className="grid gap-2">
+            <Skeleton className="h-5 w-44" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </div>
+          <Skeleton className="h-72 rounded-[var(--r-lg)]" />
+          <Skeleton className="h-11 w-full rounded-lg" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-11 rounded-lg" />)}
+          </div>
+          <Skeleton className="ml-auto h-10 w-40 rounded-full" />
+        </section>
+        <section aria-label="Loading availability" className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+        </section>
+      </div>
+    );
   }
   if ((profile.error && !missingProfile) || eligibility.error || categories.error || !categories.data) {
     const error = profile.error && !missingProfile ? profile.error : eligibility.error ?? categories.error;
     return (
-      <main className="mx-auto max-w-5xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
+        <PageHead eyebrow="Runner" title="Runner profile & area" />
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>We could not load your runner profile requirements.</p>
@@ -184,20 +210,25 @@ export function RunnerProfilePage() {
   const reasons = eligibility.data?.reasons ?? [];
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-4">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Runner</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">Runner profile &amp; area</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">Set where you work and what you can carry. Your exact operating-area centre is private and is never shown to requesters.</p>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <PageHead
+        eyebrow="Runner"
+        title="Runner profile & area"
+        description="Set where you work and what you can carry. Your exact operating-area centre is private and is never shown to requesters."
+      />
 
       {missingProfile && <Alert variant="info">Set your runner profile and operating area to start finding nearby errands.</Alert>}
       {profile.error && !missingProfile && <Alert variant="danger" role="alert">We could not load your saved runner profile.</Alert>}
 
-      <section className="grid gap-5 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-6">
-        <div>
-          <h2 className="text-lg font-extrabold text-ink">Your operating area</h2>
-          <p className="mt-1 text-sm text-muted">Search for a place or choose the centre on the map. The map shows your private work area.</p>
+      <section aria-labelledby="runner-area-heading" className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:gap-5 sm:p-[22px]">
+        <div className="flex items-start gap-3">
+          <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-green-900">
+            <MapPin className="size-[18px]" />
+          </span>
+          <div>
+            <h2 id="runner-area-heading" className="text-base font-extrabold tracking-tight text-ink">Your operating area</h2>
+            <p className="mt-1 text-xs leading-5 text-muted">Search for a place or choose the centre on the map. The map shows your private work area.</p>
+          </div>
         </div>
         <RunnerAreaPicker
           center={center}
@@ -207,16 +238,18 @@ export function RunnerProfilePage() {
           onInvalidRadius={(value) => setRadiusError(`Enter a radius from 1 to 20 km. "${value}" is outside the allowed range.`)}
         />
         {radiusError && <p role="alert" className="text-sm text-red">{radiusError}</p>}
-        <label className="grid gap-1.5 text-sm font-bold text-ink-2">How do you usually travel?
-          <select value={transport} onChange={(event) => updateDraft({ transport: event.target.value as Transport })} className="min-h-11 rounded-lg border border-line bg-panel px-3 font-normal">
+        <label className="grid gap-1.5 text-sm font-bold text-ink-2">
+          <span className="flex items-center gap-2"><Bike aria-hidden="true" className="size-4 text-muted" />How do you usually travel?</span>
+          <select value={transport} onChange={(event) => updateDraft({ transport: event.target.value as Transport })} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
             {transportOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
         <fieldset className="grid gap-3">
           <legend className="text-sm font-extrabold text-ink">Categories you do not want to see</legend>
+          <p className="-mt-2 text-xs leading-5 text-muted">These preferences help tailor the errands shown in your marketplace.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {categories.data.map((category) => (
-              <label key={category.id} className="flex min-h-11 items-center gap-3 rounded-lg border border-line bg-panel px-3 text-sm text-ink-2">
+              <label key={category.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-[var(--r-sm)] bg-panel px-3 text-sm text-ink-2 transition-colors hover:bg-tint motion-reduce:transition-none">
                 <input
                   type="checkbox"
                   checked={excludedCategoryIds.includes(category.id)}
@@ -241,17 +274,27 @@ export function RunnerProfilePage() {
           </Alert>
         )}
         {savedMessage && <Alert variant="ok" role="status">{savedMessage}</Alert>}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-2 pt-4">
           {profileExists && savedProfile && <span className="text-xs text-muted">{dirty ? 'Unsaved changes' : `Current status: ${savedProfile.availability.toLowerCase()}`}</span>}
           <Button type="button" disabled={saveDisabled || !dirty} onClick={() => void saveProfileWithError()}>{profileExists ? 'Save runner profile' : 'Create runner profile'}</Button>
         </div>
       </section>
 
-      <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5">
+      <section aria-labelledby="runner-availability-heading" className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="font-extrabold text-ink">Availability</h2>
-            <p className="mt-1 text-sm text-muted">{currentAvailability === 'AVAILABLE' ? 'You can appear in nearby runner results.' : 'You are paused and will not receive new offers.'}</p>
+          <div className="flex min-w-0 items-start gap-3">
+            <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-[13px] ${currentAvailability === 'AVAILABLE' ? 'bg-ok-bg text-ok' : 'bg-panel text-muted'}`}>
+              <ShieldCheck className="size-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id="runner-availability-heading" className="text-base font-extrabold tracking-tight text-ink">Availability</h2>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${currentAvailability === 'AVAILABLE' ? 'bg-ok-bg text-ok' : 'bg-panel text-muted'}`}>
+                  {currentAvailability === 'AVAILABLE' ? 'Available' : 'Unavailable'}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-muted">{currentAvailability === 'AVAILABLE' ? 'You can appear in nearby runner results.' : 'You are paused and will not receive new offers.'}</p>
+            </div>
           </div>
           <Button
             type="button"
@@ -262,8 +305,8 @@ export function RunnerProfilePage() {
         </div>
         {availabilityError && <Alert variant="danger" role="alert">{availabilityError}</Alert>}
         {reasons.length > 0 && (
-          <div className="grid gap-2 rounded-xl bg-amber-bg p-4" aria-label="Runner eligibility reasons">
-            <strong className="text-sm text-ink">Before you can send offers</strong>
+          <div className="grid gap-2 rounded-[var(--r-sm)] bg-amber-bg p-4" aria-label="Runner eligibility reasons">
+            <strong className="text-sm font-extrabold text-ink">Before you can send offers</strong>
             {reasons.map((reason) => (
               <p key={reason} className="text-sm text-ink-2">
                 {eligibilityCopy[reason] ?? 'Your account is not eligible for runner offers right now.'}{' '}
