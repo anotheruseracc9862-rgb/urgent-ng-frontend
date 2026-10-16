@@ -1,9 +1,12 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
+import { useApiMutation } from '@/lib/query/mutations';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { api, isApiError } from '@/lib/api/client';
@@ -64,6 +67,7 @@ function AssignmentPhoto({ mediaId, alt }: { mediaId: string; alt: string }) {
 }
 
 export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
+  const polling = useLivePolling(30_000);
   const queryClient = useQueryClient();
   const [arrivalKey] = useState(() => crypto.randomUUID());
   const key = queryKeys.assignments.detail(assignmentId);
@@ -71,24 +75,24 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
     queryKey: key,
     queryFn: () => offersApi.assignment(assignmentId),
     retry: false,
-    refetchInterval: 30_000,
+    refetchInterval: polling,
   });
   const timeline = useQuery({
     queryKey: queryKeys.assignments.timeline(assignmentId),
     queryFn: () => offersApi.assignmentTimeline(assignmentId),
     retry: false,
     enabled: Boolean(assignment.data),
-    refetchInterval: 30_000,
+    refetchInterval: polling,
   });
-  const arrived = useMutation({
+  const arrived = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.arrived(assignmentId, {}, arrivalKey),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.assignments.timeline(assignmentId) });
     },
   });
 
-  if (assignment.isLoading) {
-    return <main className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending) {
+    return <PageLoading title="Assignment" eyebrow="Task" width="max-w-5xl" />;
   }
   if (assignment.error || !assignment.data) {
     return (

@@ -1,11 +1,13 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
 import { clearErrandDraft, readErrandDraft } from '@/lib/drafts/errand-draft';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useApiMutation } from '@/lib/query/mutations';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Input, MoneyInput, Skeleton, Textarea } from '@urgent/ui';
 import { MediaUpload } from '@/components/media/MediaUpload';
@@ -224,7 +226,7 @@ export function PostErrandForm({ errandId }: { errandId?: string }) {
   });
 
   if (categories.isLoading || (errandId && existing.isLoading)) {
-    return <div className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div>;
+    return <PageLoading title="Post an errand" eyebrow="Requester" />;
   }
   if (errandId && existing.error) {
     return <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{fieldError(existing.error)}</p>{isApiError(existing.error) && existing.error.requestId ? <p className="text-xs">Request ID: {existing.error.requestId}</p> : null}<div className="flex flex-wrap gap-3"><Button type="button" variant="ghost" onClick={() => void existing.refetch()}>Try again</Button><Link href="/errands" className="inline-flex items-center font-bold underline">Back to my errands</Link></div></div></Alert>;
@@ -253,15 +255,19 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   const [baseline, setBaseline] = useState<ErrandForm | null>(() => initialErrand ? fromErrand(initialErrand) : null);
   const [version, setVersion] = useState(initialErrand?.version ?? 0);
   const [validationError, setValidationError] = useState('');
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: () => errandsApi.create({ title: form.title.trim(), categoryId: form.categoryId }),
+    // A new draft appears in My errands and its counts.
+    affects: ['errands'],
     onSuccess: (errand) => {
       router.replace(`/errands/${errand.id}/edit`);
       router.refresh();
     },
   });
-  const save = useMutation({
+  const save = useApiMutation({
     mutationFn: (patch: UpdateErrand) => errandsApi.update(errandId!, patch),
+    // Only pages that are open refetch, and this page shows few; the rest are marked stale.
+    affects: ['errands'],
     onSuccess: (errand) => {
       setBaseline(fromErrand(errand));
       setVersion(errand.version);

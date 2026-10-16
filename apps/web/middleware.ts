@@ -1,35 +1,12 @@
 import { decodeJwt } from 'jose';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { PROTECTED_PATHS } from '@/lib/auth/protected-paths';
 
 const ACCESS_COOKIE = 'ung_at';
 
 /** Areas that need a session. Any other path is public, so unknown URLs reach the 404 page. */
-const PROTECTED = [
-  '/dashboard',
-  '/errands',
-  '/track',
-  '/marketplace',
-  '/offers',
-  '/assignments',
-  '/messages',
-  '/notifications',
-  '/profile',
-  '/settings',
-  '/ratings',
-  '/runner',
-  '/verification',
-  '/disputes',
-  '/report',
-  '/reports',
-  '/safety',
-  '/pro',
-  '/boosts',
-  '/checkout',
-  '/account',
-  '/onboarding',
-  '/policy-acceptance',
-];
+const PROTECTED = PROTECTED_PATHS;
 /** Auth pages: a signed-in user is sent to the app instead. */
 const GUEST_ONLY = ['/login', '/register', '/forgot-password', '/reset-password'];
 

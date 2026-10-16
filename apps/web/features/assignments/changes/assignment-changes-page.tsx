@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -95,7 +97,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
     return () => window.clearInterval(timer);
   }, []);
 
-  const create = useMutation({
+  const create = useApiMutation({ affects: ['assignments'],
     mutationFn: (payload: Record<string, unknown>) => offersApi.createChangeRequest(assignmentId, { type, payload }),
     onSuccess: async () => {
       setOther('');
@@ -105,7 +107,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
       if (isApiError(error) && error.code === 'CHANGE_REQUEST_PENDING') await requests.refetch();
     },
   });
-  const respond = useMutation({
+  const respond = useApiMutation({ affects: ['assignments'],
     mutationFn: ({ id, action }: { id: string; action: 'accept' | 'reject' | 'cancel' }) => offersApi.respondToChangeRequest(id, action),
     onSuccess: async (result) => {
       await client.invalidateQueries({ queryKey: requestsKey });
@@ -115,8 +117,8 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
     },
   });
 
-  if (assignment.isLoading || requests.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-56 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending || requests.isPending) {
+    return <PageLoading title="Change requests" eyebrow="Assignment" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data || requests.error || !requests.data) {
     const error = assignment.error ?? requests.error;

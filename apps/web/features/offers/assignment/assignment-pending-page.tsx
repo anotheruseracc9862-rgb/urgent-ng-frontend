@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Clock3, RefreshCw } from 'lucide-react';
 import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -53,7 +55,7 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
     queryKey: key,
     queryFn: () => offersApi.assignment(assignmentId),
   });
-  const accept = useMutation({
+  const accept = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.acceptAssignment(assignmentId, crypto.randomUUID()),
     onSuccess: async () => {
       setNotice('You accepted the assignment. The requester has been notified.');
@@ -70,7 +72,7 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
       }
     },
   });
-  const decline = useMutation({
+  const decline = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.declineAssignment(assignmentId),
     onSuccess: async () => {
       setDeclineOpen(false);
@@ -86,7 +88,9 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
     },
   });
 
-  if (query.isLoading) return <main className="mx-auto grid max-w-4xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /></main>;
+  if (query.isPending) {
+    return <PageLoading title="Assignment pending" eyebrow="Offer" width="max-w-4xl" />;
+  }
   if (query.error || !query.data) {
     return <main className="mx-auto max-w-4xl"><Link href="/offers" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link><Alert variant="danger" role="alert">{isApiError(query.error) && query.error.code === 'RESOURCE_NOT_FOUND' ? 'This assignment could not be found, or you do not have permission to view it.' : 'We could not load this assignment.'}</Alert><Button className="mt-3" type="button" variant="ghost" onClick={() => void query.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></main>;
   }

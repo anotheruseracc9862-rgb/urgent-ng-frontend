@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { AlertCircle, Clock3, Info, Package, Plus, Search, Tag, Truck } from 'lucide-react';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -11,15 +11,17 @@ import { formatRelativeTime } from '@urgent/utils';
 import { PageHead } from '@/components/shell/page-head';
 import { Stat } from '@/components/shell/stat-card';
 import { useSession } from '@/lib/auth/client';
-import { api, isApiError } from '@/lib/api/client';
-import { queryKeys } from '@/lib/query/keys';
+import { isApiError } from '@/lib/api/client';
 import { formatMinutes, minutesUntil } from '@/lib/time-left';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
+import { dashboardQueries } from '@/features/dashboard/queries';
+import { useApiMutation } from '@/lib/query/mutations';
 import { errandsApi, type ErrandSummary, type MyErrandFilters } from './api';
+import { errandQueries } from './queries';
 
 type Tab = NonNullable<MyErrandFilters['tab']>;
 type Sort = NonNullable<MyErrandFilters['sort']>;
 type Status = components['schemas']['ErrandStatus'];
-type Summary = components['schemas']['MeSummaryDto'];
 type Counts = components['schemas']['MineCountsDto'];
 
 /** The demo's tabs. "All" has no value: the API lists every errand when no tab is sent. */
@@ -148,8 +150,10 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
   const action = primaryAction(errand);
   const closesIn = errand.status === 'OPEN' ? minutesUntil(errand.expiresAt) : null;
   const repost = errand.status === 'CANCELLED' || errand.status === 'EXPIRED';
-  const duplicate = useMutation({
+  const duplicate = useApiMutation({
     mutationFn: () => errandsApi.duplicate(errand.id),
+    // A new draft appears in the list and in the counts.
+    affects: ['errands'],
     onSuccess: (draft) => router.push(`/errands/${draft.id}/edit`),
   });
   const when = errand.status === 'COMPLETED' ? 'Completed'
@@ -324,39 +328,17 @@ export function MyErrandsPage() {
   }, [updateFilters]);
   const selectTab = (value: Tab | 'ALL') => updateUrl('tab', value === 'ALL' ? '' : value);
 
-  const summary = useQuery({
-    queryKey: queryKeys.dashboard.summary(me.id),
-    queryFn: () => api<Summary>('/me/summary'),
-    staleTime: 30_000,
-  });
-  const counts = useQuery({
-    queryKey: [...queryKeys.errands.all(), 'counts', me.id],
-    queryFn: () => api<Counts>('/errands/mine/counts'),
-    staleTime: 15_000,
-  });
+  // With the live stream up, realtime events refresh these. Poll only while it is not delivering.
+  const polling = useLivePolling(30_000);
+  const summary = useQuery(dashboardQueries.summary(me.id));
+  const counts = useQuery({ ...errandQueries.counts(me.id), refetchInterval: polling });
   const errands = useInfiniteQuery({
-    queryKey: [...queryKeys.errands.list({ tab: tab ?? 'ALL', sort, q }), me.id],
-    queryFn: ({ pageParam }) => errandsApi.mine({ tab, sort, q: q || undefined, cursor: pageParam, limit: 20 }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page) => page.meta?.nextCursor ?? undefined,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
+    ...errandQueries.mine(me.id, { tab, sort, q }),
+    refetchInterval: polling,
   });
   const items = useMemo(() => errands.data?.pages.flatMap((page) => page.data) ?? [], [errands.data]);
   const requester = summary.data?.asRequester;
   const total = counts.data;
-
-  if (errands.isLoading) {
-    return (
-      <div className="grid gap-4" aria-label="Loading errands">
-        <Skeleton className="h-16" />
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{[1, 2, 3, 4].map((value) => <Skeleton key={value} className="h-32 rounded-[var(--r-lg)]" />)}</div>
-        <Skeleton className="h-14 rounded-[var(--r-lg)]" />
-        <div className="grid gap-4 md:grid-cols-2">{[1, 2].map((value) => <Skeleton key={value} className="h-72 rounded-[var(--r-lg)]" />)}</div>
-      </div>
-    );
-  }
 
   if (errands.error && items.length === 0) {
     return (
@@ -442,7 +424,11 @@ export function MyErrandsPage() {
         </Alert>
       ) : null}
 
-      {items.length ? (
+      {errands.isPending ? (
+        <section aria-label="Loading errands" aria-busy="true" className="grid gap-4 md:grid-cols-2">
+          {[1, 2].map((value) => <Skeleton key={value} className="h-72 rounded-[var(--r-lg)]" />)}
+        </section>
+      ) : items.length ? (
         <section aria-label="Errand results" className="grid gap-4 md:grid-cols-2">
           {items.map((errand) => <ErrandCard key={errand.id} errand={errand} />)}
         </section>

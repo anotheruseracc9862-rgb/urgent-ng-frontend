@@ -1,7 +1,9 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton, Textarea } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import type { EnforcementAction } from '@/lib/api/types';
@@ -65,13 +67,13 @@ export function StandingDetails() {
     queryFn: authApi.reliability,
     enabled: me.status !== 'DELETION_PENDING',
   });
-  const appeal = useMutation({
+  const appeal = useApiMutation({ affects: ['account'],
     mutationFn: ({ actionId, note }: { actionId: string; note: string }) => authApi.appeal(actionId, note),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: enforcementKey }),
   });
 
-  if (enforcement.isLoading || reliability.isLoading) {
-    return <div className="grid gap-4"><Skeleton className="h-48 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div>;
+  if (enforcement.isPending || reliability.isLoading) {
+    return <PageLoading title="Account standing" eyebrow="Account" width="max-w-3xl" />;
   }
 
   return (

@@ -3,24 +3,20 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, MapPin } from 'lucide-react';
-import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatMoney } from '@urgent/utils';
-import { api, isApiError } from '@/lib/api/client';
+import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
-import { queryKeys } from '@/lib/query/keys';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
+import { assignmentQueries, type RunnerTask } from '../queries';
 
-type Assignment = components['schemas']['RunnerAssignmentSummaryDto'];
 
 function useAssignments(status: 'ACTIVE' | 'PENDING_ACCEPTANCE', userId: string) {
-  return useQuery({
-    queryKey: [...queryKeys.assignments.list({ status }), userId],
-    queryFn: () => api<Assignment[]>('/runner/assignments', { query: { status, limit: 20 } }),
-    staleTime: 15_000,
-  });
+  const polling = useLivePolling(30_000);
+  return useQuery({ ...assignmentQueries.runnerTasks(userId, status), refetchInterval: polling });
 }
 
-function TaskRow({ assignment, respond }: { assignment: Assignment; respond?: boolean }) {
+function TaskRow({ assignment, respond }: { assignment: RunnerTask; respond?: boolean }) {
   return (
     <li>
       <Link
@@ -53,7 +49,7 @@ export function ActiveTasksPage() {
   const { me } = useSession();
   const pending = useAssignments('PENDING_ACCEPTANCE', me.id);
   const active = useAssignments('ACTIVE', me.id);
-  const loading = pending.isLoading || active.isLoading;
+  const loading = pending.isPending || active.isPending;
   const error = pending.error ?? active.error;
   const waiting = pending.data ?? [];
   const running = active.data ?? [];

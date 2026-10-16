@@ -214,7 +214,7 @@ export function ProfilePage() {
         )}
       </Card>
 
-      <Stats summary={summary.data} isLoading={summary.isLoading} error={summary.error} onRetry={() => void summary.refetch()} mode={me.startMode ?? 'REQUESTER'} />
+      <Stats summary={summary.data} isLoading={summary.isPending} error={summary.error} onRetry={() => void summary.refetch()} mode={me.startMode ?? 'REQUESTER'} />
 
       <Card>
         <CardHeader>
@@ -354,9 +354,17 @@ function Stats({
   mode: StartMode;
 }) {
   if (isLoading) {
+    const labels = mode === 'RUNNER'
+      ? ['Completed in 30 days', 'Offers this week', 'Active assignments']
+      : ['Errands this month', 'Completed this month', 'Open errands'];
     return (
       <section aria-label="Profile stats" className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-        {[0, 1, 2].map((item) => <Skeleton key={item} className="h-24 rounded-[var(--r-lg)]" />)}
+        {labels.map((label) => (
+          <Card key={label} variant="flat" className="p-4">
+            <p className="text-2xl font-extrabold tracking-tight text-ink">—</p>
+            <p className="mt-1 text-xs font-semibold text-muted">{label}</p>
+          </Card>
+        ))}
       </section>
     );
   }

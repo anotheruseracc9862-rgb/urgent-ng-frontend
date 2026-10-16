@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -40,7 +42,7 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, []);
-  const report = useMutation({
+  const report = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.reportNoShow(assignmentId, { ...(note.trim() ? { note: note.trim() } : {}) }),
     onSuccess: async () => {
       setNote('');
@@ -50,7 +52,7 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
       if (isApiError(error) && error.code === 'RESOURCE_CONFLICT') await state.refetch();
     },
   });
-  const respond = useMutation({
+  const respond = useApiMutation({ affects: ['assignments'],
     mutationFn: (response: 'PRESENT' | 'ACKNOWLEDGE') => offersApi.respondToNoShow(assignmentId, response),
     onSuccess: () => client.invalidateQueries({ queryKey: stateKey }),
     onError: async (error) => {
@@ -58,8 +60,8 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
     },
   });
 
-  if (assignment.isLoading || state.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending || state.isPending) {
+    return <PageLoading title="Report a no-show" eyebrow="Safety" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data || state.error || !state.data) {
     const error = assignment.error ?? state.error;

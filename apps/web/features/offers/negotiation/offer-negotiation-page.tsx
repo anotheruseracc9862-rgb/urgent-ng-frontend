@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MessageCircle, RefreshCw } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -50,7 +52,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
     queryKey,
     queryFn: () => offersApi.negotiation(offerId),
   });
-  const mutation = useMutation({
+  const mutation = useApiMutation({ affects: ['offers'],
     mutationFn: async (input: { action: Action; terms?: OfferTerms }) => {
       const offer = query.data;
       if (!offer) throw new Error('Offer details are not loaded.');
@@ -76,7 +78,9 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
     },
   });
 
-  if (query.isLoading) return <div className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-72 rounded-[var(--r-lg)]" /></div>;
+  if (query.isPending) {
+    return <PageLoading title="Offer" eyebrow="Negotiation" width="max-w-5xl" />;
+  }
   if (query.error || !query.data) {
     return (
       <main className="mx-auto max-w-4xl">

@@ -1,7 +1,9 @@
 'use client';
 
+import { persistedQuery } from '@/lib/query/persisted-query';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
-import { useInfiniteQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError, type ApiResponse } from '@/lib/api/client';
@@ -26,8 +28,9 @@ export function SavedErrandsPage() {
     queryFn: ({ pageParam }) => marketplaceApi.saved(pageParam),
     getNextPageParam: (page) => page.meta?.nextCursor ?? undefined,
     retry: false,
+    ...persistedQuery('standard'),
   });
-  const remove = useMutation({
+  const remove = useApiMutation({ affects: ['marketplace'],
     mutationFn: (errandId: string) => marketplaceApi.setSaved(errandId, false),
     onSuccess: async (_result, errandId) => {
       queryClient.setQueryData<InfiniteData<ApiResponse<SavedErrand[]>>>(
@@ -68,7 +71,7 @@ export function SavedErrandsPage() {
         <Button asChild variant="ghost"><Link href="/marketplace">Browse marketplace</Link></Button>
       </header>
 
-      {list.isLoading ? <div className="grid gap-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-36 rounded-[var(--r-lg)]" />)}</div> : null}
+      {list.isPending ? <div className="grid gap-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-36 rounded-[var(--r-lg)]" />)}</div> : null}
       {list.error ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(list.error) && list.error.code === 'RESOURCE_NOT_FOUND' ? 'Saved errands are not available to this account.' : 'We could not load saved errands.'}</p>
@@ -76,7 +79,7 @@ export function SavedErrandsPage() {
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void list.refetch()}>Try again</Button>
         </Alert>
       ) : null}
-      {!list.isLoading && !list.error && errands.length === 0 ? (
+      {!list.isPending && !list.error && errands.length === 0 ? (
         <section className="rounded-[var(--r-lg)] border border-dashed border-line bg-surface p-8 text-center">
           <h2 className="font-extrabold text-ink">No saved errands</h2>
           <p className="mt-2 text-sm text-muted">Save an errand from the marketplace to keep it here.</p>

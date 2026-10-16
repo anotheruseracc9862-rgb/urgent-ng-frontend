@@ -1,46 +1,37 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
-import { queryKeys } from './keys';
-
-export const invalidationMaps = {
-  createErrand: [queryKeys.errands.all(), queryKeys.marketplace.all()],
-  updateErrand: [queryKeys.errands.all()],
-  deleteErrand: [queryKeys.errands.all(), queryKeys.marketplace.all()],
-  createOffer: [queryKeys.offers.all(), queryKeys.runner.all(), queryKeys.errands.all()],
-  updateOffer: [queryKeys.offers.all(), queryKeys.errands.all()],
-  acceptOffer: [queryKeys.offers.all(), queryKeys.errands.all(), queryKeys.assignments.all()],
-  updateAssignment: [queryKeys.assignments.all(), queryKeys.errands.all()],
-  markNotificationRead: [queryKeys.notifications.all()],
-} as const;
-
-export type InvalidationName = keyof typeof invalidationMaps;
+import { refreshDomains } from './client';
+import type { Domain } from './domains';
 
 type ApiMutationOptions<TData, TError, TVariables, TContext> = Omit<
   UseMutationOptions<TData, TError, TVariables, TContext>,
-  'mutationFn' | 'onSuccess'
+  'onSettled' | 'meta'
 > & {
-  mutationFn: (variables: TVariables) => Promise<TData>;
-  invalidates?: readonly InvalidationName[];
-  onSuccess?: UseMutationOptions<TData, TError, TVariables, TContext>['onSuccess'];
+  /**
+   * Every domain this write changes. Required: a write that changes nothing the app shows says
+   * so with `affects: []`. The domains and everything derived from them refresh after the write
+   * settles (also on failure, so the screen converges on the server), and other tabs are told.
+   */
+  affects: readonly Domain[];
+  onSettled?: UseMutationOptions<TData, TError, TVariables, TContext>['onSettled'];
 };
 
+/**
+ * The way to write in this app. It replaces a bare `useMutation` so that no write can leave a
+ * screen showing the old state. See `lib/query/domains.ts` for what each domain refreshes.
+ */
 export function useApiMutation<TData, TError = Error, TVariables = void, TContext = unknown>({
-  mutationFn,
-  invalidates = [],
-  onSuccess,
+  affects,
+  onSettled,
   ...options
 }: ApiMutationOptions<TData, TError, TVariables, TContext>) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<TData, TError, TVariables, TContext>({
     ...options,
-    mutationFn,
-    onSuccess: async (data, variables, onMutateResult, mutationContext) => {
-      await Promise.all(
-        invalidates.flatMap((name) =>
-          invalidationMaps[name].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-        ),
-      );
-      await onSuccess?.(data, variables, onMutateResult, mutationContext);
+    meta: { affects },
+    onSettled: async (data, error, variables, onMutateResult, mutationContext) => {
+      if (affects.length > 0) await refreshDomains(queryClient, affects);
+      await onSettled?.(data, error, variables, onMutateResult, mutationContext);
     },
   });
 }

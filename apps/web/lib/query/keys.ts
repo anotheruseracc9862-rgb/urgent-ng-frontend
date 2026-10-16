@@ -35,6 +35,10 @@ export const queryKeys = {
     lists: () => ['errands', 'list'] as const,
     list: (filters: Record<string, unknown>) => ['errands', 'list', filters] as const,
     detail: (id: string) => ['errands', 'detail', id] as const,
+    /** The requester's own list: tab, sort and search are part of the key. */
+    mine: (userId: string, filters: Record<string, unknown>) => ['errands', 'mine', userId, filters] as const,
+    counts: (userId: string) => ['errands', 'counts', userId] as const,
+    tracked: (userId: string) => ['errands', 'tracked', userId] as const,
     offers: (errandId: string, sort?: string) =>
       sort ? ['errands', 'offers', errandId, sort] as const : ['errands', 'offers', errandId] as const,
   },
@@ -46,6 +50,8 @@ export const queryKeys = {
     map: (filters: Record<string, unknown>) => ['marketplace', 'map', filters] as const,
     detail: (id: string) => ['marketplace', 'detail', id] as const,
     saved: () => ['marketplace', 'saved'] as const,
+    /** The first page of nearby errands shown on the dashboard and counted in the rail. */
+    nearby: (userId: string) => ['marketplace', 'nearby', userId] as const,
   },
 
   // Offers
@@ -68,6 +74,7 @@ export const queryKeys = {
     changeRequests: (id: string) => ['assignments', 'change-requests', id] as const,
     paymentAgreement: (id: string) => ['assignments', 'payment-agreement', id] as const,
     noShow: (id: string) => ['assignments', 'no-show', id] as const,
+    runnerTasks: (userId: string, status: string) => ['assignments', 'runner-tasks', userId, status] as const,
     runnerHistory: (filters: Record<string, unknown>) => ['assignments', 'runner-history', filters] as const,
     runnerHistorySummary: () => ['assignments', 'runner-history', 'summary'] as const,
   },
@@ -78,6 +85,10 @@ export const queryKeys = {
     verification: () => ['runner', 'verification'] as const,
     verificationAttempt: (id: string) => ['runner', 'verification', 'attempt', id] as const,
     performance: () => ['runner', 'performance'] as const,
+    profileFor: (userId: string) => ['runner', 'profile', userId] as const,
+    eligibilityFor: (userId: string) => ['runner', 'eligibility', userId] as const,
+    offerLimitFor: (userId: string) => ['runner', 'offer-limit', userId] as const,
+    performanceFor: (userId: string) => ['runner', 'performance', userId] as const,
     offerLimit: () => ['runner', 'offer-limit'] as const,
     eligibility: () => ['runner', 'eligibility'] as const,
     offers: (filters: Record<string, unknown>) => ['runner', 'offers', filters] as const,
@@ -111,6 +122,11 @@ export const queryKeys = {
     orders: () => ['billing', 'orders'] as const,
     order: (id: string) => ['billing', 'order', id] as const,
     subscription: () => ['billing', 'subscription'] as const,
+  },
+
+  // Verification
+  verification: {
+    all: () => ['verification'] as const,
   },
 
   // Reference data

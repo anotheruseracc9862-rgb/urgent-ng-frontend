@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '@urgent/ui';
 import { MediaUpload } from '@/components/media-upload/media-upload';
@@ -37,7 +39,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
   const [note, setNote] = useState('');
   const [mediaId, setMediaId] = useState<string>();
   const [intent, setIntent] = useState<{ step: Step; key: string; evidence?: StepEvidence } | null>(null);
-  const execute = useMutation({
+  const execute = useApiMutation({ affects: ['assignments'],
     mutationFn: (confirmed: NonNullable<typeof intent>) =>
       offersApi.executionStep(assignmentId, confirmed.step, confirmed.key, confirmed.evidence),
     onSuccess: async () => {
@@ -60,8 +62,8 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
     },
   });
 
-  if (assignment.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-44" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending) {
+    return <PageLoading title="Task progress" eyebrow="Runner" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data) {
     return (

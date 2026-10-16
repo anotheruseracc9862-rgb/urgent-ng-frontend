@@ -1,5 +1,7 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -19,6 +21,7 @@ function freshnessCopy(freshness: string) {
 }
 
 export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
+  const polling = useLivePolling(30_000);
   const assignment = useQuery({
     queryKey: queryKeys.assignments.detail(assignmentId),
     queryFn: () => offersApi.assignment(assignmentId),
@@ -28,12 +31,12 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
     queryKey: queryKeys.assignments.liveLocation(assignmentId),
     queryFn: () => offersApi.liveLocation(assignmentId),
     retry: false,
-    refetchInterval: 30_000,
+    refetchInterval: polling,
     refetchIntervalInBackground: false,
   });
 
-  if (assignment.isLoading || location.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending || location.isPending) {
+    return <PageLoading title="Live tracking" eyebrow="Requester" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data || location.error || !location.data) {
     const error = assignment.error ?? location.error;

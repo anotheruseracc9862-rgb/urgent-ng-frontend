@@ -264,17 +264,15 @@ describe('requester errand detail', () => {
   it('updates the displayed deadline after the one allowed extension', async () => {
     const user = userEvent.setup();
     let extensionCount = 0;
+    // The server is the authority: once extended it answers with the extended errand, so the
+    // refresh that follows a write agrees with the write's own response.
+    const extended = { ...errand, version: 4, extended: true, expiresAt: '2026-10-16T10:00:00.000Z' };
     server.use(
-      http.get(`*/api/v1/errands/${errandId}`, () => envelope(errand)),
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope(extensionCount > 0 ? extended : errand)),
       http.get(`*/api/v1/errands/${errandId}/offers`, () => envelope([])),
       http.post(`*/api/v1/errands/${errandId}/extend`, () => {
         extensionCount += 1;
-        return envelope({
-          ...errand,
-          version: 4,
-          extended: true,
-          expiresAt: '2026-10-16T10:00:00.000Z',
-        });
+        return envelope(extended);
       }),
     );
 

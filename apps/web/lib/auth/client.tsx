@@ -69,10 +69,10 @@ export function SessionProvider({ children, me }: { children: React.ReactNode; m
       user,
       status: user.status,
       startMode: user.startMode,
-      isLoading: session.isLoading,
+      isLoading: session.isPending,
       signOut,
     }),
-    [session.isLoading, signOut, user],
+    [session.isPending, signOut, user],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -5,6 +5,8 @@ import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ApiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
+import { SessionProvider } from '@/lib/auth/client';
+import type { Me } from '@/lib/api/types';
 import { listen, server } from '@/test/msw/server';
 import { MarketplaceFeedPage } from './feed/marketplace-feed-page';
 import { MarketplaceErrandPage } from './detail/marketplace-errand-page';
@@ -23,7 +25,11 @@ const envelope = (data: unknown, meta: Record<string, unknown> = {}) =>
 function renderWithClient(ui: React.ReactNode, client = new QueryClient({
   defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 })) {
-  render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  render(
+    <QueryClientProvider client={client}>
+      <SessionProvider me={{ id: 'runner-1', firstName: 'Ada', startMode: 'RUNNER' } as unknown as Me}>{ui}</SessionProvider>
+    </QueryClientProvider>,
+  );
   return client;
 }
 

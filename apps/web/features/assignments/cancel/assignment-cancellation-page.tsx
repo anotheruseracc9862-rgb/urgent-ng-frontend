@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -30,7 +32,7 @@ export function AssignmentCancellationPage({ assignmentId }: { assignmentId: str
   const assignment = useQuery({ queryKey: key, queryFn: () => offersApi.assignment(assignmentId), retry: false });
   const [reason, setReason] = useState<CancelReason>('OTHER');
   const [note, setNote] = useState('');
-  const cancel = useMutation({
+  const cancel = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.cancelAssignment(assignmentId, {
       reason,
       ...(note.trim() ? { note: note.trim() } : {}),
@@ -41,8 +43,8 @@ export function AssignmentCancellationPage({ assignmentId }: { assignmentId: str
     },
   });
 
-  if (assignment.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending) {
+    return <PageLoading title="Cancel assignment" eyebrow="Assignment" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data) {
     return (

@@ -1,5 +1,6 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -269,8 +270,8 @@ export function VerificationPage() {
     }
   };
 
-  if (overview.isLoading) {
-    return <main className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /></main>;
+  if (overview.isPending) {
+    return <PageLoading title="Verify your identity" eyebrow="Runner" />;
   }
   if (overview.error || !overview.data) {
     return <main className="mx-auto max-w-4xl"><ErrorNotice error={overview.error} onRetry={() => void overview.refetch()} /></main>;

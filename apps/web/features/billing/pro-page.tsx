@@ -1,7 +1,9 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
@@ -74,14 +76,14 @@ export function ProPage() {
   const products = useQuery({ queryKey: queryKeys.billing.products(), queryFn: billingApi.products });
   const product = productFor(products.data, 'RUNNER_PRO');
 
-  const buy = useMutation({
+  const buy = useApiMutation({ affects: ['billing'],
     mutationFn: () => billingApi.createOrder('RUNNER_PRO', intent.keyFor(`pro:${autoRenew}`), autoRenew),
     onSuccess: (order) => {
       intent.reset();
       continueToCheckout(order);
     },
   });
-  const cancel = useMutation({
+  const cancel = useApiMutation({ affects: ['billing'],
     mutationFn: billingApi.cancelPro,
     onSuccess: (next) => {
       setConfirmCancel(false);
@@ -89,8 +91,8 @@ export function ProPage() {
     },
   });
 
-  if (pro.isLoading || products.isLoading) {
-    return <div className="mx-auto grid max-w-3xl gap-3" aria-label="Loading Runner Pro"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
+  if (pro.isPending || products.isPending) {
+    return <PageLoading title="Do more errands, every day" eyebrow="Runner Pro" width="max-w-3xl" />;
   }
   if (pro.error || !pro.data) {
     return (

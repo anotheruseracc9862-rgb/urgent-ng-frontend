@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useApiMutation } from '@/lib/query/mutations';
 import type { components } from '@urgent/api-client';
 import { Alert, Button } from '@urgent/ui';
 import { api, isApiError } from '@/lib/api/client';
@@ -18,7 +18,9 @@ const DEVICE_STORAGE_KEY = 'urgent.web-push-device-id';
 
 export function PushOptInPrompt() {
   const [dismissed, setDismissed] = React.useState(false);
-  const register = useMutation({
+  const register = useApiMutation({
+    // The browser appears in the signed-in devices list.
+    affects: ['security'],
     mutationFn: async () => {
       if (!('Notification' in window) || !('serviceWorker' in navigator)) {
         throw new Error('Push notifications are not supported in this browser.');

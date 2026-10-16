@@ -1,8 +1,9 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@urgent/ui';
 import { refreshCaseViews, safetyApi, safetyKeys, type CreateReport, type EvidenceItem } from '../api';
 import { CaseError, caseInput, caseLabel, caseLabelText, casePanel } from '../case-ui';
@@ -18,7 +19,7 @@ export function ReportPage({ targetType: initialType, targetId: initialId = '', 
   const [description, setDescription] = useState('');
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const intent = useRef<{ body: string; key: string } | null>(null);
-  const mutation = useMutation({
+  const mutation = useApiMutation({ affects: [],
     mutationFn: (body: CreateReport) => {
       const signature = JSON.stringify(body);
       if (intent.current?.body !== signature) intent.current = { body: signature, key: crypto.randomUUID() };

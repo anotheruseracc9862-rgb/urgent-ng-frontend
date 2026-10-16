@@ -1,5 +1,7 @@
 'use client';
 
+import { runnerQueries } from '@/features/runner/queries';
+import { useSession } from '@/lib/auth/client';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
@@ -26,6 +28,7 @@ function statusStyle(status: string) {
 }
 
 export function RunnerHistoryPage() {
+  const { me } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const filters = useMemo(() => ({
@@ -50,11 +53,7 @@ export function RunnerHistoryPage() {
     queryFn: () => offersApi.runnerHistorySummary(6),
     retry: false,
   });
-  const performance = useQuery({
-    queryKey: queryKeys.runner.performance(),
-    queryFn: offersApi.runnerPerformance,
-    retry: false,
-  });
+  const performance = useQuery(runnerQueries.performance(me.id));
   const assignments = list.data?.pages.flatMap((page) => page.data) ?? [];
 
   function applyFilters(event: React.FormEvent<HTMLFormElement>) {
@@ -83,7 +82,7 @@ export function RunnerHistoryPage() {
         <Button asChild variant="ghost"><a href={exportHref}>Export CSV</a></Button>
       </header>
 
-      {performance.isLoading ? <div className="grid gap-3 sm:grid-cols-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
+      {performance.isPending ? <div className="grid gap-3 sm:grid-cols-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
       {performance.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load runner performance.</p>
@@ -125,7 +124,7 @@ export function RunnerHistoryPage() {
         </section>
       ) : null}
 
-      {summary.isLoading ? <Skeleton className="h-56 rounded-[var(--r-lg)]" /> : null}
+      {summary.isPending ? <Skeleton className="h-56 rounded-[var(--r-lg)]" /> : null}
       {summary.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your monthly history summary.</p>
@@ -160,7 +159,7 @@ export function RunnerHistoryPage() {
         </form>
       </section>
 
-      {list.isLoading ? <div className="grid gap-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
+      {list.isPending ? <div className="grid gap-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
       {list.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load assignment history.</p>
@@ -168,7 +167,7 @@ export function RunnerHistoryPage() {
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void list.refetch()}>Try again</Button>
         </Alert>
       ) : null}
-      {!list.isLoading && !list.error && assignments.length === 0 ? (
+      {!list.isPending && !list.error && assignments.length === 0 ? (
         <section className="rounded-[var(--r-lg)] border border-dashed border-line bg-surface p-8 text-center">
           <h2 className="font-extrabold text-ink">No assignments found</h2>
           <p className="mt-2 text-sm text-muted">Try changing your filters, or browse open errands when you are ready for your next job.</p>

@@ -1,8 +1,11 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { refreshCaseViews, safetyApi, safetyKeys, type EvidenceItem } from '../api';
 import { caseDate, CaseError, caseLabelText, casePanel } from '../case-ui';
@@ -10,16 +13,19 @@ import { EvidenceEditor } from '../evidence-editor';
 import { EvidenceList } from '../evidence-list';
 
 export function DisputeDetailPage({ disputeId }: { disputeId: string }) {
+  const polling = useLivePolling(30_000);
   const client = useQueryClient();
   const key = safetyKeys.dispute(disputeId);
-  const query = useQuery({ queryKey: key, queryFn: () => safetyApi.dispute(disputeId), retry: false, refetchInterval: 30_000 });
+  const query = useQuery({ queryKey: key, queryFn: () => safetyApi.dispute(disputeId), retry: false, refetchInterval: polling });
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
-  const mutation = useMutation({
+  const mutation = useApiMutation({ affects: ['assignments'],
     mutationFn: (item: EvidenceItem) => safetyApi.addEvidence(disputeId, item),
     onSuccess: async result => { client.setQueryData(key, result); setEvidence([]); await refreshCaseViews(client); },
     onError: async () => { await query.refetch(); },
   });
-  if (query.isPending) return <Skeleton className="mx-auto h-64 max-w-4xl rounded-[var(--r-lg)]" />;
+  if (query.isPending) {
+    return <PageLoading title="Dispute" eyebrow="Safety" width="max-w-4xl" />;
+  }
   if (query.error || !query.data) return <CaseError error={query.error} retry={() => void query.refetch()} />;
   const data = query.data;
   return <main className="mx-auto grid max-w-4xl gap-5">

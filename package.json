@@ -16,7 +16,8 @@
     "budgets": "node scripts/check-budgets.mjs",
     "audit:prod": "npm audit --omit=dev",
     "contract:check": "node scripts/check-contract.mjs",
-    "a11y:browser": "node scripts/check-axe.mjs"
+    "a11y:browser": "node scripts/check-axe.mjs",
+    "cache:report": "node scripts/cache-report.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

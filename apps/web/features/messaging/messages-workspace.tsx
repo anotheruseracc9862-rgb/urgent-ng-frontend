@@ -1,8 +1,9 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
 import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Flag, MessageSquare, Search, ShieldCheck } from 'lucide-react';
 import {
   Alert,
@@ -85,7 +86,7 @@ function ConversationList({ activeId }: { activeId?: string }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        {conversations.isLoading ? (
+        {conversations.isPending ? (
           <div className="grid gap-2 p-2" aria-label="Loading conversations">
             <Skeleton className="h-[72px]" /><Skeleton className="h-[72px]" /><Skeleton className="h-[72px]" />
           </div>
@@ -150,7 +151,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 /** Errand details for the open conversation, with the actions the demo keeps in this column. */
 function ConversationDetails({ conversation }: { conversation: Conversation }) {
   const client = useQueryClient();
-  const mute = useMutation({
+  const mute = useApiMutation({ affects: ['conversations'],
     mutationFn: (next: boolean) => messagingApi.mute(conversation.id, next),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.conversations.all() });
@@ -220,7 +221,7 @@ function ConversationDetailsPane({ conversationId }: { conversationId: string })
     queryKey: queryKeys.conversations.detail(conversationId),
     queryFn: () => messagingApi.conversation(conversationId),
   });
-  if (conversation.isLoading) return <div className="grid gap-3 p-5"><Skeleton className="h-6 w-24" /><Skeleton className="h-24" /></div>;
+  if (conversation.isPending) return <div className="grid gap-3 p-5"><Skeleton className="h-6 w-24" /><Skeleton className="h-24" /></div>;
   if (!conversation.data) return null;
   return <ConversationDetails conversation={conversation.data} />;
 }

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronRight, Compass, LogOut, Plus } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cn,
   DropdownMenu,
@@ -16,6 +16,8 @@ import {
 } from '@urgent/ui';
 import { useSession } from '@/lib/auth/client';
 import { runnerApi } from '@/features/runner/api';
+import { runnerQueries } from '@/features/runner/queries';
+import { useApiMutation } from '@/lib/query/mutations';
 import { accountMenuFor, hrefFor, isItemActive, itemsFor, type NavItem, type ShellMode } from './nav-items';
 import { useNavCounts, type NavCounts } from './use-nav-counts';
 
@@ -54,21 +56,17 @@ function NavLink({ item, active, count }: { item: NavItem; active: boolean; coun
 /** The online/offline switch from the demo rail. Falls back to a link when there is no runner profile. */
 function AvailabilitySwitch({ userId }: { userId: string }) {
   const client = useQueryClient();
-  const profile = useQuery({
-    queryKey: ['runner', 'profile', userId],
-    queryFn: runnerApi.profile,
-    retry: false,
-    staleTime: 30_000,
-  });
-  const update = useMutation({
+  const profile = useQuery(runnerQueries.profile(userId));
+  const update = useApiMutation({
     mutationFn: (availability: 'AVAILABLE' | 'UNAVAILABLE') => runnerApi.updateAvailability(availability),
-    onSuccess: async (updated) => {
-      client.setQueryData(['runner', 'profile', userId], updated);
-      await client.invalidateQueries({ queryKey: ['runner', 'eligibility', userId] });
+    // Eligibility, the feed and the dashboard all depend on being online.
+    affects: ['runner'],
+    onSuccess: (updated) => {
+      client.setQueryData(runnerQueries.profile(userId).queryKey, updated);
     },
   });
 
-  if (profile.error || (!profile.isLoading && !profile.data)) {
+  if (profile.error || (!profile.isPending && !profile.data)) {
     return (
       <Link href="/runner/profile" className="mx-1.5 mb-3 flex min-h-11 items-center gap-2.5 rounded-full bg-tint px-3.5 text-[13px] font-bold text-green-900 transition-colors hover:bg-tint-2">
         <span className="size-2 rounded-full bg-lime-600" aria-hidden="true" />
@@ -77,7 +75,7 @@ function AvailabilitySwitch({ userId }: { userId: string }) {
     );
   }
 
-  if (profile.isLoading) {
+  if (profile.isPending && profile.fetchStatus !== 'idle') {
     return <div aria-hidden="true" className="mx-1.5 mb-3 h-[42px] animate-pulse rounded-full bg-panel" />;
   }
 

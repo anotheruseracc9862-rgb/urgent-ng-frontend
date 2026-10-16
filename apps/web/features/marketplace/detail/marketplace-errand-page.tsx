@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { api, isApiError } from '@/lib/api/client';
@@ -62,7 +64,7 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
     queryFn: runnerApi.eligibility,
     retry: false,
   });
-  const saveMutation = useMutation({
+  const saveMutation = useApiMutation({ affects: ['marketplace'],
     mutationFn: () => marketplaceApi.setSaved(errandId, !(errand.data?.saved ?? false)),
     onSuccess: async (result) => {
       if (errand.data) queryClient.setQueryData(queryKeys.marketplace.detail(errandId), { ...errand.data, saved: result.saved });
@@ -73,8 +75,8 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
     },
   });
 
-  if (errand.isLoading || eligibility.isLoading) {
-    return <main className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-10 w-40" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /></main>;
+  if (errand.isPending || eligibility.isPending) {
+    return <PageLoading title="Errand" eyebrow="Marketplace" width="max-w-5xl" />;
   }
   if (errand.error || !errand.data) {
     return (

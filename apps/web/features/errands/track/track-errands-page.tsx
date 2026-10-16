@@ -7,8 +7,9 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { PageHead } from '@/components/shell/page-head';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
-import { queryKeys } from '@/lib/query/keys';
-import { errandsApi, type ErrandSummary } from '../api';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
+import { errandQueries } from '../queries';
+import type { ErrandSummary } from '../api';
 
 const STAGES = ['Accepted', 'Started', 'Picked up', 'Delivered', 'Done'];
 
@@ -110,12 +111,8 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
 /** The requester's view of errands that have a runner: milestones, live tracker, and the safety and money actions. */
 export function TrackErrandsPage() {
   const { me } = useSession();
-  const active = useQuery({
-    queryKey: [...queryKeys.errands.list({ tab: 'ACTIVE', track: true }), me.id],
-    queryFn: () => errandsApi.mine({ tab: 'ACTIVE', sort: 'NEEDS_ATTENTION', limit: 20 }),
-    staleTime: 15_000,
-    refetchInterval: 30_000,
-  });
+  const polling = useLivePolling(30_000);
+  const active = useQuery({ ...errandQueries.tracked(me.id), refetchInterval: polling });
   const items = active.data?.data ?? [];
 
   return (
@@ -135,7 +132,7 @@ export function TrackErrandsPage() {
         </Alert>
       ) : null}
 
-      {active.isLoading ? (
+      {active.isPending ? (
         <div className="grid gap-4" aria-label="Loading errands"><Skeleton className="h-72 rounded-[var(--r-lg)]" /></div>
       ) : items.length ? (
         items.map((errand) => <TrackCard key={errand.id} errand={errand} />)

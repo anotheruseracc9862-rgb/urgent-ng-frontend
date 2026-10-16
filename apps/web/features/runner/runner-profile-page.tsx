@@ -1,5 +1,6 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -159,8 +160,8 @@ export function RunnerProfilePage() {
   };
 
   const missingProfile = isApiError(profile.error) && profile.error.status === 404;
-  if (profile.isLoading || eligibility.isLoading || categories.isLoading) {
-    return <main className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-72 rounded-[var(--r-lg)]" /><Skeleton className="h-44 rounded-[var(--r-lg)]" /></main>;
+  if (profile.isPending || eligibility.isPending || categories.isPending) {
+    return <PageLoading title="Runner profile" eyebrow="Runner" width="max-w-5xl" />;
   }
   if ((profile.error && !missingProfile) || eligibility.error || categories.error || !categories.data) {
     const error = profile.error && !missingProfile ? profile.error : eligibility.error ?? categories.error;

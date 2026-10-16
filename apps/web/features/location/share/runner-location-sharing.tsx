@@ -1,8 +1,9 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { useLocationSharingConsent } from '@/features/settings/consent-state';
@@ -28,7 +29,7 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
-  const sharingMutation = useMutation({
+  const sharingMutation = useApiMutation({ affects: ['assignments'],
     mutationFn: (enabled: boolean) => offersApi.setLocationSharing(assignmentId, enabled),
     onSuccess: async (result) => {
       client.setQueryData(locationKey, (previous: Awaited<ReturnType<typeof offersApi.liveLocation>> | undefined) => previous
@@ -51,7 +52,7 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
       }
     },
   });
-  const locationMutation = useMutation({
+  const locationMutation = useApiMutation({ affects: [],
     mutationFn: (position: GeolocationPosition) => offersApi.recordLocation(assignmentId, {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
@@ -144,7 +145,7 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
     sharingMutation.mutate(false);
   };
 
-  if (consent.isLoading || live.isLoading) {
+  if (consent.isLoading || live.isPending) {
     return <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4"><Skeleton className="h-5 w-44" /><Skeleton className="h-10 w-full" /></section>;
   }
 

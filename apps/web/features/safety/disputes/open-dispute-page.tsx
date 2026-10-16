@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -19,7 +21,7 @@ export function OpenDisputePage({ assignmentId }: { assignmentId: string }) {
   const [claim, setClaim] = useState('');
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const intent = useRef<{ body: string; key: string } | null>(null);
-  const mutation = useMutation({
+  const mutation = useApiMutation({ affects: ['assignments'],
     mutationFn: (body: OpenDispute) => {
       const signature = JSON.stringify(body);
       if (intent.current?.body !== signature) intent.current = { body: signature, key: crypto.randomUUID() };
@@ -34,7 +36,9 @@ export function OpenDisputePage({ assignmentId }: { assignmentId: string }) {
     },
   });
   if (mutation.data) return <DisputeDetailPage disputeId={mutation.data.id} />;
-  if (assignment.isPending) return <Skeleton className="mx-auto h-64 max-w-4xl rounded-[var(--r-lg)]" />;
+  if (assignment.isPending) {
+    return <PageLoading title="Open a dispute" eyebrow="Safety" width="max-w-4xl" />;
+  }
   if (!assignment.data || assignment.error) return <CaseError error={assignment.error} retry={() => void assignment.refetch()} />;
   const current = assignment.data.data;
   const existing = isApiError(mutation.error) && typeof mutation.error.details.disputeId === 'string' ? mutation.error.details.disputeId

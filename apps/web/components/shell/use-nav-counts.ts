@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
-import { authApi } from '@/lib/api/auth';
+import { dashboardQueries } from '@/features/dashboard/queries';
 import { useHydrated } from '@/lib/use-hydrated';
 import { queryKeys } from '@/lib/query/keys';
 import { messagingApi } from '@/features/messaging/api';
@@ -18,11 +18,7 @@ export type NavCounts = Partial<Record<NavCountKey, number>>;
 export function useNavCounts(mode: ShellMode, userId: string): NavCounts {
   const hydrated = useHydrated();
 
-  const summary = useQuery({
-    queryKey: queryKeys.dashboard.summary(userId),
-    queryFn: authApi.summary,
-    staleTime: 30_000,
-  });
+  const summary = useQuery(dashboardQueries.summary(userId));
   const unread = useQuery({
     queryKey: queryKeys.notifications.unreadCount(),
     queryFn: () => api<{ count: number }>('/notifications/unread-count'),

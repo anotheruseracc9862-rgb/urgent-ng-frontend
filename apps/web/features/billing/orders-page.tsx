@@ -65,7 +65,7 @@ export function OrdersPage() {
       ) : null}
 
       <section aria-label="Orders" className="rounded-[var(--r-lg)] border border-line bg-surface px-4 shadow-[var(--shadow)] sm:px-5">
-        {orders.isLoading ? (
+        {orders.isPending ? (
           <div className="grid gap-4 py-5" aria-label="Loading orders"><Skeleton className="h-16" /><Skeleton className="h-16" /></div>
         ) : !items.length && !orders.error ? (
           <div className="py-12 text-center">

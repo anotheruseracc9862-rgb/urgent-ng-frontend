@@ -135,7 +135,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
               <strong className="text-sm text-ink">Notifications</strong>
               <span className="text-xs text-muted">{hydrated ? unread.data?.count ?? 0 : 0} unread</span>
             </div>
-            {!hydrated || notificationPreview.isLoading ? <p className="mt-2 text-xs text-muted">Loading notifications…</p> : notificationPreview.error ? (
+            {!hydrated || notificationPreview.isPending ? <p className="mt-2 text-xs text-muted">Loading notifications…</p> : notificationPreview.error ? (
               <p role="status" className="mt-2 text-xs text-muted">Notifications are unavailable right now. Open the notifications page to try again.</p>
             ) : notificationPreview.data?.length ? (
               <ul className="mt-3 grid gap-3">

@@ -1,6 +1,5 @@
 'use client';
 
-import { useHydrated } from '@/lib/use-hydrated';
 import Link from 'next/link';
 import {
   ArrowUpRight,
@@ -18,28 +17,28 @@ import {
   Truck,
   Zap,
 } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Card, CardDescription, CardHeader, CardTitle, Skeleton } from '@urgent/ui';
 import { formatRelativeTime } from '@urgent/utils';
 import { useSession } from '@/lib/auth/client';
 import { api, isApiError } from '@/lib/api/client';
-import { authApi } from '@/lib/api/auth';
-import { queryKeys } from '@/lib/query/keys';
 import type { ShellMode } from '@/components/shell/nav-items';
 import { PageHead } from '@/components/shell/page-head';
 import { Stat } from '@/components/shell/stat-card';
 import { formatMinutes, minutesUntil } from '@/lib/time-left';
 import { QuickPostDialog } from './quick-post-dialog';
-import { nearbyFeedKey, useNearbyErrands } from '@/features/marketplace/use-nearby-errands';
+import { useNearbyErrands } from '@/features/marketplace/use-nearby-errands';
+import { assignmentQueries } from '@/features/assignments/queries';
+import { billingQueries } from '@/features/billing/queries';
+import { errandQueries } from '@/features/errands/queries';
+import { runnerQueries } from '@/features/runner/queries';
+import { useApiMutation } from '@/lib/query/mutations';
+import { dashboardQueries } from './queries';
 
 type Summary = components['schemas']['MeSummaryDto'];
 type ErrandSummary = components['schemas']['ErrandSummaryDto'];
-type Assignment = components['schemas']['RunnerAssignmentSummaryDto'];
-type OfferLimit = components['schemas']['RunnerOfferLimitDto'];
-type Performance = components['schemas']['RunnerPerformanceDto'];
 type RunnerProfile = components['schemas']['RunnerProfileDto'];
-type MetricIcon = typeof Package;
 type MetricTone = 'green' | 'amber' | 'blue' | 'violet' | 'red';
 
 const money = (minor: number | null) =>
@@ -202,12 +201,7 @@ function headline(mode: ShellMode, summary: Summary | undefined): string {
 
 export function DashboardPage({ mode, firstName, greeting = 'Hello' }: { mode: ShellMode; firstName: string; greeting?: string }) {
   const { me } = useSession();
-  const hydrated = useHydrated();
-  const summary = useQuery({
-    queryKey: queryKeys.dashboard.summary(me.id),
-    queryFn: authApi.summary,
-    staleTime: 30_000,
-  });
+  const summary = useQuery(dashboardQueries.summary(me.id));
 
   return (
     <div className="grid content-start gap-4">
@@ -228,52 +222,54 @@ export function DashboardPage({ mode, firstName, greeting = 'Hello' }: { mode: S
         )}
       />
 
-      {!hydrated || summary.isLoading ? (
-        <section aria-label="Dashboard summary" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-28 rounded-[var(--r-lg)]" />)}
-        </section>
-      ) : summary.error ? (
-        <LoadError error={summary.error} onRetry={() => void summary.refetch()} />
-      ) : summary.data ? (
-        mode === 'RUNNER'
-          ? <RunnerDashboard summary={summary.data} />
-          : <RequesterDashboard summary={summary.data} />
-      ) : null}
+      {summary.error && !summary.data ? <LoadError error={summary.error} onRetry={() => void summary.refetch()} /> : null}
+
+      {/* The stat cards, headings and layout are always there; numbers show a dash until they arrive. */}
+      {mode === 'RUNNER'
+        ? <RunnerDashboard summary={summary.data} />
+        : <RequesterDashboard summary={summary.data} />}
 
     </div>
   );
 }
 
-function RequesterDashboard({ summary }: { summary: Summary }) {
+const EMPTY_REQUESTER: Summary['asRequester'] = {
+  errandsThisMonth: 0, completedThisMonth: 0, openErrands: 0, activeErrands: 0, successRate: null, errandsWithOffers: 0,
+  offersToReview: 0, awaitingRunnerAcceptance: 0, deliveriesToConfirm: 0, changeRequestsToAnswer: 0,
+  errandsPerWeek: [], averageOffersPerErrand: null, medianMinutesToSelect: null,
+};
+
+const EMPTY_RUNNER: Summary['asRunner'] = {
+  activeAssignments: 0, selectedAwaitingYou: 0, activeOffers: 0, offersAwaitingYou: 0, offersThisWeek: 0,
+  completedLast30Days: 0, changeRequestsToAnswer: 0, offersPerDay: [],
+};
+
+/** A figure that has not arrived yet shows a dash, not a skeleton, so the card keeps its shape. */
+const figure = (loading: boolean, value: number | string) => (loading ? '—' : value);
+
+function RequesterDashboard({ summary }: { summary: Summary | undefined }) {
   const { me } = useSession();
-  const openErrands = useQuery({
-    queryKey: [...queryKeys.errands.list({ tab: 'OPEN', sort: 'NEEDS_ATTENTION' }), me.id],
-    queryFn: () => api<ErrandSummary[]>('/errands/mine', { query: { tab: 'OPEN', sort: 'NEEDS_ATTENTION', limit: 5 } }),
-    staleTime: 30_000,
-  });
-  const activeErrands = useQuery({
-    queryKey: [...queryKeys.errands.list({ tab: 'ACTIVE' }), me.id],
-    queryFn: () => api<ErrandSummary[]>('/errands/mine', { query: { tab: 'ACTIVE', limit: 5 } }),
-    staleTime: 30_000,
-  });
-  const requester = summary.asRequester;
+  const openErrands = useQuery(errandQueries.open(me.id));
+  const activeErrands = useQuery(errandQueries.active(me.id));
+  const loading = !summary;
+  const requester = summary?.asRequester ?? EMPTY_REQUESTER;
   const errands = [...(openErrands.data ?? []), ...(activeErrands.data ?? [])].slice(0, 4);
   const closingSoon = (openErrands.data ?? [])
     .map((errand) => ({ errand, minutes: minutesUntil(errand.expiresAt) }))
     .filter((item): item is { errand: ErrandSummary; minutes: number } => item.minutes !== null && item.minutes <= 120)
     .slice(0, 2);
-  const activity = summary.recentActivity.filter((item) => item.role === 'REQUESTER').slice(0, 4);
+  const activity = (summary?.recentActivity ?? []).filter((item) => item.role === 'REQUESTER').slice(0, 4);
 
-  const nothingToDo = requester.offersToReview + requester.awaitingRunnerAcceptance + requester.deliveriesToConfirm
+  const nothingToDo = !loading && requester.offersToReview + requester.awaitingRunnerAcceptance + requester.deliveriesToConfirm
     + requester.changeRequestsToAnswer + closingSoon.length === 0;
 
   return (
     <>
       <section aria-label="Requester overview" className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
-        <Stat icon={Package} value={requester.openErrands + requester.activeErrands} label="Active errands" href="/errands" badge={`${requester.errandsThisMonth} this month`} />
-        <Stat icon={Tag} value={requester.offersToReview} label="Offers waiting for you" href="/errands?tab=OPEN&sort=NEEDS_ATTENTION" tone="amber" />
-        <Stat icon={Truck} value={requester.activeErrands} label="Runners on the way" href="/errands?tab=ACTIVE" tone="blue" />
-        <Stat icon={Check} value={requester.completedThisMonth} label="Completed this month" tone="violet" badge={requester.successRate === null ? undefined : `${Math.round(requester.successRate * 100)}%`} />
+        <Stat icon={Package} value={figure(loading, requester.openErrands + requester.activeErrands)} label="Active errands" href="/errands" badge={loading ? undefined : `${requester.errandsThisMonth} this month`} />
+        <Stat icon={Tag} value={figure(loading, requester.offersToReview)} label="Offers waiting for you" href="/errands?tab=OPEN&sort=NEEDS_ATTENTION" tone="amber" />
+        <Stat icon={Truck} value={figure(loading, requester.activeErrands)} label="Runners on the way" href="/errands?tab=ACTIVE" tone="blue" />
+        <Stat icon={Check} value={figure(loading, requester.completedThisMonth)} label="Completed this month" tone="violet" badge={loading || requester.successRate === null ? undefined : `${Math.round(requester.successRate * 100)}%`} />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,1fr)]">
@@ -283,6 +279,12 @@ function RequesterDashboard({ summary }: { summary: Summary }) {
               <div><CardTitle>Needs your attention</CardTitle><CardDescription>Quick actions that keep errands moving.</CardDescription></div>
             </CardHeader>
             <div>
+              {loading ? (
+                <div className="grid gap-3" aria-label="Loading">
+                  <Skeleton className="h-14 rounded-[var(--r-sm)]" />
+                  <Skeleton className="h-14 rounded-[var(--r-sm)]" />
+                </div>
+              ) : null}
               {requester.offersToReview > 0 && (
                 <Link href="/errands?tab=OPEN&sort=NEEDS_ATTENTION" className={`group ${ROW}`}>
                   <IconChip tone="amber"><Tag aria-hidden="true" className="size-[18px]" /></IconChip>
@@ -332,7 +334,7 @@ function RequesterDashboard({ summary }: { summary: Summary }) {
               <div><CardTitle>My errands</CardTitle><CardDescription>Your latest four. See everything on the errands page.</CardDescription></div>
               <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel" href="/errands">View all <ChevronRight aria-hidden="true" className="size-3.5" /></Link>
             </CardHeader>
-            {openErrands.isLoading || activeErrands.isLoading ? <Skeleton className="h-36 rounded-xl" /> : openErrands.error ? (
+            {openErrands.isPending || activeErrands.isPending ? <Skeleton className="h-36 rounded-xl" /> : openErrands.error ? (
               <LoadError error={openErrands.error} onRetry={() => void openErrands.refetch()} />
             ) : errands.length ? (
               <div>
@@ -368,7 +370,7 @@ function RequesterDashboard({ summary }: { summary: Summary }) {
               <div><CardTitle>Success rate</CardTitle><CardDescription className="text-white/70">Errands completed without a dispute</CardDescription></div>
               <Link href="/profile" aria-label="Open profile" className="grid size-[42px] place-items-center rounded-full bg-[#26323f] text-white transition-colors hover:bg-[#344154]"><ArrowUpRight aria-hidden="true" className="size-[18px]" /></Link>
             </CardHeader>
-            <Gauge value={requester.successRate === null ? null : requester.successRate * 100} label={requester.successRate === null ? 'Complete an errand to establish your rate' : 'completed without a dispute'} dark />
+            <Gauge value={requester.successRate === null ? null : requester.successRate * 100} label={loading ? 'Loading…' : requester.successRate === null ? 'Complete an errand to establish your rate' : 'completed without a dispute'} dark />
             <div className="mt-4 grid grid-cols-2 gap-4">
               <div>
                 <span className="block text-xs text-[#aeb8c6]">Avg. time to select</span>
@@ -384,9 +386,9 @@ function RequesterDashboard({ summary }: { summary: Summary }) {
           <Card>
             <CardHeader>
               <div><CardTitle>Errands posted</CardTitle><CardDescription>Per week, last four weeks</CardDescription></div>
-              <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{requester.errandsThisMonth} this month</span>
+              {loading ? null : <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{requester.errandsThisMonth} this month</span>}
             </CardHeader>
-            <Bars
+            {loading ? <Skeleton className="h-[170px] rounded-[var(--r)]" /> : <Bars
               label="Errands posted in each of the last four weeks"
               items={requester.errandsPerWeek.map((count, index, all) => ({
                 key: `w${index}`,
@@ -395,12 +397,14 @@ function RequesterDashboard({ summary }: { summary: Summary }) {
                 detail: `${count} errand${count === 1 ? '' : 's'}`,
                 highlight: index === all.length - 1,
               }))}
-            />
+            />}
           </Card>
 
           <Card>
             <CardHeader><CardTitle>Recent activity</CardTitle><Link className="text-xs font-bold text-green-700 hover:underline" href="/notifications">View all</Link></CardHeader>
-            {activity.length ? (
+            {loading ? (
+              <div className="grid gap-4" aria-label="Loading activity"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div>
+            ) : activity.length ? (
               <ol className="grid">
                 {activity.map((item, index) => (
                   <li key={`${item.errandId}-${item.at}`} className="relative flex gap-3.5 pb-5 last:pb-0">
@@ -421,59 +425,35 @@ function RequesterDashboard({ summary }: { summary: Summary }) {
   );
 }
 
-function RunnerDashboard({ summary }: { summary: Summary }) {
+function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
   const { me } = useSession();
   const queryClient = useQueryClient();
-  const runner = summary.asRunner;
-  const profile = useQuery({
-    queryKey: ['runner', 'profile', me.id],
-    queryFn: () => api<RunnerProfile>('/runner/profile'),
-    retry: false,
-  });
+  const loading = !summary;
+  const runner = summary?.asRunner ?? EMPTY_RUNNER;
+  const profile = useQuery(runnerQueries.profile(me.id));
   const nearby = useNearbyErrands(me.id, true);
   const eligibility = nearby.eligibility;
-  const assignments = useQuery({
-    queryKey: [...queryKeys.assignments.list({ status: 'ACTIVE' }), me.id],
-    queryFn: () => api<Assignment[]>('/runner/assignments', { query: { status: 'ACTIVE', limit: 5 } }),
-    staleTime: 30_000,
-  });
-  const pendingAssignments = useQuery({
-    queryKey: [...queryKeys.assignments.list({ status: 'PENDING_ACCEPTANCE' }), me.id],
-    queryFn: () => api<Assignment[]>('/runner/assignments', { query: { status: 'PENDING_ACCEPTANCE', limit: 3 } }),
-    staleTime: 30_000,
-  });
+  const assignments = useQuery(assignmentQueries.runnerTasks(me.id, 'ACTIVE', 5));
+  const pendingAssignments = useQuery(assignmentQueries.runnerTasks(me.id, 'PENDING_ACCEPTANCE', 3));
   const feed = {
     isLoading: nearby.feed.isLoading,
     error: nearby.feed.error,
     data: nearby.items,
     refetch: nearby.feed.refetch,
   };
-  const offerLimit = useQuery({
-    queryKey: [...queryKeys.runner.offerLimit(), me.id],
-    queryFn: () => api<OfferLimit>('/runner/offer-limit'),
-  });
-  const performance = useQuery({
-    queryKey: [...queryKeys.runner.performance(), me.id],
-    queryFn: () => api<Performance>('/runner/performance'),
-    retry: false,
-  });
-  const availability = useMutation({
+  const offerLimit = useQuery(runnerQueries.offerLimit(me.id));
+  const performance = useQuery(runnerQueries.performance(me.id));
+  const availability = useApiMutation({
     mutationFn: (value: 'AVAILABLE' | 'UNAVAILABLE') =>
       api<RunnerProfile>('/runner/availability', { method: 'PUT', body: { availability: value } }),
-    onSuccess: async (updated) => {
-      queryClient.setQueryData(['runner', 'profile', me.id], updated);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['runner', 'eligibility', me.id] }),
-        queryClient.invalidateQueries({ queryKey: nearbyFeedKey(me.id) }),
-      ]);
+    // Going online or offline changes what the runner may browse, offer on and see counted in the rail.
+    affects: ['runner'],
+    onSuccess: (updated) => {
+      queryClient.setQueryData(runnerQueries.profile(me.id).queryKey, updated);
     },
   });
   const availabilityError = availability.error;
-  const products = useQuery({
-    queryKey: queryKeys.billing.products(),
-    queryFn: () => api<components['schemas']['ProductDto'][]>('/billing/products'),
-    staleTime: 5 * 60_000,
-  });
+  const products = useQuery(billingQueries.products());
   const proProduct = Array.isArray(products.data) ? products.data.find((product) => product.orderType === 'RUNNER_PRO') : undefined;
 
   const reasons: Record<string, { message: string; href: string; action: string }> = {
@@ -502,7 +482,7 @@ function RunnerDashboard({ summary }: { summary: Summary }) {
 
   return (
     <>
-      {pendingAssignments.isLoading ? <Skeleton className="h-16 rounded-[var(--r)]" /> : pendingAssignments.error ? (
+      {pendingAssignments.isPending ? <Skeleton className="h-16 rounded-[var(--r)]" /> : pendingAssignments.error ? (
         <LoadError error={pendingAssignments.error} onRetry={() => void pendingAssignments.refetch()} />
       ) : pendingAssignments.data?.[0] ? (
         <Link
@@ -521,8 +501,8 @@ function RunnerDashboard({ summary }: { summary: Summary }) {
       ) : null}
 
       <section aria-label="Runner overview" className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
-        <Stat icon={Truck} value={runner.activeAssignments} label="Active tasks" href="/assignments" />
-        <Stat icon={Tag} value={runner.offersAwaitingYou} label="Offers awaiting a reply" href="/offers" tone="amber" />
+        <Stat icon={Truck} value={figure(loading, runner.activeAssignments)} label="Active tasks" href="/assignments" />
+        <Stat icon={Tag} value={figure(loading, runner.offersAwaitingYou)} label="Offers awaiting a reply" href="/offers" tone="amber" />
         <Stat
           icon={Zap}
           tone="blue"
@@ -579,7 +559,7 @@ function RunnerDashboard({ summary }: { summary: Summary }) {
               <div><CardTitle>Your active tasks</CardTitle><CardDescription>Keep the requester updated at every step.</CardDescription></div>
               <Link href="/assignments" className="text-xs font-bold text-green-700 hover:underline">Open all</Link>
             </CardHeader>
-            {assignments.isLoading ? <Skeleton className="h-32 rounded-xl" /> : assignments.error ? (
+            {assignments.isPending ? <Skeleton className="h-32 rounded-xl" /> : assignments.error ? (
               <LoadError error={assignments.error} onRetry={() => void assignments.refetch()} />
             ) : assignments.data?.length ? (
               <div className="grid gap-4">
@@ -651,7 +631,7 @@ function RunnerDashboard({ summary }: { summary: Summary }) {
               <div><CardTitle>Offer allowance</CardTitle><CardDescription>Resets at midnight, Lagos time</CardDescription></div>
               <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{offerLimit.data?.isPro ? 'Runner Pro' : 'Free plan'}</span>
             </CardHeader>
-            {offerLimit.isLoading ? <Skeleton className="h-20 rounded-xl" /> : offerLimit.error ? <LoadError error={offerLimit.error} onRetry={() => void offerLimit.refetch()} /> : offerLimit.data ? (
+            {offerLimit.isPending ? <Skeleton className="h-20 rounded-xl" /> : offerLimit.error ? <LoadError error={offerLimit.error} onRetry={() => void offerLimit.refetch()} /> : offerLimit.data ? (
               <>
                 {offerLimit.data.isPro ? (
                   <p className="py-4 text-center text-sm font-semibold text-ink">Unlimited offers. {offerLimit.data.used} sent today.</p>
@@ -674,9 +654,9 @@ function RunnerDashboard({ summary }: { summary: Summary }) {
           <Card>
             <CardHeader>
               <div><CardTitle>Offers this week</CardTitle><CardDescription>Sent vs selected</CardDescription></div>
-              <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{runner.offersThisWeek} sent</span>
+              {loading ? null : <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{runner.offersThisWeek} sent</span>}
             </CardHeader>
-            <Bars
+            {loading ? <Skeleton className="h-[170px] rounded-[var(--r)]" /> : <Bars
               label="Offers sent and times selected in the last seven days"
               items={runner.offersPerDay.map((day) => ({
                 key: day.date,
@@ -685,17 +665,17 @@ function RunnerDashboard({ summary }: { summary: Summary }) {
                 inner: day.selected,
                 detail: `${day.sent} sent, ${day.selected} selected`,
               }))}
-            />
+            />}
             <p className="mt-3 flex items-center gap-4 text-[11.5px] text-muted">
               <span className="inline-flex items-center gap-1.5"><i aria-hidden="true" className="size-2.5 rounded-sm bg-green" />Sent</span>
               <span className="inline-flex items-center gap-1.5"><i aria-hidden="true" className="size-2.5 rounded-sm bg-lime" />Selected</span>
-              <span className="ml-auto">{runner.completedLast30Days} completed · 30 days</span>
+              <span className="ml-auto">{loading ? '' : `${runner.completedLast30Days} completed · 30 days`}</span>
             </p>
           </Card>
 
           <Card>
             <CardHeader><CardTitle>Reputation</CardTitle><Link href="/runner/history" className="text-xs font-bold text-green-700 hover:underline">Job history</Link></CardHeader>
-            {performance.isLoading ? <Skeleton className="h-20 rounded-xl" /> : performance.error ? (
+            {performance.isPending ? <Skeleton className="h-20 rounded-xl" /> : performance.error ? (
               <LoadError error={performance.error} onRetry={() => void performance.refetch()} />
             ) : (
               <>

@@ -1,7 +1,8 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -86,13 +87,13 @@ export function NotificationsPage() {
       typeof lastPage.meta?.nextCursor === 'string' ? lastPage.meta.nextCursor : undefined,
   });
 
-  const markRead = useMutation({
+  const markRead = useApiMutation({ affects: ['notifications'],
     mutationFn: (id: string) => api<Notification>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.notifications.all() });
     },
   });
-  const markAllRead = useMutation({
+  const markAllRead = useApiMutation({ affects: ['notifications'],
     mutationFn: () => api<{ count: number }>('/notifications/read-all', { method: 'POST', body: {} }),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.notifications.all() });
@@ -167,7 +168,7 @@ export function NotificationsPage() {
       </div>
 
       <section aria-label="Notifications" className="rounded-[var(--r-lg)] border border-line bg-surface px-4 shadow-[var(--shadow)] sm:px-5">
-        {notifications.isLoading ? (
+        {notifications.isPending ? (
           <div className="grid gap-4 py-5" aria-label="Loading notifications">
             <Skeleton className="h-16" />
             <Skeleton className="h-16" />

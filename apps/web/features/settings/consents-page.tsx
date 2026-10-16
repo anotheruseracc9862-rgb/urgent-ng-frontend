@@ -1,7 +1,9 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Card, CardDescription, CardHeader, CardTitle, Skeleton } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
@@ -130,27 +132,19 @@ export function ConsentsPage() {
     staleTime: 5 * 60_000,
   });
   const refreshHistory = () => queryClient.invalidateQueries({ queryKey: queryKeys.consents.history(me.id) });
-  const acceptConsent = useMutation({
+  const acceptConsent = useApiMutation({ affects: ['consents'],
     mutationFn: ({ type, version }: { type: ConsentType; version: string }) => authApi.acceptConsent({ type, version }),
     onSuccess: refreshHistory,
   });
-  const withdrawConsent = useMutation({
+  const withdrawConsent = useApiMutation({ affects: ['consents'],
     mutationFn: (consentId: string) => authApi.withdrawConsent(consentId),
     onSuccess: refreshHistory,
   });
   const actionError = acceptConsent.error ?? withdrawConsent.error;
   const isBusy = acceptConsent.isPending || withdrawConsent.isPending;
 
-  if (history.isLoading || policies.isLoading) {
-    return (
-      <div className="mx-auto grid max-w-4xl gap-5">
-        <header><Skeleton className="h-4 w-20" /><Skeleton className="mt-2 h-8 w-56" /><Skeleton className="mt-2 h-4 w-full max-w-lg" /></header>
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
-          <Skeleton className="h-80 rounded-[var(--r-lg)]" />
-          <Skeleton className="h-80 rounded-[var(--r-lg)]" />
-        </div>
-      </div>
-    );
+  if (history.isLoading || policies.isPending) {
+    return <PageLoading title="Privacy & consents" eyebrow="Account" width="max-w-4xl" cards={[320, 320]} />;
   }
 
   if (history.error || policies.error || !history.data || !policies.data) {

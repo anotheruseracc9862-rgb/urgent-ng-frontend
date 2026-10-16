@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { LoadingFrame } from '@/components/shell/loading-frame';
 import { PolicyAcceptanceNavigation } from '@/lib/auth/policy-navigation';
 
 /**
@@ -11,7 +12,8 @@ import { PolicyAcceptanceNavigation } from '@/lib/auth/policy-navigation';
  */
 const PUBLIC_PATHS = new Set(['/', '/help', '/pricing', '/terms', '/privacy', '/link-expired']);
 
-const AppProviders = dynamic(() => import('./app-providers'));
+// While the app's providers load, show the app frame, so the shell never reads as a blank page.
+const AppProviders = dynamic(() => import('./app-providers'), { loading: () => <LoadingFrame /> });
 
 export function RootProviders({ children }: { children: ReactNode }) {
   const pathname = usePathname();

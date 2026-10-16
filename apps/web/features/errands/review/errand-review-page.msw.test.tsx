@@ -81,18 +81,20 @@ describe('errand review and publish', () => {
     const user = userEvent.setup();
     const idempotencyKeys: string[] = [];
     let publishCount = 0;
+    const published = { ...draft, status: 'OPEN' as const, version: 2, publishedAt: '2026-10-13T10:05:00.000Z' };
     server.use(
-      http.get(`*/api/v1/errands/${errandId}`, () => envelope(draft)),
+      // The server is the authority: after publishing, it answers with the published errand.
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope(publishCount > 0 ? published : draft)),
       http.post(`*/api/v1/errands/${errandId}/publish`, async ({ request }) => {
         publishCount += 1;
         idempotencyKeys.push(request.headers.get('Idempotency-Key') ?? '');
         expect(await request.json()).toEqual({ prohibitedItemsConfirmed: true });
-        return envelope({ ...draft, status: 'OPEN', version: 2, publishedAt: '2026-10-13T10:05:00.000Z' });
+        return envelope(published);
       }),
     );
 
     renderReview();
-    expect(await screen.findByRole('heading', { name: 'Review your errand' })).toBeInTheDocument();
+    expect(await screen.findByLabelText('I confirm this errand does not include prohibited items.')).toBeInTheDocument();
     expect(screen.getByText('Ikeja, Lagos')).toBeInTheDocument();
     expect(screen.queryByText('12 Private Street')).not.toBeInTheDocument();
     expect(screen.queryByText('+2348031234567')).not.toBeInTheDocument();
@@ -120,7 +122,7 @@ describe('errand review and publish', () => {
     );
 
     renderReview();
-    await screen.findByRole('heading', { name: 'Review your errand' });
+    await screen.findByLabelText('I confirm this errand does not include prohibited items.');
     await user.click(screen.getByLabelText('I confirm this errand does not include prohibited items.'));
     await user.click(screen.getByRole('button', { name: 'Post errand' }));
 
@@ -146,7 +148,7 @@ describe('errand review and publish', () => {
     );
 
     renderReview();
-    await screen.findByRole('heading', { name: 'Review your errand' });
+    await screen.findByLabelText('I confirm this errand does not include prohibited items.');
     await user.click(screen.getByLabelText('I confirm this errand does not include prohibited items.'));
     await user.click(screen.getByRole('button', { name: 'Post errand' }));
 
@@ -177,7 +179,7 @@ describe('errand review and publish', () => {
     );
 
     renderReview();
-    await screen.findByRole('heading', { name: 'Review your errand' });
+    await screen.findByLabelText('I confirm this errand does not include prohibited items.');
     await user.click(screen.getByLabelText('I confirm this errand does not include prohibited items.'));
     await user.click(screen.getByRole('button', { name: 'Post errand' }));
     await user.click(await screen.findByRole('button', { name: 'Try again' }));

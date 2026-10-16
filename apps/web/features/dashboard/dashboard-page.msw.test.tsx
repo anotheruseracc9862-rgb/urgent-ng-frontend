@@ -200,8 +200,9 @@ describe('business dashboard', () => {
 
     renderDashboard('REQUESTER');
 
-    expect(await screen.findByText('Avg. time to select')).toBeInTheDocument();
-    expect(screen.getByText('14 min')).toBeInTheDocument();
+    // The labels are there at once; the figures arrive with the data.
+    expect(screen.getByText('Avg. time to select')).toBeInTheDocument();
+    expect(await screen.findByText('14 min')).toBeInTheDocument();
     expect(screen.getByText('3.6')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Errands posted in each of the last four weeks/ })).toBeInTheDocument();
   });

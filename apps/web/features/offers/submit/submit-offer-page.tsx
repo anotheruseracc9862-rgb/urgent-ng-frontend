@@ -1,9 +1,11 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -49,7 +51,7 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
     queryKey: queryKeys.runner.eligibility(),
     queryFn: offersApi.runnerEligibility,
   });
-  const submit = useMutation({
+  const submit = useApiMutation({ affects: ['offers', 'runner'],
     mutationFn: () => offersApi.submit(errandId, {
       amountMinor: Number(amount) * 100,
       durationMinutes: Number(duration),
@@ -64,8 +66,8 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
     },
   });
 
-  if (errand.isLoading || limit.isLoading || eligibility.isLoading) {
-    return <main className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-52 rounded-[var(--r-lg)]" /><Skeleton className="h-72 rounded-[var(--r-lg)]" /></main>;
+  if (errand.isPending || limit.isPending || eligibility.isPending) {
+    return <PageLoading title="Send an offer" eyebrow="Runner" width="max-w-5xl" />;
   }
   if (errand.error || !errand.data || limit.error || !limit.data || eligibility.error || !eligibility.data) {
     const error = errand.error ?? limit.error ?? eligibility.error;

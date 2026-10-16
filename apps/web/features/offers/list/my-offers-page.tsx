@@ -1,8 +1,9 @@
 'use client';
 
+import { persistedQuery } from '@/lib/query/persisted-query';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { ArrowRight, Clock3, RefreshCw } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -46,6 +47,8 @@ export function MyOffersPage() {
       limit: 20,
     }),
     getNextPageParam: (page) => page.meta?.nextCursor ?? undefined,
+    placeholderData: keepPreviousData,
+    ...persistedQuery('standard'),
   });
 
   const offers = list.data?.pages.flatMap((page) => page.data) ?? [];
@@ -68,9 +71,9 @@ export function MyOffersPage() {
         </label>
       </header>
 
-      {list.isLoading ? <div className="grid gap-3">{[0, 1, 2].map((key) => <Skeleton key={key} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
+      {list.isPending ? <div className="grid gap-3">{[0, 1, 2].map((key) => <Skeleton key={key} className="h-32 rounded-[var(--r-lg)]" />)}</div> : null}
       {list.error ? <div><Alert variant="danger" role="alert">{isApiError(list.error) && list.error.code === 'AUTH_REQUIRED' ? 'Sign in to view your offers.' : 'We could not load your offers.'}</Alert><Button className="mt-3" type="button" variant="ghost" onClick={() => void list.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div> : null}
-      {!list.isLoading && !list.error && offers.length === 0 ? (
+      {!list.isPending && !list.error && offers.length === 0 ? (
         <section className="rounded-[var(--r-lg)] border border-line bg-surface p-8 text-center shadow-[var(--shadow)]">
           <span className="mx-auto grid size-12 place-items-center rounded-full bg-panel text-muted"><Clock3 aria-hidden="true" className="size-5" /></span>
           <h2 className="mt-3 font-extrabold text-ink">No offers yet</h2>

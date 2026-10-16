@@ -182,7 +182,7 @@ export function MarketplaceMapPage() {
         <div className="sm:col-span-2 lg:col-span-5"><Button type="submit">Apply filters</Button></div>
       </form>
 
-      {query.isLoading ? <Skeleton className="h-[55vh] min-h-72 rounded-[var(--r-lg)]" aria-label="Loading map errands" /> : null}
+      {query.isPending ? <Skeleton className="h-[55vh] min-h-72 rounded-[var(--r-lg)]" aria-label="Loading map errands" /> : null}
       {query.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load the map errands.</p>
@@ -190,7 +190,7 @@ export function MarketplaceMapPage() {
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void query.refetch()}>Try again</Button>
         </Alert>
       ) : null}
-      {!query.isLoading && !query.error && points.length === 0 ? (
+      {!query.isPending && !query.error && points.length === 0 ? (
         <div className="rounded-[var(--r-lg)] border border-dashed border-line bg-panel/60 p-8 text-center">
           <p className="font-extrabold text-ink">No errands match these filters.</p>
           <p className="mt-2 text-sm text-muted">Expand your radius or update your operating area to find nearby errands.</p>

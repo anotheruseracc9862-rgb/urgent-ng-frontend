@@ -1,6 +1,8 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PageLoading } from '@/components/shell/page-loading';
+import { useQuery } from '@tanstack/react-query';
+import { useApiMutation } from '@/lib/query/mutations';
 import { UserRoundX } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
@@ -9,7 +11,6 @@ import { authApi } from '@/lib/api/auth';
 import type { BlockedUser } from '@/lib/api/types';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
-import { invalidateBlockRelatedQueries } from './block-user-button';
 
 function ErrorPanel({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const forbidden = isApiError(error) && error.status === 403;
@@ -50,21 +51,16 @@ function BlockedPersonRow({ person, busy, onUnblock }: {
 
 export function BlockedPeoplePage() {
   const { me } = useSession();
-  const queryClient = useQueryClient();
   const queryKey = queryKeys.blocks.list(me.id);
   const blockedUsers = useQuery({ queryKey, queryFn: authApi.blockedUsers });
-  const unblock = useMutation({
+  const unblock = useApiMutation({
     mutationFn: authApi.unblockUser,
-    onSuccess: () => invalidateBlockRelatedQueries(queryClient, me.id),
+    // The person returns to the feed, offers and chats.
+    affects: ['blocks'],
   });
 
-  if (blockedUsers.isLoading) {
-    return (
-      <div className="mx-auto grid max-w-3xl gap-5">
-        <header><Skeleton className="h-4 w-28" /><Skeleton className="mt-2 h-8 w-56" /><Skeleton className="mt-2 h-4 w-full max-w-xl" /></header>
-        <Skeleton className="h-56 rounded-[var(--r-lg)]" />
-      </div>
-    );
+  if (blockedUsers.isPending) {
+    return <PageLoading title="Blocked people" eyebrow="Settings" width="max-w-3xl" />;
   }
 
   if (blockedUsers.error || !blockedUsers.data) {

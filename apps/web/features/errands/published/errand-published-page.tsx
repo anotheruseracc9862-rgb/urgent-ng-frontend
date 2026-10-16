@@ -1,5 +1,6 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -30,8 +31,8 @@ export function ErrandPublishedPage({ errandId }: { errandId: string }) {
     }
   };
 
-  if (errand.isLoading) {
-    return <div className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-36 rounded-[var(--r-lg)]" /><Skeleton className="h-56 rounded-[var(--r-lg)]" /></div>;
+  if (errand.isPending) {
+    return <PageLoading title="Your errand is live" eyebrow="Requester" width="max-w-5xl" />;
   }
   if (errand.error || !errand.data) {
     return <Alert variant="danger" role="alert"><div className="grid gap-2"><p>We could not load the published errand.</p>{isApiError(errand.error) && errand.error.requestId ? <p className="text-xs">Request ID: {errand.error.requestId}</p> : null}<Button type="button" variant="ghost" onClick={() => void errand.refetch()}>Try again</Button></div></Alert>;

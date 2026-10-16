@@ -83,8 +83,10 @@ afterEach(() => {
 describe('event dispatcher', () => {
   it('maps event types to query keys and ignores unknown types', () => {
     expect(queryKeysForRealtimeEvent('notification.created')).toEqual([queryKeys.notifications.all()]);
-    expect(queryKeysForRealtimeEvent('message.created')).toEqual([queryKeys.conversations.all()]);
+    // A message also moves the unread notification count.
+    expect(queryKeysForRealtimeEvent('message.created')).toEqual([queryKeys.conversations.all(), queryKeys.notifications.all()]);
     expect(queryKeysForRealtimeEvent('offer.new')).toContainEqual(queryKeys.offers.all());
+    expect(queryKeysForRealtimeEvent('offer.new')).toContainEqual(queryKeys.errands.all());
     expect(queryKeysForRealtimeEvent('something.else')).toEqual([]);
   });
 });

@@ -1,5 +1,7 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useLivePolling } from '@/features/realtime/use-live-polling';
 import Link from 'next/link';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -20,8 +22,11 @@ export function ReportsPage() {
 }
 
 export function ReportDetailPage({ reportId }: { reportId: string }) {
-  const query = useQuery({ queryKey: safetyKeys.report(reportId), queryFn: () => safetyApi.report(reportId), retry: false, refetchInterval: 30_000 });
-  if (query.isPending) return <Skeleton className="mx-auto h-48 max-w-3xl rounded-[var(--r-lg)]" />;
+  const polling = useLivePolling(30_000);
+  const query = useQuery({ queryKey: safetyKeys.report(reportId), queryFn: () => safetyApi.report(reportId), retry: false, refetchInterval: polling });
+  if (query.isPending) {
+    return <PageLoading title="Reports" eyebrow="Safety" width="max-w-3xl" />;
+  }
   if (!query.data || query.error) return <CaseError error={query.error} retry={() => void query.refetch()} />;
   const report = query.data;
   return <main className="mx-auto grid max-w-3xl gap-5"><Link href="/reports" className="text-sm font-bold text-green-800">← Your reports</Link><header><p className="text-xs font-extrabold uppercase text-green-800">{caseLabelText(report.status)}</p><h1 className="mt-1 text-3xl font-extrabold">{caseLabelText(report.type)}</h1><p className="mt-2 break-all text-xs text-muted">Report reference: {report.id}</p></header>

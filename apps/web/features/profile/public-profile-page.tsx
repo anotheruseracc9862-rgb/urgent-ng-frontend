@@ -1,9 +1,11 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useApiMutation } from '@/lib/query/mutations';
 import { Flag, Star, UserRound } from 'lucide-react';
 import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Skeleton, Textarea } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
@@ -72,7 +74,9 @@ function ReportProfileDialog({ userId, name }: { userId: string; name: string })
   const [description, setDescription] = useState('');
   const [requestKey, setRequestKey] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const mutation = useMutation({
+  const mutation = useApiMutation({
+    // A report is private to the reporter and changes nothing this app caches.
+    affects: [],
     mutationFn: ({ reportType, details, idempotencyKey }: { reportType: ReportType; details: string; idempotencyKey: string }) =>
       authApi.createReport({ targetType: 'USER', targetId: userId, type: reportType, description: details }, idempotencyKey),
     onSuccess: () => {
@@ -164,8 +168,8 @@ export function PublicProfilePage({ userId }: { userId: string }) {
   });
   const reviewItems = reviews.data?.pages.flatMap((page) => page.data) ?? [];
 
-  if (profile.isLoading) {
-    return <div className="mx-auto grid max-w-5xl gap-5"><Skeleton className="h-48 rounded-[var(--r-lg)]" /><div className="grid gap-4 sm:grid-cols-2"><Skeleton className="h-24" /><Skeleton className="h-24" /></div><Skeleton className="h-64 rounded-[var(--r-lg)]" /></div>;
+  if (profile.isPending) {
+    return <PageLoading title="Profile" eyebrow="Urgent.ng" width="max-w-4xl" />;
   }
   if (profile.error || !profile.data) return <div className="mx-auto max-w-3xl"><ProfileLoadError error={profile.error} onRetry={() => void profile.refetch()} /></div>;
 

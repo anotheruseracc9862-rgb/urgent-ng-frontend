@@ -1,9 +1,11 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton, Textarea } from '@urgent/ui';
 import type { components } from '@urgent/api-client';
 import { isApiError } from '@/lib/api/client';
@@ -63,7 +65,7 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
     queryKey: queryKeys.errands.detail(errandId),
     queryFn: () => errandsApi.get(errandId),
   });
-  const cancel = useMutation({
+  const cancel = useApiMutation({ affects: ['errands'],
     mutationFn: () => errandsApi.cancel(errandId, { reason, ...(note.trim() ? { note: note.trim() } : {}) }),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.errands.detail(errandId), updated);
@@ -72,8 +74,8 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
     },
   });
 
-  if (errandQuery.isLoading) {
-    return <div className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div>;
+  if (errandQuery.isPending) {
+    return <PageLoading title="Cancel errand" eyebrow="Errand" width="max-w-5xl" />;
   }
   if (errandQuery.error || !errandQuery.data) {
     return (

@@ -1,8 +1,10 @@
 'use client';
 
+import { useLivePolling } from '@/features/realtime/use-live-polling';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
@@ -15,10 +17,11 @@ function beforeDeadline(deadline: string | null, now: number) {
 }
 
 export function AssignmentRatingPage({ assignmentId }: { assignmentId: string }) {
+  const polling = useLivePolling(30_000);
   const { me } = useSession();
   const client = useQueryClient();
   const key = ratingKeys.assignment(me.id, assignmentId);
-  const query = useQuery({ queryKey: key, queryFn: ({ signal }) => ratingsApi.assignment(assignmentId, signal), retry: false, refetchInterval: 30_000 });
+  const query = useQuery({ queryKey: key, queryFn: ({ signal }) => ratingsApi.assignment(assignmentId, signal), retry: false, refetchInterval: polling });
   const [now, setNow] = useState(() => Date.now());
   const [saveError, setSaveError] = useState<unknown>(null);
   useEffect(() => {
@@ -68,7 +71,7 @@ function RatingForm({ assignmentId, mine, deadline, onSaved, onError }: { assign
   const [review, setReview] = useState(mine?.review ?? '');
   const [blocked, setBlocked] = useState(false);
   const intent = useRef<{ signature: string; key: string } | null>(null);
-  const mutation = useMutation({
+  const mutation = useApiMutation({ affects: ['assignments', 'users'],
     mutationFn: (body: SubmitRating) => {
       if (!beforeDeadline(deadline, Date.now())) throw new Error('The rating deadline has passed.');
       if (mine) return ratingsApi.edit(mine.id, { scores: body.scores, review: body.review || null });

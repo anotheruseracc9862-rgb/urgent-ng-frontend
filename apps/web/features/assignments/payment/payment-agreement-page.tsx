@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
@@ -38,7 +40,7 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
   });
   const [methodDraft, setMethodDraft] = useState<PaymentMethod | ''>('');
   const [timingDraft, setTimingDraft] = useState<PaymentTiming | ''>('');
-  const update = useMutation({
+  const update = useApiMutation({ affects: ['assignments'],
     mutationFn: (input: components['schemas']['UpdatePaymentAgreementDto']) => offersApi.updatePaymentAgreement(assignmentId, input),
     onSuccess: (result) => {
       client.setQueryData(agreementKey, result);
@@ -47,8 +49,8 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
     },
   });
 
-  if (agreement.isLoading || assignment.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /></main>;
+  if (agreement.isPending || assignment.isPending) {
+    return <PageLoading title="Payment agreement" eyebrow="Assignment" width="max-w-3xl" />;
   }
   if (agreement.error || !agreement.data || assignment.error || !assignment.data) {
     const error = agreement.error ?? assignment.error;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,8 +8,9 @@ import { Button } from '@urgent/ui';
 import { createShare, dateText, errorText, listShares, revokeShare, shareKeys, type CreatedShare } from './api';
 
 export function ShareManagementPage({ errandId }: { errandId: string }) {
+  const polling = useLivePolling(30_000);
   const client = useQueryClient();
-  const links = useQuery({ queryKey: shareKeys.list(errandId), queryFn: () => listShares(errandId), retry: false, refetchInterval: 30_000 });
+  const links = useQuery({ queryKey: shareKeys.list(errandId), queryFn: () => listShares(errandId), retry: false, refetchInterval: polling });
   const intent = useRef<string | null>(null);
   const lock = useRef(false);
   const [secret, setSecret] = useState<CreatedShare | null>(null);

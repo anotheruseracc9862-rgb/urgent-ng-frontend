@@ -1,9 +1,11 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -77,7 +79,7 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
     queryKey: queryKeys.errands.detail(errandId),
     queryFn: () => errandsApi.get(errandId),
   });
-  const publish = useMutation({
+  const publish = useApiMutation({ affects: ['errands'],
     mutationFn: (key: string) => errandsApi.publish(errandId, { prohibitedItemsConfirmed: true }, key),
     onSuccess: (publishedErrand) => {
       queryClient.setQueryData(queryKeys.errands.detail(errandId), publishedErrand);
@@ -86,8 +88,8 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
     },
   });
 
-  if (errand.isLoading) {
-    return <div className="mx-auto grid max-w-5xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-64 rounded-[var(--r-lg)]" /><Skeleton className="h-44 rounded-[var(--r-lg)]" /></div>;
+  if (errand.isPending) {
+    return <PageLoading title="Review your errand" eyebrow="Post an errand · Step 2 of 2" />;
   }
   if (errand.error || !errand.data) {
     return (
@@ -205,7 +207,7 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
             <Link href={`/errands/${errandId}/edit`} className="inline-flex min-h-11 items-center justify-center rounded-full px-4 text-sm font-bold text-ink hover:bg-panel">Back to edit</Link>
             <Button
               type="button"
-              disabled={!confirmed || currentErrand.status !== 'DRAFT' || publish.isPending}
+              disabled={!confirmed || currentErrand.status !== 'DRAFT' || publish.isPending || publish.isSuccess}
               onClick={() => publish.mutate(idempotencyKey)}
             >
               {publish.isPending ? 'Posting…' : 'Post errand'}

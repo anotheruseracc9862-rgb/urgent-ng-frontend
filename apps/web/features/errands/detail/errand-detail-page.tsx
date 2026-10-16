@@ -1,10 +1,11 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ArrowLeft,
@@ -222,7 +223,7 @@ function RunnerCard({ runnerId, amountMinor }: { runnerId: string; amountMinor: 
     queryFn: () => authApi.publicProfile(runnerId),
   });
 
-  if (profileQuery.isLoading) return <Skeleton className="h-28 rounded-[var(--r-lg)]" />;
+  if (profileQuery.isPending) return <Skeleton className="h-28 rounded-[var(--r-lg)]" />;
   if (profileQuery.error || !profileQuery.data) {
     return <div className="grid gap-2"><ApiErrorMessage error={profileQuery.error} fallback="We could not load the runner profile." /><Button type="button" variant="ghost" size="sm" onClick={() => void profileQuery.refetch()}>Try again</Button></div>;
   }
@@ -310,21 +311,21 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
     queryFn: () => errandsApi.timeline(assignment!.id),
     enabled: Boolean(assignment),
   });
-  const extend = useMutation({
+  const extend = useApiMutation({ affects: ['errands'],
     mutationFn: () => errandsApi.extend(errandId),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.errands.detail(errandId), updated);
       void queryClient.invalidateQueries({ queryKey: queryKeys.errands.lists() });
     },
   });
-  const duplicate = useMutation({
+  const duplicate = useApiMutation({ affects: ['errands'],
     mutationFn: () => errandsApi.duplicate(errandId),
     onSuccess: (draft) => {
       queryClient.setQueryData(queryKeys.errands.detail(draft.id), draft);
       router.push(`/errands/${draft.id}/edit`);
     },
   });
-  const selectRunner = useMutation({
+  const selectRunner = useApiMutation({ affects: ['errands', 'offers', 'assignments'],
     mutationFn: ({ offer, idempotencyKey }: { offer: ErrandOffer; idempotencyKey: string }) =>
       errandsApi.selectRunner(errandId, offer, idempotencyKey),
     onSuccess: (selected) => {
@@ -343,8 +344,8 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
     },
   });
 
-  if (errandQuery.isLoading) {
-    return <div className="mx-auto grid max-w-6xl gap-4"><Skeleton className="h-12" /><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[1fr_20rem]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
+  if (errandQuery.isPending) {
+    return <div className="mx-auto grid max-w-6xl gap-4"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[1fr_20rem]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
   }
   if (errandQuery.error || !errand) {
     return <div className="mx-auto max-w-4xl"><Link href="/errands" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;

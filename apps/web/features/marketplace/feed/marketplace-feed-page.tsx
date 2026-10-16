@@ -1,9 +1,11 @@
 'use client';
 
+import { persistedQuery } from '@/lib/query/persisted-query';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef } from 'react';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData, keepPreviousData } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { api, apiResponse, isApiError, type ApiResponse } from '@/lib/api/client';
@@ -61,9 +63,13 @@ export function MarketplaceFeedPage() {
     }),
     getNextPageParam: (page) => page.meta?.nextCursor ?? undefined,
     retry: false,
+    // Approximate areas only: the last first page may be shown again after a reload. A filter
+    // change keeps the old rows on screen until the new ones arrive.
+    placeholderData: keepPreviousData,
+    ...persistedQuery('standard'),
   });
 
-  const saveMutation = useMutation({
+  const saveMutation = useApiMutation({ affects: ['marketplace'],
     mutationFn: async ({ errandId, saved }: { errandId: string; saved: boolean }) =>
       saved
         ? api<{ saved: boolean }>(`/saved-errands/${errandId}`, { method: 'DELETE' })
@@ -186,18 +192,6 @@ export function MarketplaceFeedPage() {
   const sort = searchParams.get('sort') ?? 'recommended';
   const timeMode = searchParams.get('timeMode') ?? '';
 
-  if (categoryOptions.isLoading || errands.isLoading) {
-    return (
-      <main className="mx-auto grid max-w-6xl gap-4 p-4">
-        <Skeleton className="h-12 w-56" />
-        <div className="grid gap-3 md:grid-cols-[280px_1fr]">
-          <Skeleton className="h-64 rounded-[var(--r-lg)]" />
-          <Skeleton className="h-96 rounded-[var(--r-lg)]" />
-        </div>
-      </main>
-    );
-  }
-
   if (categoryOptions.error || errands.error) {
     const error = categoryOptions.error ?? errands.error;
     return (
@@ -297,7 +291,11 @@ export function MarketplaceFeedPage() {
         </div>
       </form>
 
-      {items.length === 0 ? (
+      {errands.isPending ? (
+        <section className="grid gap-3" aria-label="Loading errands" aria-busy="true">
+          {[0, 1, 2].map((key) => <Skeleton key={key} className="h-36 rounded-[var(--r-lg)]" />)}
+        </section>
+      ) : items.length === 0 ? (
         <div className="rounded-[var(--r-lg)] border border-dashed border-line bg-panel/60 p-8 text-center">
           <p className="text-base font-extrabold text-ink">No errands match your filters right now.</p>
           <p className="mt-2 text-sm text-muted">Adjust your radius or search, or update your operating area to see more nearby requests.</p>

@@ -1,6 +1,8 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Monitor, Smartphone } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
@@ -99,19 +101,11 @@ export function SecuritySettingsPage() {
     queryClient.invalidateQueries({ queryKey: sessionsKey }),
     queryClient.invalidateQueries({ queryKey: devicesKey }),
   ]);
-  const revokeSession = useMutation({ mutationFn: authApi.revokeSession, onSuccess: refresh });
-  const removeDevice = useMutation({ mutationFn: authApi.removeDevice, onSuccess: refresh });
+  const revokeSession = useApiMutation({ affects: ['security'], mutationFn: authApi.revokeSession, onSuccess: refresh });
+  const removeDevice = useApiMutation({ affects: ['security'], mutationFn: authApi.removeDevice, onSuccess: refresh });
 
-  if (sessions.isLoading || devices.isLoading) {
-    return (
-      <div className="mx-auto grid max-w-4xl gap-5">
-        <header><Skeleton className="h-4 w-20" /><Skeleton className="mt-2 h-8 w-56" /><Skeleton className="mt-2 h-4 w-full max-w-lg" /></header>
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Skeleton className="h-72 rounded-[var(--r-lg)]" />
-          <Skeleton className="h-72 rounded-[var(--r-lg)]" />
-        </div>
-      </div>
-    );
+  if (sessions.isPending || devices.isPending) {
+    return <PageLoading title="Security" eyebrow="Account" description="Manage where you are signed in and devices that can receive notifications." width="max-w-4xl" cards={[288, 288]} />;
   }
 
   const errors = [sessions.error, devices.error, revokeSession.error, removeDevice.error].filter(Boolean);

@@ -1,9 +1,10 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ImagePlus, Info, Send } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { MediaUpload } from '@/components/media/MediaUpload';
@@ -49,7 +50,7 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
   const messageList = messages.data?.pages.slice().reverse().flatMap((page) => page.data.slice().reverse()) ?? [];
   const latestId = messageList.at(-1)?.id;
 
-  const markRead = useMutation({
+  const markRead = useApiMutation({ affects: ['conversations'],
     mutationFn: (messageId: string) => messagingApi.read(conversationId, messageId),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.conversations.all() });
@@ -68,7 +69,7 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
     streamEnd.current?.scrollIntoView?.({ block: 'end' });
   }, [latestId, conversationId]);
 
-  const send = useMutation({
+  const send = useApiMutation({ affects: ['conversations'],
     mutationFn: (input: SendMessage) => messagingApi.send(conversationId, input),
     onSuccess: async () => {
       intent.current = null;
@@ -81,7 +82,7 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
       ]);
     },
   });
-  const remove = useMutation({
+  const remove = useApiMutation({ affects: ['conversations'],
     mutationFn: (id: string) => messagingApi.remove(id),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: queryKeys.conversations.messages(conversationId) });
@@ -100,7 +101,7 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
     send.mutate({ ...input, clientMessageId: intent.current.clientMessageId });
   };
 
-  if (conversation.isLoading) {
+  if (conversation.isPending) {
     return <div className="grid gap-3 p-4" aria-label="Loading conversation"><Skeleton className="h-14" /><Skeleton className="h-72" /></div>;
   }
   if (conversation.error || !conversation.data) {
@@ -268,7 +269,7 @@ function ChatImage({ mediaId }: { mediaId: string }) {
     queryFn: () => api<{ url: string }>(`/media/${encodeURIComponent(mediaId)}/url`),
     staleTime: 2 * 60_000,
   });
-  if (image.isLoading) return <Skeleton className="h-40 w-56" aria-label="Loading shared image" />;
+  if (image.isPending) return <Skeleton className="h-40 w-56" aria-label="Loading shared image" />;
   if (image.error || !image.data?.url) return <p role="status" className="text-xs">Image unavailable.</p>;
   return <Image src={image.data.url} alt="Shared image" width={640} height={480} unoptimized className="max-h-72 w-auto rounded-lg object-contain" />;
 }

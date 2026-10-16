@@ -63,7 +63,7 @@ export function ConversationListPage() {
           </button>
         ))}
       </div>
-      {conversations.isLoading ? (
+      {conversations.isPending ? (
         <div className="grid gap-3" aria-label="Loading conversations">
           <Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" />
         </div>

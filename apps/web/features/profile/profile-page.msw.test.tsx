@@ -99,7 +99,7 @@ describe('profile page', () => {
     renderProfile();
 
     expect(screen.getByText(/Member since 10 Mar 2025/)).toBeInTheDocument();
-    expect(await screen.findByText('Errands this month')).toBeInTheDocument();
+    expect(await screen.findByText('4')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
   });

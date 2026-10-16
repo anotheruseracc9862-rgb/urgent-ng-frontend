@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
@@ -26,7 +28,7 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, []);
-  const complete = useMutation({
+  const complete = useApiMutation({ affects: ['assignments'],
     mutationFn: () => {
       if (!assignment.data) throw new Error('Assignment details are unavailable.');
       return offersApi.completeErrand(assignment.data.data.errandId);
@@ -42,8 +44,8 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
     },
   });
 
-  if (assignment.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending) {
+    return <PageLoading title="Confirm delivery" eyebrow="Assignment" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data) {
     return (

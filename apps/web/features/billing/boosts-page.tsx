@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { errandsApi } from '@/features/errands/api';
 import { queryKeys } from '@/lib/query/keys';
+import { useApiMutation } from '@/lib/query/mutations';
 import { billingApi, productFor, type Order } from './api';
 import { billingErrorMessage } from './messages';
 import { useIntentKey } from './use-intent-key';
@@ -21,8 +22,10 @@ function BoostRow({ errandId, title, boostedOrder, price, selected }: {
 }) {
   const intent = useIntentKey();
   const continueToCheckout = useContinueToCheckout();
-  const buy = useMutation({
+  const buy = useApiMutation({
     mutationFn: () => billingApi.boost(errandId, intent.keyFor(`boost:${errandId}`)),
+    // A new order appears in the orders list and the errand becomes boosted once it is paid.
+    affects: ['billing'],
     onSuccess: (order) => {
       intent.reset();
       continueToCheckout(order);
@@ -102,7 +105,7 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
       ) : null}
 
       <section aria-label="Open errands" className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        {open.isLoading ? (
+        {open.isPending ? (
           <div className="grid gap-3" aria-label="Loading errands"><Skeleton className="h-16" /><Skeleton className="h-16" /></div>
         ) : !errands.length && !open.error ? (
           <div className="py-10 text-center">

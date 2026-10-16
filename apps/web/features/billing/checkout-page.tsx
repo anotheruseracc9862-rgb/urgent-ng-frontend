@@ -1,5 +1,6 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
 import * as React from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -89,8 +90,8 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
     }
   }, [status, client]);
 
-  if (checked.isLoading) {
-    return <div className="mx-auto grid max-w-xl gap-3" aria-label="Checking your payment"><Skeleton className="h-24" /><Skeleton className="h-40" /></div>;
+  if (checked.isPending) {
+    return <PageLoading title="Payment" eyebrow="Billing" width="max-w-xl" />;
   }
   if (checked.error || !checked.data) {
     const notFound = isApiError(checked.error) && checked.error.status === 404;

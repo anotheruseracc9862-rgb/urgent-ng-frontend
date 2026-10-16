@@ -2,26 +2,22 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { api, apiResponse } from '@/lib/api/client';
+import { apiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
+import { persistedQuery } from '@/lib/query/persisted-query';
+import { runnerQueries } from '@/features/runner/queries';
 
 type FeedItem = components['schemas']['FeedItemDto'];
-type Eligibility = components['schemas']['RunnerEligibilityDto'];
 
 export const NEARBY_FEED_FILTERS = { sort: 'recommended', limit: 5 } as const;
 
 export function nearbyFeedKey(userId: string) {
-  return [...queryKeys.marketplace.feed(NEARBY_FEED_FILTERS), userId] as const;
+  return queryKeys.marketplace.nearby(userId);
 }
 
 /** Whether this runner may browse the feed. Shared by the dashboard and the navigation rail. */
 export function useRunnerEligibility(userId: string, enabled = true) {
-  return useQuery({
-    queryKey: ['runner', 'eligibility', userId],
-    queryFn: () => api<Eligibility>('/runner/eligibility'),
-    retry: false,
-    enabled,
-  });
+  return useQuery({ ...runnerQueries.eligibility(userId), enabled });
 }
 
 /**
@@ -32,9 +28,10 @@ export function useNearbyErrands(userId: string, enabled: boolean) {
   const eligibility = useRunnerEligibility(userId, enabled);
   const feed = useQuery({
     queryKey: nearbyFeedKey(userId),
-    queryFn: () => apiResponse<FeedItem[]>('/marketplace/errands', { query: NEARBY_FEED_FILTERS }),
+    queryFn: ({ signal }) => apiResponse<FeedItem[]>('/marketplace/errands', { query: NEARBY_FEED_FILTERS, signal }),
     enabled: enabled && eligibility.data?.canBrowseFeed === true,
-    staleTime: 30_000,
+    // Approximate areas only, so the last first page may be shown again after a reload.
+    ...persistedQuery('standard'),
   });
   const total = typeof feed.data?.meta?.total === 'number' ? feed.data.meta.total : null;
   return { eligibility, feed, items: feed.data?.data ?? [], total };

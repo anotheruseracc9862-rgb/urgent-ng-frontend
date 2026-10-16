@@ -71,7 +71,7 @@ describe('published errand page', () => {
     renderPublished();
 
     expect(await screen.findByRole('heading', { name: 'Your errand is live' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View errand' })).toHaveAttribute('href', `/errands/${errandId}`);
+    expect(await screen.findByRole('link', { name: 'View errand' })).toHaveAttribute('href', `/errands/${errandId}`);
     expect(screen.getByRole('link', { name: 'Boost · optional' })).toHaveAttribute('href', expect.stringMatching(/^\/boosts\?errandId=/));
     await user.click(screen.getByRole('button', { name: 'Copy errand link' }));
 

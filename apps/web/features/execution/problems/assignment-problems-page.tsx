@@ -1,8 +1,10 @@
 'use client';
 
+import { PageLoading } from '@/components/shell/page-loading';
+import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { MediaUpload } from '@/components/media-upload/media-upload';
@@ -76,7 +78,7 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
       client.invalidateQueries({ queryKey: queryKeys.assignments.timeline(assignmentId) }),
     ]);
   };
-  const reportProblem = useMutation({
+  const reportProblem = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.reportExecutionProblem(assignmentId, {
       type: problemType,
       ...(problemNote.trim() ? { note: problemNote.trim() } : {}),
@@ -88,11 +90,11 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
       await refresh();
     },
   });
-  const resolveProblem = useMutation({
+  const resolveProblem = useApiMutation({ affects: ['assignments'],
     mutationFn: (problemId: string) => offersApi.resolveExecutionProblem(assignmentId, problemId),
     onSuccess: refresh,
   });
-  const delay = useMutation({
+  const delay = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.delayNotice(assignmentId, {
       reason: delayReason,
       newEstimateMinutes: Number(estimate),
@@ -103,7 +105,7 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
       await refresh();
     },
   });
-  const receipt = useMutation({
+  const receipt = useApiMutation({ affects: ['assignments'],
     mutationFn: () => {
       if (!receiptMediaId) throw new Error('Choose a receipt photo first.');
       return offersApi.addReceipt(assignmentId, {
@@ -118,8 +120,8 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
     },
   });
 
-  if (assignment.isLoading || problems.isLoading) {
-    return <main className="mx-auto grid max-w-3xl gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></main>;
+  if (assignment.isPending || problems.isPending) {
+    return <PageLoading title="Problems and delays" eyebrow="Assignment" width="max-w-3xl" />;
   }
   if (assignment.error || !assignment.data || problems.error || !problems.data) {
     const error = assignment.error ?? problems.error;

@@ -1,7 +1,8 @@
 'use client';
 
+import { useApiMutation } from '@/lib/query/mutations';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { authApi } from '@/lib/api/auth';
@@ -29,7 +30,7 @@ export function BlockUserButton({ userId, userName, label = 'Block', variant = '
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [success, setSuccess] = useState(false);
-  const mutation = useMutation({
+  const mutation = useApiMutation({ affects: ['blocks'],
     mutationFn: () => authApi.blockUser(userId),
     onSuccess: async () => {
       await invalidateBlockRelatedQueries(queryClient, me.id);

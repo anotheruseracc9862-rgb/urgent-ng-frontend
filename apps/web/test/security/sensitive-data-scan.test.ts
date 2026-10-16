@@ -34,7 +34,7 @@ const ALLOWED_STORAGE_WRITES: Record<string, string> = {
   'lib/auth/runner-intro.ts': 'localStorage: a per-user, per-mode 1 flag meaning the mode intro was shown',
   'features/billing/checkout.ts': 'sessionStorage: the pending order id only',
   'lib/storage/session-value.ts': 'sessionStorage helper for tab-scoped, non-secret UI values',
-  'lib/query/provider.tsx': 'localStorage: persisted query cache; sensitive query families are excluded and it is cleared on sign-out',
+  'lib/query/persist.ts': 'localStorage: persisted query cache; only queries that opt in, never a barred family (policy.ts), scoped to one person and cleared on sign-out',
 };
 
 describe('sensitive data scan', () => {
@@ -68,11 +68,29 @@ describe('sensitive data scan', () => {
     expect(logging).toEqual([]);
   });
 
-  it('persists only public reference data from the query cache', async () => {
-    const { isPersistableKey } = await import('@/lib/query/provider');
+  it('persists a query only when it opts in, and never from a barred family', async () => {
+    const { isPersistableKey, isSensitiveKey } = await import('@/lib/query/provider');
+    // The key-level check says whether a query that opts in could be stored.
+    expect(isPersistableKey(['errands', 'mine', 'u1', {}])).toBe(true);
     expect(isPersistableKey(['reference', 'categories'])).toBe(true);
-    for (const key of [['billing', 'orders'], ['notifications'], ['assignments', 'detail', 'a1'], ['shared', 'tok'], ['errands', 'detail', 'e1']]) {
+    for (const key of [['conversations', 'messages', 'c1'], ['billing', 'orders'], ['assignments', 'detail', 'a1'], ['auth', 'me'], ['verification'], ['notifications']]) {
       expect(isPersistableKey(key)).toBe(false);
+      expect(isSensitiveKey(key)).toBe(true);
     }
+  });
+
+  it('declares persistence only in the query factories and the policy module', () => {
+    const declared = SOURCES.filter(({ text }) => /persist:\s*true/.test(text)).map(({ file }) => file).sort();
+    expect(declared).toEqual(['lib/query/persisted-query.ts', 'lib/query/provider.tsx']);
+    // Pages that opt a list in directly. Each holds approximate areas only, never an exact address.
+    const reviewed = new Set([
+      'features/marketplace/feed/marketplace-feed-page.tsx',
+      'features/marketplace/saved/saved-errands-page.tsx',
+      'features/offers/list/my-offers-page.tsx',
+      'features/marketplace/use-nearby-errands.ts',
+    ]);
+    const users = SOURCES.filter(({ file, text }) => /persistedQuery\(/.test(text) && !file.endsWith('queries.ts') && !reviewed.has(file) && file !== 'lib/query/persisted-query.ts')
+      .map(({ file }) => file);
+    expect(users).toEqual([]);
   });
 });
