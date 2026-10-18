@@ -14,15 +14,17 @@ import { queryKeys } from '@/lib/query/keys';
 import { rememberPendingOrder } from '@/features/billing/checkout';
 import { ContactMethodsForm } from '@/features/settings/contact-methods-form';
 import { verificationApi, type BillingOrder, type VerificationAttempt } from './api';
+import { DateOfBirthPicker } from './date-of-birth-picker';
 
 type Identity = components['schemas']['IdentityDetailsDto'];
 type IdDocumentType = components['schemas']['IdDocumentType'];
+type IdType = 'NIN' | 'BVN';
 type Relationship = components['schemas']['GuarantorRelationship'];
 
 const failureCopy: Record<NonNullable<VerificationAttempt['failureReason']>, string> = {
   DOCUMENT_INVALID: 'We could not read the identity document. Check that the image is clear and all details are visible, then try again.',
   SELFIE_MISMATCH: 'The selfie did not match the identity details. Take a new selfie in good light without a hat or sunglasses.',
-  IDENTITY_MISMATCH: 'The identity details did not match the verification record. Check the names and NIN, then try again.',
+  IDENTITY_MISMATCH: 'The identity details did not match the verification record. Enter your name, date of birth and ID number exactly as they appear on your NIN or BVN record, then try again.',
   PROVIDER_ERROR: 'The identity verification service could not complete the check. Your fee will be refunded if one was charged. Try again later.',
   PROVIDER_TIMEOUT: 'The identity verification service took too long to respond. Your fee will be refunded if one was charged. Try again later.',
   DUPLICATE_IDENTITY: 'This identity is already registered to another account. Contact support if you believe this is a mistake.',
@@ -125,7 +127,8 @@ export function VerificationPage() {
   });
   const [documentType, setDocumentType] = useState<IdDocumentType>('NIN_SLIP');
   const [documentMediaId, setDocumentMediaId] = useState<string>();
-  const [nin, setNin] = useState('');
+  const [idType, setIdType] = useState<IdType>('NIN');
+  const [idNumber, setIdNumber] = useState('');
   const [selfieMediaId, setSelfieMediaId] = useState<string>();
   const [guarantorName, setGuarantorName] = useState('');
   const [guarantorRelationship, setGuarantorRelationship] = useState<Relationship>('FAMILY');
@@ -186,7 +189,7 @@ export function VerificationPage() {
 
   const startVerification = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!/^\d{11}$/.test(nin) || !selfieMediaId || !confirmed || submitting) return;
+    if (!/^\d{11}$/.test(idNumber) || !selfieMediaId || !confirmed || submitting) return;
     const trimmedGuarantorName = guarantorName.trim();
     const trimmedGuarantorPhone = guarantorPhone.trim();
     if ((trimmedGuarantorName && !trimmedGuarantorPhone) || (!trimmedGuarantorName && trimmedGuarantorPhone)) {
@@ -198,7 +201,7 @@ export function VerificationPage() {
     setSubmitError(undefined);
     const input: components['schemas']['StartVerificationDto'] = {
       identity,
-      nin,
+      ...(idType === 'BVN' ? { bvn: idNumber } : { nin: idNumber }),
       selfieMediaId,
       ...(documentMediaId ? { idDocument: { type: documentType, mediaId: documentMediaId } } : {}),
       ...(trimmedGuarantorName && trimmedGuarantorPhone
@@ -225,7 +228,7 @@ export function VerificationPage() {
         await queryClient.invalidateQueries({ queryKey: queryKeys.runner.verification() });
       }
     } finally {
-      setNin('');
+      setIdNumber('');
       setSubmitting(false);
     }
   };
@@ -395,7 +398,7 @@ export function VerificationPage() {
         <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <ol aria-label="Verification steps" className="mb-6 grid grid-cols-5 gap-2">
-              {['Identity', 'ID & NIN', 'Selfie', 'Guarantor', 'Review'].map((label, index) => (
+              {['Identity', 'ID number', 'Selfie', 'Guarantor', 'Review'].map((label, index) => (
                 <li key={label} className={`border-t-2 pt-2 text-[10px] font-bold sm:text-xs ${step === index + 1 ? 'border-lime-600 text-ink' : step > index + 1 ? 'border-green-700 text-green-800' : 'border-line text-muted'}`}>
                   {index + 1}. {label}
                 </li>
@@ -412,7 +415,7 @@ export function VerificationPage() {
                 <label className="grid gap-1.5 text-sm font-bold text-ink-2">Home address<input required autoComplete="street-address" value={identity.addressLine} onChange={(event) => updateIdentity('addressLine', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="grid gap-1.5 text-sm font-bold text-ink-2">Local government area<input required value={identity.lga} onChange={(event) => updateIdentity('lga', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Date of birth<input required type="date" max={dateOfBirthMax} value={identity.dateOfBirth} onChange={(event) => updateIdentity('dateOfBirth', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                  <DateOfBirthPicker value={identity.dateOfBirth} max={dateOfBirthMax} onChange={(value) => updateIdentity('dateOfBirth', value)} />
                 </div>
                 <div className="flex justify-end"><Button type="submit">Continue</Button></div>
               </form>
@@ -426,12 +429,23 @@ export function VerificationPage() {
                     <option value="NIN_SLIP">NIN slip or card</option><option value="VOTERS_CARD">Voter’s card</option><option value="DRIVERS_LICENCE">Driver’s licence</option><option value="INTERNATIONAL_PASSPORT">International passport</option>
                   </select>
                 </label>
-                <label className="grid gap-1.5 text-sm font-bold text-ink-2">11-digit NIN
-                  <input required autoComplete="off" type="password" inputMode="numeric" maxLength={11} pattern="[0-9]{11}" value={nin} onChange={(event) => setNin(event.target.value.replace(/\D/g, '').slice(0, 11))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" aria-describedby="nin-privacy-note" />
+                <fieldset className="grid gap-1.5">
+                  <legend className="mb-1.5 text-sm font-bold text-ink-2">Verify with</legend>
+                  <div className="flex gap-2">
+                    {(['NIN', 'BVN'] as const).map((option) => (
+                      <label key={option} className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-[var(--r-sm)] px-3 text-sm font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green-700 ${idType === option ? 'bg-tint-2 text-green-900' : 'bg-panel text-ink-2'}`}>
+                        <input type="radio" name="id-type" value={option} checked={idType === option} onChange={() => { setIdType(option); setIdNumber(''); }} className="sr-only" />
+                        {option === 'NIN' ? 'NIN' : 'BVN'}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <label className="grid gap-1.5 text-sm font-bold text-ink-2">11-digit {idType}
+                  <input required autoComplete="off" type="text" inputMode="numeric" maxLength={11} pattern="[0-9]{11}" value={idNumber} onChange={(event) => setIdNumber(event.target.value.replace(/\D/g, '').slice(0, 11))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" aria-describedby="id-number-privacy-note" />
                 </label>
-                <p id="nin-privacy-note" className="text-xs text-muted">Your NIN is sent once for verification. It is never saved in your account or browser storage.</p>
+                <p id="id-number-privacy-note" className="text-xs text-muted">Your {idType} is sent once for verification. It is never saved in your account or browser storage. Your name and date of birth must match the {idType} record.</p>
                 <div><p className="mb-2 text-sm font-bold text-ink-2">Optional ID photo</p><MediaUpload purpose="VERIFICATION_INPUT" maxFiles={1} value={documentMediaId ? [documentMediaId] : []} onChange={(ids) => setDocumentMediaId(ids[0])} /></div>
-                <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button><Button type="submit" disabled={!/^\d{11}$/.test(nin)}>Continue</Button></div>
+                <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button><Button type="submit" disabled={!/^\d{11}$/.test(idNumber)}>Continue</Button></div>
               </form>
             )}
 
@@ -462,6 +476,7 @@ export function VerificationPage() {
                   <div><dt className="text-muted">Name</dt><dd className="font-bold text-ink">{identity.firstName} {identity.lastName}</dd></div>
                   <div><dt className="text-muted">Date of birth</dt><dd className="font-bold text-ink">{identity.dateOfBirth}</dd></div>
                   <div><dt className="text-muted">Address</dt><dd className="font-bold text-ink">{identity.addressLine}, {identity.lga}</dd></div>
+                  <div><dt className="text-muted">Verified with</dt><dd className="font-bold text-ink">{idType}</dd></div>
                   <div><dt className="text-muted">Government ID</dt><dd className="font-bold text-ink">{documentMediaId ? documentType.replaceAll('_', ' ').toLowerCase() : 'Not provided'}</dd></div>
                 </dl>
                 <label className="flex items-start gap-3 text-sm leading-6 text-ink-2"><input required type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-1 size-4 accent-lime-700" /><span>I confirm these details are true and agree to the runner conduct rules, including the prohibited-items policy.</span></label>

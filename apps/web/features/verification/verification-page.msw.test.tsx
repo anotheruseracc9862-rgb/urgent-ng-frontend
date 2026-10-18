@@ -131,7 +131,9 @@ describe('runner verification flow', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     const nin = await screen.findByLabelText('11-digit NIN');
+    expect(nin).toHaveAttribute('type', 'text');
     await user.type(nin, '12345678901');
+    expect(nin).toHaveValue('12345678901');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -155,6 +157,65 @@ describe('runner verification flow', () => {
     await waitFor(() => expect(screen.getByLabelText('11-digit NIN')).toHaveValue(''));
     expect(window.localStorage.getItem('nin')).toBeNull();
     expect(window.sessionStorage.getItem('nin')).toBeNull();
+  });
+
+  it('lets the runner verify with a BVN instead: sends bvn, not nin, and clears the number', async () => {
+    const user = userEvent.setup();
+    let submittedBody: Record<string, unknown> | undefined;
+    server.use(
+      http.get('*/api/v1/verification', () => envelope(overview)),
+      http.post('*/api/v1/verification/attempts', async ({ request }) => {
+        submittedBody = (await request.json()) as Record<string, unknown>;
+        return envelope({
+          id: 'attempt-2',
+          status: 'VERIFIED',
+          displayStatus: 'VERIFIED',
+          failureReason: null,
+          startedAt: '2026-10-14T10:00:00.000Z',
+          completedAt: '2026-10-14T10:00:01.000Z',
+          expiresAt: null,
+          attemptNumber: 1,
+        });
+      }),
+    );
+
+    renderPage();
+    await user.type(await screen.findByLabelText('Home address'), '12 Adeola Odeku Street');
+    await user.type(screen.getByLabelText('Local government area'), 'Eti-Osa');
+    await user.type(screen.getByLabelText('Date of birth'), '1990-01-01');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await user.click(await screen.findByRole('radio', { name: 'BVN' }));
+    const bvn = screen.getByLabelText('11-digit BVN');
+    await user.type(bvn, '22222222222');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
+
+    await waitFor(() => expect(submittedBody).toMatchObject({ bvn: '22222222222', selfieMediaId: 'selfie-media-1' }));
+    expect(submittedBody).not.toHaveProperty('nin');
+    expect(window.localStorage.getItem('bvn')).toBeNull();
+    expect(window.sessionStorage.getItem('bvn')).toBeNull();
+  });
+
+  it('clears the number when the runner switches between NIN and BVN', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('*/api/v1/verification', () => envelope(overview)));
+
+    renderPage();
+    await user.type(await screen.findByLabelText('Home address'), '12 Adeola Odeku Street');
+    await user.type(screen.getByLabelText('Local government area'), 'Eti-Osa');
+    await user.type(screen.getByLabelText('Date of birth'), '1990-01-01');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await user.type(await screen.findByLabelText('11-digit NIN'), '12345678901');
+    await user.click(screen.getByRole('radio', { name: 'BVN' }));
+
+    expect(screen.getByLabelText('11-digit BVN')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
 
   it.each([

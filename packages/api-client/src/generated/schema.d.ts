@@ -5213,9 +5213,9 @@ export interface components {
              * @example 1994-03-21
              */
             dateOfBirth: string;
-            addressLine: string;
+            addressLine?: string;
             /** @description Local government area. */
-            lga: string;
+            lga?: string;
         };
         /** @enum {string} */
         IdDocumentType: "NIN_SLIP" | "VOTERS_CARD" | "DRIVERS_LICENCE" | "INTERNATIONAL_PASSPORT";
@@ -5236,15 +5236,15 @@ export interface components {
             phone: string;
         };
         StartVerificationDto: {
-            identity?: components["schemas"]["IdentityDetailsDto"];
+            /** @description 11 digits. Send `nin` or `bvn`, not both. */
+            nin?: string;
+            /** @description 11 digits. Send `nin` or `bvn`, not both. */
+            bvn?: string;
+            /** @description Must match the name and date of birth on the NIN or BVN record. */
+            identity: components["schemas"]["IdentityDetailsDto"];
             idDocument?: components["schemas"]["IdDocumentDto"];
             /** @description Kept for manual review. Never blocks an automatic approval. */
             guarantor?: components["schemas"]["GuarantorDto"];
-            /**
-             * @description The 11-digit National Identification Number. Sent once, held in memory for the provider
-             *     call, never stored, logged or returned.
-             */
-            nin: string;
             /**
              * Format: uuid
              * @description A READY media row with purpose VERIFICATION_INPUT that the caller owns.
