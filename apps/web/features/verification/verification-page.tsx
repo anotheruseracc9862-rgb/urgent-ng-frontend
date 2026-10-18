@@ -14,10 +14,10 @@ import { queryKeys } from '@/lib/query/keys';
 import { rememberPendingOrder } from '@/features/billing/checkout';
 import { ContactMethodsForm } from '@/features/settings/contact-methods-form';
 import { verificationApi, type BillingOrder, type VerificationAttempt } from './api';
+import { LOCAL_PHONE_ERROR, isLocalPhone, isSameFullName, localPhoneToE164 } from '@urgent/utils';
 import { DateOfBirthPicker } from './date-of-birth-picker';
 
 type Identity = components['schemas']['IdentityDetailsDto'];
-type IdDocumentType = components['schemas']['IdDocumentType'];
 type IdType = 'NIN' | 'BVN';
 type Relationship = components['schemas']['GuarantorRelationship'];
 
@@ -32,6 +32,16 @@ const failureCopy: Record<NonNullable<VerificationAttempt['failureReason']>, str
   INSUFFICIENT_DATA: 'There was not enough information to complete the check. Review your details and try again.',
   MANUAL_REVIEW_REQUIRED: 'Your details need a manual review. We will update you when the review is complete.',
   OTHER: 'We could not verify these details. Review your information or contact support for help.',
+};
+
+/** What to re-check, when the server can say. Takes the place of the broader message for the same failure. */
+const detailCopy: Record<NonNullable<VerificationAttempt['failureDetail']>, string> = {
+  ID_NOT_FOUND: 'We could not find that NIN or BVN. Check the number, or try the other one.',
+  ID_INVALID: 'That NIN or BVN was not accepted. Check that you entered all 11 digits correctly.',
+  SELFIE_UNUSABLE: 'We could not use your selfie. Take a new, clear photo of your face in good light, then try again.',
+  NAME_MISMATCH: 'The name you entered does not match the name on your NIN or BVN record. Enter it exactly as it appears there.',
+  DOB_MISMATCH: 'The date of birth you entered does not match your NIN or BVN record. Check it and try again.',
+  NAME_AND_DOB_MISMATCH: 'Neither the name nor the date of birth you entered matches your NIN or BVN record. Check both and try again.',
 };
 
 const reasonCopy: Record<string, string> = {
@@ -71,7 +81,12 @@ function friendlyError(error: unknown): string {
       : 'We could not verify these details. Review your information or contact support for help.';
   }
   if (error.code === 'MEDIA_INVALID') return 'The selfie could not be used. Upload a new, clear photo.';
-  if (error.code === 'VALIDATION_ERROR') return 'Check the identity details and make sure you are at least 18 years old.';
+  if (error.code === 'VALIDATION_ERROR') {
+    const field = error.details.field;
+    if (field === 'guarantor.fullName') return 'Your guarantor must be someone other than you. Enter their name, or skip this step.';
+    if (field === 'guarantor.phone') return 'Your guarantor needs a phone number of their own. Enter theirs, or skip this step.';
+    return 'Check the identity details and make sure you are at least 18 years old.';
+  }
   if (error.code === 'FORBIDDEN') {
     const reason = error.details.reason;
     return typeof reason === 'string'
@@ -114,6 +129,44 @@ function StatusCard({
   );
 }
 
+/**
+ * Browser autofill can paste a whole address into the street field twice ("12 Ada Rd, Kano, 12 Ada
+ * Rd, Kano"). If the comma-separated parts are one list repeated, keep one copy.
+ */
+function collapseRepeatedAddress(value: string): string {
+  const parts = value.split(',').map((part) => part.trim()).filter(Boolean);
+  const half = parts.length / 2;
+  if (Number.isInteger(half) && half > 0 && parts.slice(0, half).join(',').toLowerCase() === parts.slice(half).join(',').toLowerCase()) {
+    return parts.slice(0, half).join(', ');
+  }
+  return value.trim();
+}
+
+type GuarantorErrors = { name?: string; phone?: string };
+
+/** The guarantor rules the server enforces, checked on the form so nobody finds out at submit. */
+function guarantorErrors(
+  guarantor: { name: string; phone: string },
+  own: { phone: string | null; names: string[] },
+): GuarantorErrors {
+  const name = guarantor.name.trim();
+  const phone = guarantor.phone.trim();
+  const errors: GuarantorErrors = {};
+  if (name && own.names.some((ownName) => isSameFullName(name, ownName))) {
+    errors.name = 'Your guarantor must be someone other than you.';
+  } else if (phone && !name) {
+    errors.name = 'Enter your guarantor’s full name, or clear the phone number to skip.';
+  }
+  if (phone && !isLocalPhone(phone)) {
+    errors.phone = LOCAL_PHONE_ERROR;
+  } else if (phone && own.phone && localPhoneToE164(phone) === own.phone) {
+    errors.phone = 'Your guarantor needs a phone number of their own, not yours.';
+  } else if (name && !phone) {
+    errors.phone = 'Enter your guarantor’s phone number, or clear the name to skip.';
+  }
+  return errors;
+}
+
 export function VerificationPage() {
   const { me } = useSession();
   const queryClient = useQueryClient();
@@ -125,14 +178,14 @@ export function VerificationPage() {
     addressLine: '',
     lga: '',
   });
-  const [documentType, setDocumentType] = useState<IdDocumentType>('NIN_SLIP');
-  const [documentMediaId, setDocumentMediaId] = useState<string>();
   const [idType, setIdType] = useState<IdType>('NIN');
   const [idNumber, setIdNumber] = useState('');
   const [selfieMediaId, setSelfieMediaId] = useState<string>();
   const [guarantorName, setGuarantorName] = useState('');
   const [guarantorRelationship, setGuarantorRelationship] = useState<Relationship>('FAMILY');
   const [guarantorPhone, setGuarantorPhone] = useState('');
+  /** Fields the person has left, and whether Continue was pressed: errors show only then, not while typing. */
+  const [guarantorSeen, setGuarantorSeen] = useState<{ name?: boolean; phone?: boolean }>({});
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>();
@@ -143,6 +196,25 @@ export function VerificationPage() {
   /** One key per fee purchase, so a retry never creates a second order. */
   const feeKey = useRef<string | null>(null);
   const [now, setNow] = useState<number>();
+
+  const guarantorProblems = guarantorErrors(
+    { name: guarantorName, phone: guarantorPhone },
+    { phone: me.phone, names: [me.name, `${identity.firstName} ${identity.lastName}`] },
+  );
+  const hasGuarantorProblem = Boolean(guarantorProblems.name || guarantorProblems.phone);
+  const continueFromGuarantor = () => {
+    if (hasGuarantorProblem) {
+      setGuarantorSeen({ name: true, phone: true });
+      return;
+    }
+    setStep(5);
+  };
+  const skipGuarantor = () => {
+    setGuarantorName('');
+    setGuarantorPhone('');
+    setGuarantorSeen({});
+    setStep(5);
+  };
 
   const overview = useQuery({
     queryKey: queryKeys.runner.verification(),
@@ -192,8 +264,9 @@ export function VerificationPage() {
     if (!/^\d{11}$/.test(idNumber) || !selfieMediaId || !confirmed || submitting) return;
     const trimmedGuarantorName = guarantorName.trim();
     const trimmedGuarantorPhone = guarantorPhone.trim();
-    if ((trimmedGuarantorName && !trimmedGuarantorPhone) || (!trimmedGuarantorName && trimmedGuarantorPhone)) {
-      setSubmitError(new Error('Complete both guarantor fields or leave both blank.'));
+    if (hasGuarantorProblem) {
+      setGuarantorSeen({ name: true, phone: true });
+      setStep(4);
       return;
     }
 
@@ -203,13 +276,12 @@ export function VerificationPage() {
       identity,
       ...(idType === 'BVN' ? { bvn: idNumber } : { nin: idNumber }),
       selfieMediaId,
-      ...(documentMediaId ? { idDocument: { type: documentType, mediaId: documentMediaId } } : {}),
       ...(trimmedGuarantorName && trimmedGuarantorPhone
         ? {
             guarantor: {
               fullName: trimmedGuarantorName,
               relationship: guarantorRelationship,
-              phone: trimmedGuarantorPhone,
+              phone: localPhoneToE164(trimmedGuarantorPhone) ?? trimmedGuarantorPhone,
             },
           }
         : {}),
@@ -348,7 +420,9 @@ export function VerificationPage() {
     );
   }
 
-  const failure = currentAttempt?.failureReason ? failureCopy[currentAttempt.failureReason] : undefined;
+  const failure = currentAttempt?.failureDetail
+    ? detailCopy[currentAttempt.failureDetail]
+    : currentAttempt?.failureReason ? failureCopy[currentAttempt.failureReason] : undefined;
   const cooldown = data.nextAttemptAt && now !== undefined && new Date(data.nextAttemptAt).getTime() > now;
 
   return (
@@ -412,9 +486,9 @@ export function VerificationPage() {
                   <label className="grid gap-1.5 text-sm font-bold text-ink-2">First name<input required autoComplete="given-name" value={identity.firstName} onChange={(event) => updateIdentity('firstName', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                   <label className="grid gap-1.5 text-sm font-bold text-ink-2">Last name<input required autoComplete="family-name" value={identity.lastName} onChange={(event) => updateIdentity('lastName', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 </div>
-                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Home address<input required autoComplete="street-address" value={identity.addressLine} onChange={(event) => updateIdentity('addressLine', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Home address<input required autoComplete="address-line1" maxLength={200} value={identity.addressLine} onChange={(event) => updateIdentity('addressLine', event.target.value)} onBlur={(event) => updateIdentity('addressLine', collapseRepeatedAddress(event.target.value))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Local government area<input required value={identity.lga} onChange={(event) => updateIdentity('lga', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Local government area<input required autoComplete="off" value={identity.lga} onChange={(event) => updateIdentity('lga', event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
                   <DateOfBirthPicker value={identity.dateOfBirth} max={dateOfBirthMax} onChange={(value) => updateIdentity('dateOfBirth', value)} />
                 </div>
                 <div className="flex justify-end"><Button type="submit">Continue</Button></div>
@@ -423,19 +497,14 @@ export function VerificationPage() {
 
             {step === 2 && (
               <form className="grid gap-4" aria-labelledby="verification-id-heading" onSubmit={(event) => { event.preventDefault(); setStep(3); }}>
-                <div><h2 id="verification-id-heading" className="text-lg font-extrabold text-ink">Government ID</h2><p className="text-sm text-muted">The ID photo is optional and used only if a manual review is needed.</p></div>
-                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Document type
-                  <select value={documentType} onChange={(event) => setDocumentType(event.target.value as IdDocumentType)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
-                    <option value="NIN_SLIP">NIN slip or card</option><option value="VOTERS_CARD">Voter’s card</option><option value="DRIVERS_LICENCE">Driver’s licence</option><option value="INTERNATIONAL_PASSPORT">International passport</option>
-                  </select>
-                </label>
+                <div><h2 id="verification-id-heading" className="text-lg font-extrabold text-ink">Your ID number</h2><p className="text-sm text-muted">Use your NIN or your BVN. Either one works.</p></div>
                 <fieldset className="grid gap-1.5">
                   <legend className="mb-1.5 text-sm font-bold text-ink-2">Verify with</legend>
                   <div className="flex gap-2">
                     {(['NIN', 'BVN'] as const).map((option) => (
                       <label key={option} className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-[var(--r-sm)] px-3 text-sm font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green-700 ${idType === option ? 'bg-tint-2 text-green-900' : 'bg-panel text-ink-2'}`}>
                         <input type="radio" name="id-type" value={option} checked={idType === option} onChange={() => { setIdType(option); setIdNumber(''); }} className="sr-only" />
-                        {option === 'NIN' ? 'NIN' : 'BVN'}
+                        {option}
                       </label>
                     ))}
                   </div>
@@ -444,7 +513,6 @@ export function VerificationPage() {
                   <input required autoComplete="off" type="text" inputMode="numeric" maxLength={11} pattern="[0-9]{11}" value={idNumber} onChange={(event) => setIdNumber(event.target.value.replace(/\D/g, '').slice(0, 11))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" aria-describedby="id-number-privacy-note" />
                 </label>
                 <p id="id-number-privacy-note" className="text-xs text-muted">Your {idType} is sent once for verification. It is never saved in your account or browser storage. Your name and date of birth must match the {idType} record.</p>
-                <div><p className="mb-2 text-sm font-bold text-ink-2">Optional ID photo</p><MediaUpload purpose="VERIFICATION_INPUT" maxFiles={1} value={documentMediaId ? [documentMediaId] : []} onChange={(ids) => setDocumentMediaId(ids[0])} /></div>
                 <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button><Button type="submit" disabled={!/^\d{11}$/.test(idNumber)}>Continue</Button></div>
               </form>
             )}
@@ -460,12 +528,16 @@ export function VerificationPage() {
             {step === 4 && (
               <section className="grid gap-4" aria-labelledby="verification-guarantor-heading">
                 <div><h2 id="verification-guarantor-heading" className="text-lg font-extrabold text-ink">Guarantor <span className="text-sm font-medium text-muted">(optional)</span></h2><p className="text-sm text-muted">A trusted person who can vouch for you. This is only used if a safety issue needs review.</p></div>
-                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Full name<input autoComplete="name" value={guarantorName} onChange={(event) => setGuarantorName(event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                <label className="grid gap-1.5 text-sm font-bold text-ink-2">Full name<input autoComplete="off" value={guarantorName} aria-invalid={Boolean(guarantorSeen.name && guarantorProblems.name)} aria-describedby={guarantorSeen.name && guarantorProblems.name ? 'guarantor-name-error' : undefined} onChange={(event) => setGuarantorName(event.target.value)} onBlur={() => setGuarantorSeen((current) => ({ ...current, name: true }))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                {guarantorSeen.name && guarantorProblems.name && <p id="guarantor-name-error" role="alert" className="-mt-2 text-xs text-red">{guarantorProblems.name}</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="grid gap-1.5 text-sm font-bold text-ink-2">Relationship<select value={guarantorRelationship} onChange={(event) => setGuarantorRelationship(event.target.value as Relationship)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700"><option value="FAMILY">Family</option><option value="FRIEND">Friend</option><option value="EMPLOYER">Employer</option><option value="NEIGHBOUR">Neighbour</option></select></label>
-                  <label className="grid gap-1.5 text-sm font-bold text-ink-2">Phone number<input autoComplete="tel" inputMode="tel" value={guarantorPhone} onChange={(event) => setGuarantorPhone(event.target.value)} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                  <div className="grid content-start gap-1.5">
+                    <label className="grid gap-1.5 text-sm font-bold text-ink-2">Phone number<input autoComplete="off" inputMode="tel" maxLength={11} placeholder="08031234567" value={guarantorPhone} aria-invalid={Boolean(guarantorSeen.phone && guarantorProblems.phone)} aria-describedby={guarantorSeen.phone && guarantorProblems.phone ? 'guarantor-phone-error' : undefined} onChange={(event) => setGuarantorPhone(event.target.value)} onBlur={() => setGuarantorSeen((current) => ({ ...current, phone: true }))} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
+                    {guarantorSeen.phone && guarantorProblems.phone && <p id="guarantor-phone-error" role="alert" className="text-xs text-red">{guarantorProblems.phone}</p>}
+                  </div>
                 </div>
-                <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setStep(3)}>Back</Button><div className="flex gap-2"><Button type="button" variant="ghost" onClick={() => setStep(5)}>Skip</Button><Button type="button" onClick={() => setStep(5)}>Continue</Button></div></div>
+                <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setStep(3)}>Back</Button><div className="flex gap-2"><Button type="button" variant="ghost" onClick={skipGuarantor}>Skip</Button><Button type="button" onClick={continueFromGuarantor}>Continue</Button></div></div>
               </section>
             )}
 
@@ -476,8 +548,7 @@ export function VerificationPage() {
                   <div><dt className="text-muted">Name</dt><dd className="font-bold text-ink">{identity.firstName} {identity.lastName}</dd></div>
                   <div><dt className="text-muted">Date of birth</dt><dd className="font-bold text-ink">{identity.dateOfBirth}</dd></div>
                   <div><dt className="text-muted">Address</dt><dd className="font-bold text-ink">{identity.addressLine}, {identity.lga}</dd></div>
-                  <div><dt className="text-muted">Verified with</dt><dd className="font-bold text-ink">{idType}</dd></div>
-                  <div><dt className="text-muted">Government ID</dt><dd className="font-bold text-ink">{documentMediaId ? documentType.replaceAll('_', ' ').toLowerCase() : 'Not provided'}</dd></div>
+                  <div><dt className="text-muted">{idType}</dt><dd className="font-bold tabular-nums text-ink">{idNumber}</dd></div>
                 </dl>
                 <label className="flex items-start gap-3 text-sm leading-6 text-ink-2"><input required type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-1 size-4 accent-lime-700" /><span>I confirm these details are true and agree to the runner conduct rules, including the prohibited-items policy.</span></label>
                 <div className="flex justify-between"><Button type="button" variant="ghost" disabled={submitting} onClick={() => setStep(4)}>Back</Button><Button type="submit" disabled={!confirmed || !selfieMediaId || submitting}>{submitting ? 'Submitting…' : 'Submit for verification'}</Button></div>

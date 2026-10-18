@@ -4,6 +4,7 @@ import { PageLoading } from '@/components/shell/page-loading';
 import { clearErrandDraft, readErrandDraft } from '@/lib/drafts/errand-draft';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { LOCAL_PHONE_ERROR, e164ToLocalPhone, isLocalPhone, localPhoneToE164 } from '@urgent/utils';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -117,17 +118,21 @@ function fromErrand(errand: Errand): ErrandForm {
     itemValueMinor: errand.itemValueMinor,
     pickup: fromParticipantLocation(errand.pickup),
     destination: fromParticipantLocation(errand.destination),
-    pickupContact: { name: errand.pickupContact?.name ?? '', phone: errand.pickupContact?.phone ?? '' },
-    dropoffContact: { name: errand.dropoffContact?.name ?? '', phone: errand.dropoffContact?.phone ?? '' },
+    pickupContact: { name: errand.pickupContact?.name ?? '', phone: e164ToLocalPhone(errand.pickupContact?.phone ?? '') },
+    dropoffContact: { name: errand.dropoffContact?.name ?? '', phone: e164ToLocalPhone(errand.dropoffContact?.phone ?? '') },
     photoMediaIds: errand.photos.map((photo) => photo.mediaId),
   };
 }
 
+/** A phone that is not in the local format yet is left out of the draft; the form blocks review until it is fixed. */
 function contactInput(value: ErrandForm['pickupContact']) {
-  return value.name.trim() || value.phone.trim()
-    ? { name: value.name.trim() || undefined, phone: value.phone.trim() || undefined }
+  const phone = localPhoneToE164(value.phone) ?? undefined;
+  return value.name.trim() || phone
+    ? { name: value.name.trim() || undefined, phone }
     : null;
 }
+
+const contactPhoneInvalid = (value: ErrandForm['pickupContact']) => value.phone.trim() !== '' && !isLocalPhone(value.phone);
 
 function sameLocation(left: PinValue | null, right: PinValue | null): boolean {
   if (left === null || right === null) return left === right;
@@ -290,6 +295,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   const selectedCategory = categories.find((category) => category.id === form.categoryId);
   const locations = selectedCategory ? requiredLocations(selectedCategory) : null;
   const dateInvalid = form.timeMode === 'SCHEDULED' && !isScheduledTimeInRange(form.scheduledAt);
+  const phoneInvalid = contactPhoneInvalid(form.pickupContact) || contactPhoneInvalid(form.dropoffContact);
   const currentPatch = baseline ? diffForm(form, baseline, version) : null;
   const hasUnsavedChanges = currentPatch ? !isEmptyPatch(currentPatch) : false;
   const warnsAboutOffers = initialErrand?.status === 'OPEN' && Boolean(baseline && hasMaterialChanges(form, baseline));
@@ -417,8 +423,8 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
               <p className="rounded-[var(--r)] border border-line bg-panel p-3 text-sm text-muted">Exact addresses and contacts are shared only with the runner you select, after they accept. Payment is made directly to the runner; Urgent.ng does not handle it.</p>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
                 <span className="text-xs text-muted" role="status">{savedMessage || 'Draft autosaves after you pause.'}</span>
-                {dateInvalid || save.isPending || hasUnsavedChanges
-                  ? <Button type="button" disabled>{dateInvalid ? 'Fix scheduled time to review' : 'Save changes to review'}</Button>
+                {dateInvalid || phoneInvalid || save.isPending || hasUnsavedChanges
+                  ? <Button type="button" disabled>{dateInvalid ? 'Fix scheduled time to review' : phoneInvalid ? 'Fix contact phone to review' : 'Save changes to review'}</Button>
                   : <Link href={`/errands/${errandId}/review`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--r)] bg-green-800 px-4 text-sm font-bold text-white hover:bg-green-900">Review and post</Link>}
               </div>
             </>
@@ -457,8 +463,9 @@ function ContactFields({ label, value, onChange }: {
         <Input id={`${prefix}-contact-name`} maxLength={100} value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} />
       </label>
       <label className="grid gap-1 text-xs font-semibold text-muted" htmlFor={`${prefix}-contact-phone`}>Phone
-        <Input id={`${prefix}-contact-phone`} type="tel" maxLength={20} value={value.phone} onChange={(event) => onChange({ ...value, phone: event.target.value })} placeholder="+234…" />
+        <Input id={`${prefix}-contact-phone`} type="tel" inputMode="tel" maxLength={11} value={value.phone} onChange={(event) => onChange({ ...value, phone: event.target.value })} placeholder="08031234567" aria-invalid={contactPhoneInvalid(value)} aria-describedby={contactPhoneInvalid(value) ? `${prefix}-contact-phone-error` : undefined} />
       </label>
+      {contactPhoneInvalid(value) && <p id={`${prefix}-contact-phone-error`} role="alert" className="text-xs text-red">{LOCAL_PHONE_ERROR}</p>}
     </fieldset>
   );
 }

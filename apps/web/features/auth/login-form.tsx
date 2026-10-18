@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowRight } from 'lucide-react';
 import { Alert, Button, Input, Label } from '@urgent/ui';
-import { isValidPhone } from '@urgent/utils';
+import { e164ToLocalPhone, isLocalPhone } from '@urgent/utils';
 import { authApi, toIdentifier } from '@/lib/api/auth';
 import { isApiError, safeRedirect } from '@/lib/api/client';
 import { readPendingIdentifier } from '@/lib/auth/pending-identity';
@@ -22,8 +22,8 @@ const loginSchema = z.object({
     .string()
     .trim()
     .min(1, 'Enter your phone number or email')
-    .refine((v) => (v.includes('@') ? z.string().email().safeParse(v).success : isValidPhone(v)), {
-      message: 'Enter a valid Nigerian phone number or email',
+    .refine((v) => (v.includes('@') ? z.string().email().safeParse(v).success : isLocalPhone(v)), {
+      message: 'Enter an email, or an 11-digit mobile number starting with 0, e.g. 08031234567.',
     }),
   password: z.string().min(1, 'Enter your password'),
 });
@@ -54,7 +54,7 @@ export function LoginForm() {
   useEffect(() => {
     const saved = readPendingIdentifier();
     if (saved && (justVerified || justReset)) {
-      setValue('identifier', saved);
+      setValue('identifier', e164ToLocalPhone(saved));
       setFocus('password');
     }
   }, [justVerified, justReset, setValue, setFocus]);

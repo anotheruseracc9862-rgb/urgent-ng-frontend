@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Mail, Phone } from 'lucide-react';
 import { Alert, Badge, Button, Input, Label } from '@urgent/ui';
-import { isValidPhone, normalizePhone } from '@urgent/utils';
+import { LOCAL_PHONE_ERROR, e164ToLocalPhone, localPhoneToE164 } from '@urgent/utils';
 import { authApi, type Identifier } from '@/lib/api/auth';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -15,7 +15,7 @@ import { GoogleConfirm } from '@/features/auth/google-confirm';
 type Kind = 'phone' | 'email';
 type Step = 'enter' | 'code';
 
-const PHONE_ERROR = 'Enter a valid 11-digit Nigerian mobile number, e.g. 08031234567.';
+const PHONE_ERROR = LOCAL_PHONE_ERROR;
 
 const COPY: Record<Kind, { title: string; add: string; change: string; placeholder: string; input: string }> = {
   phone: { title: 'Phone number', add: 'Add phone', change: 'Change', placeholder: '08031234567', input: 'tel' },
@@ -25,8 +25,8 @@ const COPY: Record<Kind, { title: string; add: string; change: string; placehold
 function toIdentifier(kind: Kind, raw: string): Identifier | null {
   const value = raw.trim();
   if (kind === 'phone') {
-    if (!/^0\d{10}$/.test(value) || !isValidPhone(value)) return null;
-    return { phone: normalizePhone(value) ?? value };
+    const phone = localPhoneToE164(value);
+    return phone ? { phone } : null;
   }
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? { email: value.toLowerCase() } : null;
 }
@@ -41,7 +41,7 @@ export function ContactMethodsForm({ phoneOnly = false }: { phoneOnly?: boolean 
   const queryClient = useQueryClient();
   const [editing, setEditing] = React.useState<Kind | null>(phoneOnly ? 'phone' : null);
   const [step, setStep] = React.useState<Step>('enter');
-  const [value, setValue] = React.useState(phoneOnly ? me.phone?.replace(/^\+234/, '0') ?? '' : '');
+  const [value, setValue] = React.useState(phoneOnly ? e164ToLocalPhone(me.phone ?? '') : '');
   const [password, setPassword] = React.useState('');
   const [googleToken, setGoogleToken] = React.useState<string | null>(null);
   const [code, setCode] = React.useState('');

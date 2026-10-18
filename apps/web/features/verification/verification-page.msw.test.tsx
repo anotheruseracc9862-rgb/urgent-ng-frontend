@@ -138,6 +138,8 @@ describe('runner verification flow', () => {
     await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(screen.getByText('NIN')).toBeInTheDocument();
+    expect(screen.getByText('12345678901')).toBeInTheDocument();
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
@@ -157,6 +159,43 @@ describe('runner verification flow', () => {
     await waitFor(() => expect(screen.getByLabelText('11-digit NIN')).toHaveValue(''));
     expect(window.localStorage.getItem('nin')).toBeNull();
     expect(window.sessionStorage.getItem('nin')).toBeNull();
+  });
+
+  it.each([
+    ['NAME_MISMATCH', /name you entered does not match/i],
+    ['DOB_MISMATCH', /date of birth you entered does not match/i],
+    ['NAME_AND_DOB_MISMATCH', /neither the name nor the date of birth/i],
+    ['ID_NOT_FOUND', /could not find that NIN or BVN/i],
+    ['SELFIE_UNUSABLE', /could not use your selfie/i],
+  ])('shows the specific message for the failure detail %s', async (failureDetail, text) => {
+    server.use(
+      http.get('*/api/v1/verification', () => envelope({
+        ...overview,
+        status: 'FAILED',
+        displayStatus: 'REJECTED',
+        latestAttempt: {
+          id: 'attempt-9', status: 'FAILED', displayStatus: 'REJECTED', failureReason: 'IDENTITY_MISMATCH', failureDetail,
+          startedAt: '2026-10-14T10:00:00.000Z', completedAt: '2026-10-14T10:00:01.000Z', expiresAt: null, attemptNumber: 1,
+        },
+      })),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText(text)).toBeInTheDocument();
+  });
+
+  it('collapses an address that autofill pasted twice, and shows it once on the review', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('*/api/v1/verification', () => envelope(overview)));
+
+    renderPage();
+    const address = await screen.findByLabelText('Home address');
+    await user.click(address);
+    await user.paste('NO 319 Kawaji Road, Kano, NO 319 Kawaji Road, Kano');
+    await user.tab();
+
+    expect(address).toHaveValue('NO 319 Kawaji Road, Kano');
   });
 
   it('lets the runner verify with a BVN instead: sends bvn, not nin, and clears the number', async () => {
@@ -192,6 +231,8 @@ describe('runner verification flow', () => {
     await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(screen.getByText('BVN')).toBeInTheDocument();
+    expect(screen.getByText('22222222222')).toBeInTheDocument();
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
@@ -199,6 +240,101 @@ describe('runner verification flow', () => {
     expect(submittedBody).not.toHaveProperty('nin');
     expect(window.localStorage.getItem('bvn')).toBeNull();
     expect(window.sessionStorage.getItem('bvn')).toBeNull();
+  });
+
+  describe('guarantor step', () => {
+    async function toGuarantorStep() {
+      const user = userEvent.setup();
+      server.use(http.get('*/api/v1/verification', () => envelope(overview)));
+      renderPage();
+      await user.type(await screen.findByLabelText('Home address'), '12 Adeola Odeku Street');
+      await user.type(screen.getByLabelText('Local government area'), 'Eti-Osa');
+      await user.type(screen.getByLabelText('Date of birth'), '1990-01-01');
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await user.type(await screen.findByLabelText('11-digit NIN'), '12345678901');
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      return user;
+    }
+    const heading = () => screen.queryByRole('heading', { name: /Guarantor/ });
+
+    it.each(['+2348034567890', '2348034567890', '0803 456 7890'])('refuses the phone %s on the form, before submit', async (value) => {
+      const user = await toGuarantorStep();
+      await user.type(screen.getByLabelText('Full name'), 'Ngozi Okon');
+      await user.type(screen.getByLabelText('Phone number'), value);
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+      expect(await screen.findByText(/11-digit mobile number starting with 0/)).toBeInTheDocument();
+      expect(heading()).toBeInTheDocument();
+    });
+
+    it("refuses the runner's own phone and says so", async () => {
+      const user = await toGuarantorStep();
+      await user.type(screen.getByLabelText('Full name'), 'Ngozi Okon');
+      await user.type(screen.getByLabelText('Phone number'), '08031234567');
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+      expect(await screen.findByText(/needs a phone number of their own/)).toBeInTheDocument();
+      expect(heading()).toBeInTheDocument();
+    });
+
+    it("refuses the runner's own name, in any order, as soon as the field is left", async () => {
+      const user = await toGuarantorStep();
+      await user.type(screen.getByLabelText('Full name'), 'Lovelace Ada');
+      expect(screen.queryByText(/someone other than you/)).not.toBeInTheDocument();
+      await user.tab();
+
+      expect(await screen.findByText(/someone other than you/)).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(heading()).toBeInTheDocument();
+    });
+
+    it('needs both fields or neither', async () => {
+      const user = await toGuarantorStep();
+      await user.type(screen.getByLabelText('Full name'), 'Ngozi Okon');
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+      expect(await screen.findByText(/Enter your guarantor’s phone number/)).toBeInTheDocument();
+      expect(heading()).toBeInTheDocument();
+    });
+
+    it('moves on with a valid guarantor and sends the phone as +234', async () => {
+      let submittedBody: Record<string, unknown> | undefined;
+      const user = await toGuarantorStep();
+      server.use(
+        http.post('*/api/v1/verification/attempts', async ({ request }) => {
+          submittedBody = (await request.json()) as Record<string, unknown>;
+          return envelope({ id: 'a-4', status: 'VERIFIED', displayStatus: 'VERIFIED', failureReason: null, startedAt: '2026-10-14T10:00:00.000Z', completedAt: null, expiresAt: null, attemptNumber: 1 });
+        }),
+      );
+      await user.type(screen.getByLabelText('Full name'), 'Ngozi Okon');
+      await user.type(screen.getByLabelText('Phone number'), '08034567890');
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
+
+      await waitFor(() => expect(submittedBody).toMatchObject({ guarantor: { fullName: 'Ngozi Okon', phone: '+2348034567890' } }));
+    });
+
+    it('Skip clears the guarantor and sends none', async () => {
+      let submittedBody: Record<string, unknown> | undefined;
+      const user = await toGuarantorStep();
+      server.use(
+        http.post('*/api/v1/verification/attempts', async ({ request }) => {
+          submittedBody = (await request.json()) as Record<string, unknown>;
+          return envelope({ id: 'a-5', status: 'VERIFIED', displayStatus: 'VERIFIED', failureReason: null, startedAt: '2026-10-14T10:00:00.000Z', completedAt: null, expiresAt: null, attemptNumber: 1 });
+        }),
+      );
+      await user.type(screen.getByLabelText('Full name'), 'Lovelace Ada');
+      await user.type(screen.getByLabelText('Phone number'), '+2348031234567');
+      await user.click(screen.getByRole('button', { name: 'Skip' }));
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
+
+      await waitFor(() => expect(submittedBody).toBeDefined());
+      expect(submittedBody).not.toHaveProperty('guarantor');
+    });
   });
 
   it('clears the number when the runner switches between NIN and BVN', async () => {

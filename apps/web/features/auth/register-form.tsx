@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowRight } from 'lucide-react';
 import { Alert, Button, Input, Label } from '@urgent/ui';
-import { isValidPhone, normalizePhone } from '@urgent/utils';
+import { LOCAL_PHONE_ERROR, isLocalPhone, localPhoneToE164 } from '@urgent/utils';
 import { authApi } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/client';
 import { REQUIRED_CONSENTS } from '@/lib/api/types';
@@ -30,8 +30,8 @@ const registerSchema = z
     if (!data.phone && !data.email) {
       ctx.addIssue({ code: 'custom', path: ['phone'], message: 'Enter a phone number or an email' });
     }
-    if (data.phone && !isValidPhone(data.phone)) {
-      ctx.addIssue({ code: 'custom', path: ['phone'], message: 'Enter a valid Nigerian phone number' });
+    if (data.phone && !isLocalPhone(data.phone)) {
+      ctx.addIssue({ code: 'custom', path: ['phone'], message: LOCAL_PHONE_ERROR });
     }
     if (data.email && !z.string().email().safeParse(data.email).success) {
       ctx.addIssue({ code: 'custom', path: ['email'], message: 'Enter a valid email address' });
@@ -63,7 +63,7 @@ export function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     setErrorMessage('');
     setTaken(null);
-    const phone = data.phone ? (normalizePhone(data.phone) ?? data.phone) : undefined;
+    const phone = data.phone ? (localPhoneToE164(data.phone) ?? data.phone) : undefined;
     const email = data.email ? data.email.toLowerCase() : undefined;
     try {
       const published = await authApi.policies();
@@ -173,7 +173,7 @@ export function RegisterForm() {
               className="mt-1.5"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="0803 123 4567"
+              placeholder="08031234567"
               aria-invalid={!!errors.phone}
               {...register('phone')}
             />

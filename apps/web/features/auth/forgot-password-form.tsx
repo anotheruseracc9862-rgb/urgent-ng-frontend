@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft } from 'lucide-react';
 import { Button, Input, Label } from '@urgent/ui';
-import { isValidPhone } from '@urgent/utils';
+import { isLocalPhone } from '@urgent/utils';
 import { authApi, toIdentifier } from '@/lib/api/auth';
 import { setPendingIdentifier } from '@/lib/auth/pending-identity';
 import { AuthHeading, FieldError, FormError, describeAuthError } from './auth-ui';
@@ -18,8 +18,8 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, 'Enter your phone number or email')
-    .refine((v) => (v.includes('@') ? z.string().email().safeParse(v).success : isValidPhone(v)), {
-      message: 'Enter a valid Nigerian phone number or email',
+    .refine((v) => (v.includes('@') ? z.string().email().safeParse(v).success : isLocalPhone(v)), {
+      message: 'Enter an email, or an 11-digit mobile number starting with 0, e.g. 08031234567.',
     }),
 });
 

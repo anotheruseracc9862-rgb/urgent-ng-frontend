@@ -44,6 +44,30 @@ async function fillAndSubmit() {
   return user;
 }
 
+describe('RegisterForm phone format', () => {
+  it.each(['+2348031234567', '2348031234567', '8031234567', '0803 123 4567'])('refuses %s: only the 0-prefixed 11-digit format is accepted', async (value) => {
+    const registered = vi.fn();
+    server.use(
+      http.get('*/api/v1/reference/policies', () => envelope(POLICIES)),
+      http.post('*/api/v1/auth/register', () => {
+        registered();
+        return envelope({});
+      }),
+    );
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+    await user.type(screen.getByLabelText('Full name'), 'Ada Obi');
+    await user.type(screen.getByLabelText('Phone number'), value);
+    await user.type(screen.getByLabelText('Password'), 'correct horse');
+    await user.type(screen.getByLabelText('Confirm password'), 'correct horse');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /create account|continue|sign up/i }));
+
+    expect(await screen.findByText(/11-digit mobile number starting with 0/i)).toBeInTheDocument();
+    expect(registered).not.toHaveBeenCalled();
+  });
+});
+
 describe('RegisterForm with an identifier that already has an account', () => {
   it('offers sign in and a new code instead of creating a second account', async () => {
     const resent: unknown[] = [];

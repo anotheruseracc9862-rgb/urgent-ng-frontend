@@ -9,7 +9,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Input, Label } from '@urgent/ui';
-import { isValidPhone } from '@urgent/utils';
+import { e164ToLocalPhone, isLocalPhone } from '@urgent/utils';
 import { authApi, toIdentifier } from '@/lib/api/auth';
 import { AuthHeading, FieldError, FormError, OtpBoxes, PasswordInput, describeAuthError } from './auth-ui';
 
@@ -19,8 +19,8 @@ const schema = z
       .string()
       .trim()
       .min(1, 'Enter your phone number or email')
-      .refine((v) => (v.includes('@') ? z.string().email().safeParse(v).success : isValidPhone(v)), {
-        message: 'Enter a valid Nigerian phone number or email',
+      .refine((v) => (v.includes('@') ? z.string().email().safeParse(v).success : isLocalPhone(v)), {
+        message: 'Enter an email, or an 11-digit mobile number starting with 0, e.g. 08031234567.',
       }),
     code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
     password: z.string().min(8, 'Use at least 8 characters').max(128),
@@ -51,7 +51,7 @@ export function ResetPasswordForm() {
   });
 
   useEffect(() => {
-    if (saved) setValue('identifier', saved);
+    if (saved) setValue('identifier', e164ToLocalPhone(saved));
   }, [saved, setValue]);
 
   const onSubmit = async (data: FormData) => {

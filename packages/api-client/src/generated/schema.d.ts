@@ -5164,6 +5164,11 @@ export interface components {
         VerificationStatus: "NOT_STARTED" | "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | "REVOKED" | "REVIEW_REQUIRED";
         /** @enum {string} */
         VerificationFailureReason: "DOCUMENT_INVALID" | "SELFIE_MISMATCH" | "IDENTITY_MISMATCH" | "PROVIDER_ERROR" | "PROVIDER_TIMEOUT" | "DUPLICATE_IDENTITY" | "USER_CANCELLED" | "INSUFFICIENT_DATA" | "MANUAL_REVIEW_REQUIRED" | "OTHER";
+        /**
+         * @description What to re-check when `failureReason` is broad. Null when there is nothing more specific.
+         * @enum {string}
+         */
+        VerificationFailureDetail: "ID_NOT_FOUND" | "ID_INVALID" | "SELFIE_UNUSABLE" | "NAME_MISMATCH" | "DOB_MISMATCH" | "NAME_AND_DOB_MISMATCH";
         VerificationAttemptDto: {
             status: components["schemas"]["VerificationStatus"];
             /**
@@ -5172,6 +5177,8 @@ export interface components {
              */
             displayStatus: "NOT_STARTED" | "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED";
             failureReason: components["schemas"]["VerificationFailureReason"] | null;
+            /** @description What to re-check when `failureReason` is broad. Null when there is nothing more specific. */
+            failureDetail: components["schemas"]["VerificationFailureDetail"] | null;
             /** Format: date-time */
             startedAt: string;
             /** Format: date-time */

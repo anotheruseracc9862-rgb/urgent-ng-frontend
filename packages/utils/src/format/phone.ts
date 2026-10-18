@@ -44,3 +44,29 @@ export function normalizePhone(phone: string): string | null {
 export function isValidPhone(phone: string): boolean {
   return normalizePhone(phone) !== null;
 }
+
+/** What a phone field tells the person when the number is not in the one accepted format. */
+export const LOCAL_PHONE_ERROR = 'Enter an 11-digit mobile number starting with 0, e.g. 08031234567.';
+
+/**
+ * True for the one format phone fields accept: 11 digits starting with 0 and a Nigerian mobile
+ * prefix (070, 080, 081, 090, 091). Spaces, hyphens, "+234" and "234" are not accepted.
+ */
+export function isLocalPhone(phone: string): boolean {
+  const value = phone.trim();
+  return /^0\d{10}$/.test(value) && isValidPhone(value);
+}
+
+/** 08031234567 -> +2348031234567, or null when the input is not in the accepted local format. */
+export function localPhoneToE164(phone: string): string | null {
+  return isLocalPhone(phone) ? normalizePhone(phone.trim()) : null;
+}
+
+/**
+ * +2348031234567 -> 08031234567, for filling a field from a stored number. Anything that is not
+ * a +234 number (an email, an empty string) is returned unchanged.
+ */
+export function e164ToLocalPhone(value: string): string {
+  const match = /^\+234(\d{10})$/.exec(value.trim());
+  return match ? `0${match[1]}` : value;
+}

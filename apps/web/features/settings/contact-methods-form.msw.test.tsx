@@ -84,7 +84,7 @@ describe('ContactMethodsForm', () => {
     await user.type(phone, '+2348147877487');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await user.tab();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid 11-digit Nigerian mobile number');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter an 11-digit mobile number starting with 0');
     expect(phone).toHaveAttribute('aria-invalid', 'true');
     await user.clear(phone);
     await user.type(phone, '08147877487');
@@ -110,7 +110,7 @@ describe('ContactMethodsForm', () => {
       await user.clear(phone);
       await user.type(phone, invalid);
       await user.click(screen.getByRole('button', { name: 'Send code' }));
-      expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid 11-digit Nigerian mobile number');
+      expect(await screen.findByRole('alert')).toHaveTextContent('Enter an 11-digit mobile number starting with 0');
       expect(screen.queryByRole('group', { name: '6-digit code' })).not.toBeInTheDocument();
     }
     expect(sent).toEqual([]);
