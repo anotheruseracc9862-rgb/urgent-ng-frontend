@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -209,7 +209,9 @@ describe('F5 runner end-to-end flow', () => {
     profileStage.unmount();
 
     const feedStage = renderStage(client, <MarketplaceFeedPage />);
-    expect(await screen.findByRole('link', { name: 'Collect medicine' })).toHaveAttribute('href', '/marketplace/runner-flow-errand');
+    const feed = within(await screen.findByRole('region', { name: 'Marketplace errands' }));
+    expect(feed.getByRole('heading', { name: 'Collect medicine' })).toBeInTheDocument();
+    expect(feed.getByRole('link', { name: 'View details' })).toHaveAttribute('href', '/marketplace/runner-flow-errand');
     expect(screen.queryByText(/<\s*0\.5\s*km/)).not.toBeInTheDocument();
     feedStage.unmount();
 

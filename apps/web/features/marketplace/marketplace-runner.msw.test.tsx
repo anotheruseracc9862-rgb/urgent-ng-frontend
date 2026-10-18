@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -10,14 +10,21 @@ import type { Me } from '@/lib/api/types';
 import { apiError, listen, server } from '@/test/msw/server';
 import { MarketplaceFeedPage } from './feed/marketplace-feed-page';
 import { MarketplacePage } from './marketplace-page';
+import { MarketplaceMapPage } from './map/marketplace-map-page';
 import { MarketplaceErrandPage } from './detail/marketplace-errand-page';
 import { SavedErrandsPage } from './saved/saved-errands-page';
 import { RunnerHistoryPage } from '@/features/runner/history/runner-history-page';
 import type { FeedItem } from './api';
 
+const replace = vi.hoisted(() => vi.fn());
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ replace, push: vi.fn(), refresh: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
+vi.mock('@/components/map/MapProvider', () => ({
+  useMapProvider: () => ({ libraries: null, error: new Error('Map unavailable') }),
 }));
 
 const envelope = (data: unknown, meta: Record<string, unknown> = {}) =>
@@ -109,6 +116,23 @@ describe('runner marketplace phase', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('keeps shared category failures retryable without hiding the search controls', async () => {
+    let failed = true;
+    server.use(
+      http.get('*/api/v1/reference/categories', () => failed
+        ? apiError(500, 'INTERNAL_ERROR', 'Request failed.')
+        : envelope([{ id: 'cat-1', key: 'health', name: 'Health' }])),
+      http.get('*/api/v1/marketplace/errands', () => envelope([])),
+    );
+    renderWithClient(<MarketplaceFeedPage />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('We could not load errand categories.');
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument();
+    failed = false;
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('checkbox', { name: 'Health' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('restores filters from a shared URL and only renders approximate feed areas', async () => {
     window.history.replaceState({}, '', '/marketplace?category=cat-1&q=pharmacy&budgetMin=5000');
     let receivedUrl: URL | undefined;
@@ -129,12 +153,90 @@ describe('runner marketplace phase', () => {
 
     renderWithClient(<MarketplaceFeedPage />);
 
-    expect(await screen.findByRole('link', { name: 'Collect medicine' })).toHaveAttribute('href', '/marketplace/errand-1');
+    const feed = within(await screen.findByRole('region', { name: 'Marketplace errands' }));
+    expect(feed.getByRole('heading', { name: 'Collect medicine' })).toBeInTheDocument();
+    expect(feed.getByRole('link', { name: 'View details' })).toHaveAttribute('href', '/marketplace/errand-1');
     await waitFor(() => expect(receivedUrl?.searchParams.get('q')).toBe('pharmacy'));
     expect(receivedUrl?.searchParams.getAll('category')).toEqual(['cat-1']);
     expect(receivedUrl?.searchParams.get('budgetMin')).toBe('5000');
     expect(screen.queryByText(/address|street|unit/i)).not.toBeInTheDocument();
-    expect(screen.getByText('Yaba')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Marketplace errands' })).getByText('Yaba')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Map view' })).toHaveAttribute('href', '/marketplace?category=cat-1&q=pharmacy&budgetMin=5000&view=map');
+  });
+
+  it('previews the selected errand with its own route, budget and offer link', async () => {
+    const items = [
+      { id: 'parcel', title: 'Deliver a parcel', pickup: { area: 'Ikeja' }, destination: { area: 'Yaba' }, suggestedBudgetMinor: 350000 },
+      { id: 'medicine', title: 'Collect medicine', pickup: { area: 'Lekki' }, destination: { area: 'Ajah' }, suggestedBudgetMinor: 725000 },
+    ].map((item) => ({
+      ...item, category: { key: 'delivery', name: 'Delivery' }, description: 'A sealed package.',
+      distance: null, timeMode: 'ASAP', priority: 'STANDARD', scheduledAt: null,
+      requester: { firstName: 'Ada', photoMediaId: null, rating: null, ratingCount: 0, badges: [] },
+      postedAt: '2026-01-01T10:00:00.000Z', expiresAt: '2026-01-02T10:00:00.000Z',
+      offerCount: 1, boosted: false, saved: false,
+    }));
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands', () => envelope(items)),
+    );
+    renderWithClient(<MarketplaceFeedPage />);
+    const preview = within(await screen.findByRole('complementary', { name: 'Errand preview' }));
+    expect(preview.getByRole('heading', { name: 'Deliver a parcel' })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Preview Collect medicine' }));
+    expect(preview.getByRole('heading', { name: 'Collect medicine' })).toBeInTheDocument();
+    expect(preview.getByText('Lekki')).toBeInTheDocument();
+    expect(preview.getByText('Ajah')).toBeInTheDocument();
+    expect(preview.queryByText('Ikeja')).not.toBeInTheDocument();
+    expect(preview.getByText(/7,250/)).toBeInTheDocument();
+    expect(preview.getByRole('link', { name: 'Send offer' })).toHaveAttribute('href', '/marketplace/medicine/offer');
+    expect(preview.getByRole('link', { name: 'View details' })).toHaveAttribute('href', '/marketplace/medicine');
+    const card = within(screen.getByRole('region', { name: 'Marketplace errands' })).getAllByRole('article')[1];
+    expect(within(card).getByRole('link', { name: 'View details' })).toHaveAttribute('href', '/marketplace/medicine');
+    expect(within(card).queryByText('Preview')).not.toBeInTheDocument();
+  });
+
+  it.each(['list', 'map'])('submits a %s search without sending the Any time display value to the API', async (view) => {
+    window.history.replaceState({}, '', view === 'map' ? '/marketplace?view=map' : '/marketplace');
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands/map', () => envelope([])),
+    );
+    renderWithClient(view === 'map' ? <MarketplaceMapPage /> : <MarketplaceFeedPage />);
+    await screen.findByText(view === 'map' ? 'No errands match these filters.' : 'No errands match your filters right now.');
+    const user = userEvent.setup();
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'groceries');
+    await user.click(screen.getByRole('button', { name: 'Search errands' }));
+    expect(replace).toHaveBeenCalledWith(`/marketplace?${view === 'map' ? 'view=map&' : ''}q=groceries&sort=recommended`, { scroll: false });
+  });
+
+  it('shares map controls, preserves filters when returning to the list, and retains the SDK fallback', async () => {
+    window.history.replaceState({}, '', '/marketplace?category=cat-1&category=cat-2&q=pharmacy&timeMode=ASAP&radiusKm=7&budgetMin=5000&sort=newest&view=map');
+    let receivedUrl: URL | undefined;
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([{ id: 'cat-1', key: 'health', name: 'Health' }])),
+      http.get('*/api/v1/marketplace/errands/map', ({ request }) => {
+        receivedUrl = new URL(request.url);
+        return envelope([]);
+      }),
+    );
+    renderWithClient(<MarketplaceMapPage />);
+    await screen.findByText('No errands match these filters.');
+    expect(screen.getByRole('heading', { name: 'Find errands near you' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('pharmacy');
+    expect(screen.getByRole('checkbox', { name: 'Health' })).toBeChecked();
+    expect(screen.getByRole('link', { name: 'Map view' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'List view' })).toHaveAttribute('href', '/marketplace?category=cat-1&category=cat-2&q=pharmacy&timeMode=ASAP&radiusKm=7&budgetMin=5000&sort=newest');
+    expect(receivedUrl?.searchParams.getAll('category')).toEqual(['cat-1', 'cat-2']);
+    expect(receivedUrl?.searchParams.get('q')).toBe('pharmacy');
+    expect(receivedUrl?.searchParams.get('timeMode')).toBe('ASAP');
+    expect(receivedUrl?.searchParams.get('radiusKm')).toBe('7');
+    expect(receivedUrl?.searchParams.get('budgetMin')).toBe('5000');
+    expect(receivedUrl?.searchParams.get('limit')).toBe('200');
+    expect(receivedUrl?.searchParams.has('sort')).toBe(false);
+    expect(screen.getByText(/The map could not load/)).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(replace).toHaveBeenCalledWith('/marketplace?view=map&sort=newest', { scroll: false });
   });
 
   it('explains a verification blocker and does not expose an offer link on errand detail', async () => {

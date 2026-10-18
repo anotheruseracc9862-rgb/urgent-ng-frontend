@@ -4,22 +4,34 @@ import { persistedQuery } from '@/lib/query/persisted-query';
 import { useApiMutation } from '@/lib/query/mutations';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef } from 'react';
-import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData, keepPreviousData } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useInfiniteQuery, useQueryClient, type InfiniteData, keepPreviousData } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
-import { ArrowRight, MapPin, Search, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Bookmark, ChevronRight, Clock3, LockKeyhole, MapPin, MessageSquare, Package, ShieldCheck, Sparkles, Star } from 'lucide-react';
 import { api, apiResponse, isApiError, type ApiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
-import { runnerApi } from '@/features/runner/api';
 import { PageHead } from '@/components/shell/page-head';
+import { MarketplaceControls, categoryIcons } from '../marketplace-controls';
 
 type FeedItem = components['schemas']['FeedItemDto'];
 type MarketplaceFilterQuery = Record<string, string | number | boolean | string[] | undefined>;
 
 const money = (minor: number | null) =>
   minor === null ? 'No budget' : new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(minor / 100);
+
+const dateLabel = (value: string) => new Date(value).toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const timing = (item: FeedItem) => item.timeMode === 'ASAP' ? 'ASAP' : item.timeMode === 'SCHEDULED' ? 'Scheduled' : 'Time window';
+
+function ErrandRoute({ item }: { item: FeedItem }) {
+  return (
+    <div className="grid gap-2.5 rounded-[var(--r-sm)] bg-panel px-3.5 py-3 text-xs text-ink-2">
+      <div className="flex items-start gap-2.5"><span aria-hidden="true" className="mt-1 size-2.5 shrink-0 rounded-full bg-green" /><span><span className="sr-only">Pickup: </span>{item.pickup?.area ?? 'Pickup area: near you'}</span></div>
+      <div className="flex items-start gap-2.5"><span aria-hidden="true" className="mt-1 size-2.5 shrink-0 rounded-sm bg-ink" /><span><span className="sr-only">Destination: </span>{item.destination?.area ?? 'Destination flexible'}</span></div>
+    </div>
+  );
+}
 
 function parseNumeric(value: string | null, fallback?: number) {
   if (value === null || value === '') return fallback ?? undefined;
@@ -44,18 +56,12 @@ function buildQueryFromSearch(searchParams: URLSearchParams): MarketplaceFilterQ
 }
 
 export function MarketplaceFeedPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filters = useMemo(() => buildQueryFromSearch(searchParams), [searchParams]);
-  const selectedCategories = useMemo(() => searchParams.getAll('category'), [searchParams]);
   const scrollKey = useMemo(() => `marketplace-feed-scroll:${searchParams.toString()}`, [searchParams]);
-  const categoryOptions = useQuery({
-    queryKey: queryKeys.reference.categories(),
-    queryFn: runnerApi.categories,
-    staleTime: 60 * 60 * 1000,
-  });
   const feedQueryKey = queryKeys.marketplace.feed(filters);
 
   const errands = useInfiniteQuery({
@@ -108,6 +114,7 @@ export function MarketplaceFeedPage() {
   });
 
   const items = errands.data?.pages.flatMap((page) => page.data) ?? [];
+  const total = errands.data?.pages[0]?.meta?.total;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const didRestoreScroll = useRef(false);
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = errands;
@@ -135,65 +142,7 @@ export function MarketplaceFeedPage() {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const updateUrl = (next: Record<string, string | string[] | undefined>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('category');
-    params.delete('timeMode');
-    params.delete('radiusKm');
-    params.delete('budgetMin');
-    params.delete('budgetMax');
-    params.delete('q');
-    params.delete('sort');
-
-    const categoryValues = Array.isArray(next.category) ? next.category : [];
-    categoryValues.forEach((value) => params.append('category', value));
-
-    if (next.timeMode) params.set('timeMode', String(next.timeMode));
-    if (next.radiusKm) params.set('radiusKm', String(next.radiusKm));
-    if (next.budgetMin) params.set('budgetMin', String(next.budgetMin));
-    if (next.budgetMax) params.set('budgetMax', String(next.budgetMax));
-    if (next.q) params.set('q', String(next.q));
-    if (next.sort) params.set('sort', String(next.sort));
-
-    const query = params.toString();
-    router.replace(query ? `/marketplace?${query}` : '/marketplace', { scroll: false });
-  };
-
-  const onFilterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const formValues = {
-      category: selectedCategories,
-      timeMode: String(form.get('timeMode') ?? ''),
-      radiusKm: String(form.get('radiusKm') ?? ''),
-      budgetMin: String(form.get('budgetMin') ?? ''),
-      budgetMax: String(form.get('budgetMax') ?? ''),
-      q: String(form.get('q') ?? ''),
-      sort: String(form.get('sort') ?? 'recommended'),
-    };
-    updateUrl(formValues);
-  };
-
-  const toggleCategory = (id: string, checked: boolean) => {
-    const nextCategories = checked ? [...selectedCategories, id] : selectedCategories.filter((value) => value !== id);
-    updateUrl({
-      ...filters,
-      category: nextCategories,
-      timeMode: searchParams.get('timeMode') ?? undefined,
-      radiusKm: searchParams.get('radiusKm') ?? undefined,
-      budgetMin: searchParams.get('budgetMin') ?? undefined,
-      budgetMax: searchParams.get('budgetMax') ?? undefined,
-      q: searchParams.get('q') ?? undefined,
-      sort: searchParams.get('sort') ?? 'recommended',
-    });
-  };
-
-  const searchTerm = searchParams.get('q') ?? '';
-  const radiusValue = searchParams.get('radiusKm') ?? '';
-  const budgetMin = searchParams.get('budgetMin') ?? '';
-  const budgetMax = searchParams.get('budgetMax') ?? '';
-  const sort = searchParams.get('sort') ?? 'recommended';
-  const timeMode = searchParams.get('timeMode') ?? '';
+  const selected = items.find((item) => item.id === selectedId) ?? items[0];
 
   if (isApiError(errands.error) && errands.error.code === 'VERIFICATION_REQUIRED') {
     return (
@@ -229,8 +178,8 @@ export function MarketplaceFeedPage() {
     );
   }
 
-  if (categoryOptions.error || errands.error) {
-    const error = categoryOptions.error ?? errands.error;
+  if (errands.error) {
+    const error = errands.error;
     return (
       <main className="grid min-w-0 content-start gap-4 pb-10">
         <PageHead eyebrow="Marketplace" title="Find errands near you" />
@@ -243,7 +192,7 @@ export function MarketplaceFeedPage() {
                 : 'We could not load the marketplace feed.'}</p>
             {isApiError(error) && error.requestId && <p className="text-xs">Request ID: {error.requestId}</p>}
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => { void categoryOptions.refetch(); void errands.refetch(); }}>Try again</Button>
+              <Button type="button" variant="ghost" onClick={() => void errands.refetch()}>Try again</Button>
             </div>
           </div>
         </Alert>
@@ -251,81 +200,14 @@ export function MarketplaceFeedPage() {
     );
   }
 
-  const categories = categoryOptions.data ?? [];
-
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <PageHead
-        eyebrow="Runner"
-        title="Find errands near you"
-        description="Browse nearby requests and find work that fits your area and travel preferences."
-        actions={<div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" asChild><Link href={`/marketplace?${new URLSearchParams(searchParams.toString()).toString()}${searchParams.size ? '&' : ''}view=map`}>Map view</Link></Button>
-          <Button type="button" variant="ghost" asChild><Link href="/marketplace/saved">Saved errands</Link></Button>
-          <Button type="button" variant="ghost" asChild><Link href="/runner/history">Job history</Link></Button>
-          <Button type="button" variant="ghost" asChild><Link href="/runner/profile">Update profile</Link></Button>
-        </div>}
+      <MarketplaceControls
+        count={typeof total === 'number' ? total : items.length}
+        pending={errands.isPending}
+        updating={errands.isFetching}
+        hasMore={errands.hasNextPage && typeof total !== 'number'}
       />
-
-      <form onSubmit={onFilterSubmit} className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] md:grid-cols-[minmax(0,1.3fr)_220px_180px_180px_180px_140px]">
-        <div className="flex items-center gap-2 text-sm font-extrabold text-ink md:col-span-6">
-          <Search aria-hidden="true" className="size-4 text-muted" />
-          Refine your search
-        </div>
-        <label className="grid gap-1 text-sm font-bold text-ink">
-          Search
-          <input name="q" defaultValue={searchTerm} placeholder="e.g. pharmacy" className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
-        </label>
-        <label className="grid gap-1 text-sm font-bold text-ink">
-          Sort
-          <select name="sort" defaultValue={sort} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
-            <option value="recommended">Recommended</option>
-            <option value="nearest">Nearest</option>
-            <option value="newest">Newest</option>
-            <option value="budget_desc">Budget high to low</option>
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm font-bold text-ink">
-          Time mode
-          <select name="timeMode" defaultValue={timeMode} className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
-            <option value="">Any</option>
-            <option value="ASAP">ASAP</option>
-            <option value="SCHEDULED">Scheduled</option>
-            <option value="WINDOW">Window</option>
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm font-bold text-ink">
-          Radius
-          <input name="radiusKm" defaultValue={radiusValue} type="number" min={1} max={20} step={1} placeholder="5 km" className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
-        </label>
-        <label className="grid gap-1 text-sm font-bold text-ink">
-          Min budget
-          <input name="budgetMin" defaultValue={budgetMin} type="number" min={0} step={500} placeholder="5000" className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
-        </label>
-        <label className="grid gap-1 text-sm font-bold text-ink">
-          Max budget
-          <input name="budgetMax" defaultValue={budgetMax} type="number" min={0} step={500} placeholder="50000" className="min-h-11 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
-        </label>
-
-        <div className="md:col-span-6">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-muted">Categories</span>
-            {selectedCategories.length > 0 ? <button type="button" className="text-xs font-bold text-green-800 underline" onClick={() => updateUrl({ sort, q: searchTerm || undefined, timeMode: timeMode || undefined, radiusKm: radiusValue || undefined, budgetMin: budgetMin || undefined, budgetMax: budgetMax || undefined, category: [] })}>Clear</button> : null}
-          </div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {categories.map((category) => (
-              <label key={category.id} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--r-sm)] bg-panel px-3 py-2 text-sm text-ink transition-colors hover:bg-tint motion-reduce:transition-none">
-                <input type="checkbox" checked={selectedCategories.includes(category.id)} onChange={(event) => toggleCategory(category.id, event.target.checked)} className="size-4 accent-lime-700" />
-                {category.name}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="md:col-span-6 flex justify-end">
-          <Button type="submit">Apply filters</Button>
-        </div>
-      </form>
 
       {errands.isPending ? (
         <section className="grid gap-3" aria-label="Loading errands" aria-busy="true">
@@ -348,50 +230,53 @@ export function MarketplaceFeedPage() {
           <p className="mt-2 text-sm text-muted">Adjust your radius or search, or update your operating area to see more nearby requests.</p>
         </div>
       ) : (
-        <section className="grid gap-3" aria-label="Marketplace errands">
-          {items.map((item) => (
-            <article key={item.id} className="grid min-w-0 gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] md:grid-cols-[minmax(0,1fr)_auto] sm:p-[22px]">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  {item.boosted && <span className="rounded-full bg-amber-bg px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-amber">Boosted</span>}
-                  <span className="rounded-full bg-tint-2 px-2.5 py-1 text-[11px] font-extrabold text-green-900">{item.category.name}</span>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{item.timeMode}</span>
-                </div>
-                <div className="mt-3 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link href={`/marketplace/${item.id}`} className="text-base font-extrabold tracking-tight text-ink hover:underline">{item.title}</Link>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted">{item.description}</p>
+        <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,1fr)]">
+          <section className="grid min-w-0 gap-3.5" aria-label="Marketplace errands" aria-busy={errands.isFetching}>
+            {items.map((item) => {
+              const Icon = categoryIcons[item.category.key] ?? Package;
+              const active = selected?.id === item.id;
+              return (
+                <article key={item.id} className={`group relative grid min-w-0 gap-3.5 rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-pop)] motion-reduce:transform-none motion-reduce:transition-none ${active ? 'xl:ring-2 xl:ring-lime-600' : ''}`}>
+                  <button type="button" aria-label={`Preview ${item.title}`} aria-pressed={active} aria-controls="marketplace-errand-preview" onClick={() => setSelectedId(item.id)} className="absolute inset-0 z-10 hidden cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 xl:block" />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-tint-2 px-2.5 py-1.5 text-[11px] font-extrabold text-green-900"><Icon aria-hidden="true" className="size-3.5" />{item.category.name}</span>{item.boosted && <span className="inline-flex items-center gap-1 rounded-full bg-amber-bg px-2 py-1.5 text-[10px] font-extrabold text-amber"><Sparkles aria-hidden="true" className="size-3" />Boosted</span>}</div>
+                    <button type="button" aria-label={`${item.saved ? 'Unsave' : 'Save'} ${item.title}`} aria-pressed={item.saved} disabled={saveMutation.isPending && saveMutation.variables?.errandId === item.id} onClick={() => saveMutation.mutate({ errandId: item.id, saved: item.saved })} className={`relative z-20 grid size-10 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-50 motion-reduce:transition-none ${item.saved ? 'bg-tint-2 text-green-900' : 'bg-panel text-muted hover:bg-tint-2 hover:text-green-900'}`}><Bookmark aria-hidden="true" className={`size-[17px] ${item.saved ? 'fill-current' : ''}`} /><span className="sr-only">{saveMutation.isPending && saveMutation.variables?.errandId === item.id ? 'Saving…' : item.saved ? 'Saved' : 'Save'}</span></button>
                   </div>
-                  <span className="shrink-0 rounded-full bg-panel px-2.5 py-1 text-xs font-bold text-ink">{money(item.suggestedBudgetMinor)}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
-                  <span>{item.pickup?.area ?? 'Pickup area: near you'}</span>
-                  <span>{item.destination?.area ?? 'Destination flexible'}</span>
-                  {item.distance ? <span>{item.distance.label}</span> : null}
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <span>{item.offerCount} offers</span>
-                  <span>Posted {new Date(item.postedAt).toLocaleDateString()}</span>
-                  <span>Expires {new Date(item.expiresAt).toLocaleDateString()}</span>
-                </div>
+                  <div className="min-w-0"><h2 className="text-base font-extrabold leading-snug tracking-tight text-ink">{item.title}</h2><p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p></div>
+                  <ErrandRoute item={item} />
+                  <div className="flex items-end justify-between gap-3">
+                    <div className="grid gap-2 text-[11px] text-muted"><span className="flex flex-wrap items-center gap-x-2 gap-y-1">{item.distance && <span className="inline-flex items-center gap-1"><MapPin aria-hidden="true" className="size-3" />{item.distance.label}<span aria-hidden="true">·</span></span>}<span className="inline-flex items-center gap-1"><Clock3 aria-hidden="true" className="size-3" />{timing(item)}</span></span><span>Posted <time dateTime={item.postedAt}>{dateLabel(item.postedAt)}</time></span><span>Expires <time dateTime={item.expiresAt}>{dateLabel(item.expiresAt)}</time></span></div>
+                    <div className="shrink-0 text-right"><p className="text-[22px] font-extrabold tracking-tight text-ink tabular-nums">{money(item.suggestedBudgetMinor)}</p><p className="mt-1 text-[11px] text-muted">{item.offerCount} {item.offerCount === 1 ? 'offer' : 'offers'}</p></div>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                    <span className="flex items-center gap-2 text-xs text-ink-2"><span aria-hidden="true" className="grid size-7 place-items-center rounded-full bg-panel text-[11px] font-extrabold text-green-800">{item.requester.firstName.slice(0, 1)}</span>{item.requester.firstName}{item.requester.rating !== null && <span className="inline-flex items-center gap-1 text-[11px] text-muted"><Star aria-hidden="true" className="size-3 fill-amber text-amber" />{item.requester.rating.toFixed(1)}</span>}</span>
+                    <div className="relative z-20 flex items-center gap-2"><Link href={`/marketplace/${item.id}`} className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-xs font-bold text-ink-2 hover:bg-panel">View details<ChevronRight aria-hidden="true" className="size-3.5" /></Link><Link href={`/marketplace/${item.id}/offer`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-xs font-bold text-white transition-colors hover:bg-green-900 motion-reduce:transition-none">Send offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link></div>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+          {selected && <aside id="marketplace-errand-preview" aria-label="Errand preview" tabIndex={0} className="sticky top-4 hidden max-h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 xl:block">
+            <div className="flex items-center justify-between gap-3 border-b border-line bg-tint/60 px-5 py-4"><span className="inline-flex items-center gap-2 text-xs font-extrabold text-green-900"><Package aria-hidden="true" className="size-4" />Quick look</span><span className="text-[11px] text-muted">{selected.category.name}</span></div>
+            <div key={selected.id} className="grid gap-5 p-5">
+              <div className="min-w-0"><h2 className="break-words text-lg font-extrabold leading-6 tracking-tight text-ink">{selected.title}</h2><p className="mt-2 line-clamp-3 break-words text-sm leading-relaxed text-muted">{selected.description}</p></div>
+              <ErrandRoute item={selected} />
+              <dl className="divide-y divide-line text-xs">
+                <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Suggested budget</dt><dd className="text-lg font-extrabold text-ink tabular-nums">{money(selected.suggestedBudgetMinor)}</dd></div>
+                <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">When</dt><dd className="text-right font-bold text-ink">{timing(selected)}{selected.scheduledAt && <span className="block text-[11px] font-normal text-muted">{dateLabel(selected.scheduledAt)}</span>}</dd></div>
+                {selected.distance && <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Distance</dt><dd className="font-bold text-ink">{selected.distance.label}</dd></div>}
+                <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="shrink-0 text-muted">Posted by</dt><dd className="min-w-0 text-right font-bold text-ink"><span className="block truncate" title={selected.requester.firstName}>{selected.requester.firstName}</span><span className="block text-[11px] font-normal text-muted">{selected.requester.rating === null ? 'No ratings yet' : `${selected.requester.rating.toFixed(1)} · ${selected.requester.ratingCount} reviews`}</span></dd></div>
+                <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="inline-flex items-center gap-1.5 text-muted"><MessageSquare aria-hidden="true" className="size-3.5" />Offers so far</dt><dd className="font-bold text-ink">{selected.offerCount}</dd></div>
+                <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Expires</dt><dd className="text-right font-bold text-ink"><time dateTime={selected.expiresAt}>{dateLabel(selected.expiresAt)}</time></dd></div>
+              </dl>
+              <div className="flex items-start gap-2 rounded-[var(--r-sm)] bg-tint px-3 py-3 text-xs leading-relaxed text-green-900"><LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p>Exact locations and contact details unlock after you’re selected and accept.</p></div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
+                <Button variant="ghost" asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}`}>View details<ChevronRight aria-hidden="true" className="size-4" /></Link></Button>
               </div>
-
-              <div className="flex flex-col items-end gap-2">
-                <button
-                  type="button"
-                  disabled={saveMutation.isPending && saveMutation.variables?.errandId === item.id}
-                  onClick={() => saveMutation.mutate({ errandId: item.id, saved: item.saved })}
-                  className={`min-h-11 rounded-full px-3 text-xs font-extrabold uppercase tracking-wide ${item.saved ? 'bg-green-700 text-white' : 'bg-panel text-ink'}`}
-                >
-                  {saveMutation.isPending && saveMutation.variables?.errandId === item.id ? 'Saving…' : item.saved ? 'Saved' : 'Save'}
-                </button>
-                <Link href={`/marketplace/${item.id}/offer`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-4 text-xs font-extrabold text-white">
-                  Send offer
-                </Link>
-              </div>
-            </article>
-          ))}
-        </section>
+            </div>
+          </aside>}
+        </div>
       )}
       {errands.hasNextPage ? (
         <div ref={loadMoreRef} className="grid justify-items-center gap-2 py-3" aria-live="polite">
