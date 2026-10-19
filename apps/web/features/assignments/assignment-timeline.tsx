@@ -3,23 +3,13 @@
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Skeleton } from '@urgent/ui';
-import { api, isApiError } from '@/lib/api/client';
+import { Skeleton } from '@urgent/ui';
+import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import type { ExecutionEvent } from '@/features/offers/api';
 
 function label(value: string) {
   return value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function ApiErrorAlert({ error, fallback, onRetry }: { error: unknown; fallback: string; onRetry?: () => void }) {
-  return (
-    <Alert variant="danger" role="alert">
-      <p>{isApiError(error) ? error.message : fallback}</p>
-      {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
-      {onRetry ? <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onRetry}>Try again</Button> : null}
-    </Alert>
-  );
 }
 
 export function AssignmentPhoto({ mediaId, alt }: { mediaId: string; alt: string }) {
@@ -30,7 +20,12 @@ export function AssignmentPhoto({ mediaId, alt }: { mediaId: string; alt: string
     retry: false,
   });
   if (image.error) {
-    return <ApiErrorAlert error={image.error} fallback="We could not load this photo." onRetry={() => void image.refetch()} />;
+    return (
+      <div role="status" className="grid aspect-square place-items-center gap-1 rounded-xl bg-panel p-2 text-center">
+        <p className="text-[11px] font-semibold text-muted">Photo unavailable</p>
+        <button type="button" onClick={() => void image.refetch()} className="text-[11px] font-bold text-green-900 underline">Try again</button>
+      </div>
+    );
   }
   return (
     <div className="relative aspect-square overflow-hidden rounded-xl bg-panel">

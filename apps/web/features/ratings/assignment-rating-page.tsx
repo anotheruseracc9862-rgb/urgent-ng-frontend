@@ -4,6 +4,7 @@ import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { useApiMutation } from '@/lib/query/mutations';
 import { PageHead } from '@/components/shell/page-head';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +12,8 @@ import { Alert, Button } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
+import { queryKeys } from '@/lib/query/keys';
+import { offersApi } from '@/features/offers/api';
 import { ratingKeys, ratingsApi, type Rating, type Scores, type SubmitRating } from './api';
 import { dimensions, panel, RatingContent, RatingError, RatingsLoading, reasonText, ReportRating, StarInput } from './rating-ui';
 import { JourneyHere } from '@/features/journey/journey-context';
@@ -22,9 +25,12 @@ function beforeDeadline(deadline: string | null, now: number) {
 export function AssignmentRatingPage({ assignmentId }: { assignmentId: string }) {
   const polling = useLivePolling(30_000);
   const { me } = useSession();
+  const router = useRouter();
   const client = useQueryClient();
   const key = ratingKeys.assignment(me.id, assignmentId);
   const query = useQuery({ queryKey: key, queryFn: ({ signal }) => ratingsApi.assignment(assignmentId, signal), retry: false, refetchInterval: polling });
+  // Shared with the assignment page, so this is usually already cached. It only decides where to go after saving.
+  const assignment = useQuery({ queryKey: queryKeys.assignments.detail(assignmentId), queryFn: () => offersApi.assignment(assignmentId), retry: false });
   const [now, setNow] = useState(() => Date.now());
   const [saveError, setSaveError] = useState<unknown>(null);
   useEffect(() => {
@@ -44,6 +50,8 @@ export function AssignmentRatingPage({ assignmentId }: { assignmentId: string })
       client.setQueryData(key, { ...data, mine: saved, canRate: false, reason: 'ALREADY_RATED' });
     }
     await client.invalidateQueries({ queryKey: ratingKeys.all(me.id) });
+    // A saved rating ends the task: leave the page for the person's own list.
+    if (saved) router.push(assignment.data?.data.role === 'RUNNER' ? '/assignments' : '/errands');
   };
 
   return <main className="grid min-w-0 content-start gap-4 pb-10">
