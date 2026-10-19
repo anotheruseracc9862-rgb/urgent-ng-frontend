@@ -2,7 +2,9 @@
 
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { useApiMutation } from '@/lib/query/mutations';
+import { PageHead } from '@/components/shell/page-head';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button } from '@urgent/ui';
@@ -10,7 +12,7 @@ import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { ratingKeys, ratingsApi, type Rating, type Scores, type SubmitRating } from './api';
-import { dimensions, panel, RatingContent, RatingError, RatingsLoading, reasonText, ReportRating } from './rating-ui';
+import { dimensions, panel, RatingContent, RatingError, RatingsLoading, reasonText, ReportRating, StarInput } from './rating-ui';
 import { JourneyHere } from '@/features/journey/journey-context';
 
 function beforeDeadline(deadline: string | null, now: number) {
@@ -29,8 +31,8 @@ export function AssignmentRatingPage({ assignmentId }: { assignmentId: string })
     const timer = window.setInterval(() => setNow(Date.now()), 500);
     return () => window.clearInterval(timer);
   }, []);
-  if (query.isPending) return <div className="mx-auto max-w-3xl"><RatingsLoading /></div>;
-  if (!query.data || query.error) return <div className="mx-auto max-w-3xl"><RatingError error={query.error} retry={() => void query.refetch()} /></div>;
+  if (query.isPending) return <div className="min-w-0"><RatingsLoading /></div>;
+  if (!query.data || query.error) return <div className="min-w-0"><RatingError error={query.error} retry={() => void query.refetch()} /></div>;
   const data = query.data;
   const mine = data.mine;
   const editable = mine ? mine.editable && !mine.revealed && beforeDeadline(mine.editableUntil, now) : data.canRate && beforeDeadline(data.windowEndsAt, now);
@@ -44,29 +46,36 @@ export function AssignmentRatingPage({ assignmentId }: { assignmentId: string })
     await client.invalidateQueries({ queryKey: ratingKeys.all(me.id) });
   };
 
-  return <div className="mx-auto grid max-w-3xl gap-5">
-    <Link href={`/assignments/${encodeURIComponent(assignmentId)}`} className="text-sm font-bold text-green-800">← Back to assignment</Link>
-    <header><p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Reputation</p>
-      <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Rate your errand</h1>
-      <p className="mt-2 text-sm text-muted">Keep it fair and about the errand. Your review stays private until both sides rate or the rating window closes.</p></header>
+  return <main className="grid min-w-0 content-start gap-4 pb-10">
+    <Link href={`/assignments/${encodeURIComponent(assignmentId)}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+    <PageHead eyebrow="Rating" title="Rate your errand" description="Keep it fair and about the errand. Your review stays private until both sides rate or the rating window closes." />
     <JourneyHere />
-    <Alert variant="info" role="status">
-      {mine?.revealed || theirs ? 'Ratings have been revealed.' : data.counterpartRated ? 'The other side has rated. Their rating stays hidden until the reveal.' : 'Waiting for the other side. Ratings stay hidden until both sides rate or the window closes.'}
-      {data.windowEndsAt ? <p className="mt-1 text-xs">Rating window {beforeDeadline(data.windowEndsAt, now) ? 'closes' : 'closed'}: {formatDate(data.windowEndsAt)} (Lagos time). {Date.parse(data.windowEndsAt) - now > 0 && Date.parse(data.windowEndsAt) - now < 86_400_000 ? 'Window closing soon.' : null}</p> : null}
-    </Alert>
     {saveError ? <RatingError error={saveError} /> : null}
-    <section className={`${panel} grid gap-4`} aria-label="Your rating">
-      <h2 className="font-extrabold text-ink">{mine ? 'Your rating' : 'How did it go?'}</h2>
-      {mine ? <><RatingContent rating={mine} /><p className="text-xs text-muted">Status: {mine.status.replaceAll('_', ' ').toLowerCase()}</p></> : null}
-      {editable ? <RatingForm key={`${assignmentId}:${mine?.id ?? 'new'}`} assignmentId={assignmentId} mine={mine} deadline={mine ? mine.editableUntil : data.windowEndsAt} onSaved={refresh} onError={setSaveError} />
-        : <p className="text-sm text-muted">{reasonText(mine ? mine.revealed ? 'REVEALED' : mine.status !== 'PUBLISHED' ? 'MODERATED' : 'EDIT_WINDOW_CLOSED' : !beforeDeadline(data.windowEndsAt, now) ? 'WINDOW_CLOSED' : data.reason)}</p>}
-    </section>
-    {theirs ? <section className={`${panel} grid gap-4`} aria-label="Other side's rating"><h2 className="font-extrabold text-ink">Other side’s rating</h2>
-      {theirs.status === 'PUBLISHED' ? <RatingContent rating={theirs} /> : <p className="text-sm text-muted">This rating is {theirs.status.replaceAll('_', ' ').toLowerCase()}. Its content is not available.</p>}
-      <ReportRating id={theirs.id} /></section> : null}
-    <Link href="/ratings" className="text-sm font-bold text-green-800 underline">View received and given ratings</Link>
-  </div>;
+    <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid min-w-0 content-start gap-4 lg:col-start-1 lg:row-start-1">
+        <section className={`${panel} grid gap-4`} aria-label="Your rating">
+          <h2 className="text-base font-extrabold text-ink">{mine ? 'Your rating' : 'How did it go?'}</h2>
+          {mine ? <><RatingContent rating={mine} /><p className="text-xs text-muted">Status: {mine.status.replaceAll('_', ' ').toLowerCase()}</p></> : null}
+          {editable ? <RatingForm key={`${assignmentId}:${mine?.id ?? 'new'}`} assignmentId={assignmentId} mine={mine} deadline={mine ? mine.editableUntil : data.windowEndsAt} onSaved={refresh} onError={setSaveError} />
+            : <p className="text-sm text-muted">{reasonText(mine ? mine.revealed ? 'REVEALED' : mine.status !== 'PUBLISHED' ? 'MODERATED' : 'EDIT_WINDOW_CLOSED' : !beforeDeadline(data.windowEndsAt, now) ? 'WINDOW_CLOSED' : data.reason)}</p>}
+        </section>
+        {theirs ? <section className={`${panel} grid gap-4`} aria-label="Other side's rating"><h2 className="text-base font-extrabold text-ink">Other side’s rating</h2>
+          {theirs.status === 'PUBLISHED' ? <RatingContent rating={theirs} /> : <p className="text-sm text-muted">This rating is {theirs.status.replaceAll('_', ' ').toLowerCase()}. Its content is not available.</p>}
+          <ReportRating id={theirs.id} /></section> : null}
+      </div>
+      <aside aria-label="Reveal and window" className={`${panel} grid min-w-0 gap-3 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1`}>
+        <h2 className="text-sm font-extrabold text-ink">Reveal and window</h2>
+        <Alert variant="info" role="status">
+          {mine?.revealed || theirs ? 'Ratings have been revealed.' : data.counterpartRated ? 'The other side has rated. Their rating stays hidden until the reveal.' : 'Waiting for the other side. Ratings stay hidden until both sides rate or the window closes.'}
+          {data.windowEndsAt ? <p className="mt-1 text-xs">Rating window {beforeDeadline(data.windowEndsAt, now) ? 'closes' : 'closed'}: {formatDate(data.windowEndsAt)} (Lagos time). {Date.parse(data.windowEndsAt) - now > 0 && Date.parse(data.windowEndsAt) - now < 86_400_000 ? 'Window closing soon.' : null}</p> : null}
+        </Alert>
+        <Link href="/ratings" className="text-sm font-bold text-green-800 underline">View received and given ratings</Link>
+      </aside>
+    </div>
+  </main>;
 }
+
+const optional = dimensions.filter(([key]) => key !== 'overall');
 
 function RatingForm({ assignmentId, mine, deadline, onSaved, onError }: { assignmentId: string; mine: Rating | null; deadline: string | null; onSaved: (saved?: Rating) => Promise<unknown>; onError: (error: unknown) => void }) {
   const [scores, setScores] = useState<Scores>(() => Object.fromEntries(dimensions.flatMap(([key]) => mine?.scores[key] != null ? [[key, mine.scores[key]]] : [])));
@@ -90,27 +99,35 @@ function RatingForm({ assignmentId, mine, deadline, onSaved, onError }: { assign
       }
     },
   });
+  const setScore = (key: keyof Scores, value: number | undefined) => {
+    const next = { ...scores };
+    if (value === undefined) delete next[key]; else next[key] = value;
+    setScores(next);
+  };
   return <form className="grid gap-5" onSubmit={(event) => { event.preventDefault(); if (!blocked && !mutation.isPending && scores.overall) mutation.mutate({ scores, review }); }}>
     {mutation.isSuccess ? <Alert variant="ok" role="status">Your rating was saved.</Alert> : null}
     <fieldset disabled={blocked || mutation.isPending} className="grid min-w-0 gap-5">
       <legend className="sr-only">{mine ? 'Edit your rating' : 'Submit a rating'}</legend>
-      {dimensions.map(([key, label]) => <label key={key} className="grid gap-2 text-sm font-bold text-ink">
-        {label}{key === 'overall' ? ' (required)' : ' (optional)'}
-        <select aria-label={label} required={key === 'overall'} value={scores[key] ?? ''} onChange={(event) => {
-          const next = { ...scores };
-          if (event.target.value) next[key] = Number(event.target.value); else delete next[key];
-          setScores(next);
-        }} className="min-h-11 w-full rounded-xl border border-line bg-surface px-3 font-normal focus:outline-2 focus:outline-green-700">
-          <option value="">{mine && key !== 'overall' ? 'Keep existing score' : 'Choose a score'}</option>
-          {[5, 4, 3, 2, 1].map((score) => <option key={score} value={score}>{score} {score === 1 ? 'star' : 'stars'}</option>)}
-        </select>
-      </label>)}
+      <div className="grid justify-items-center gap-2 rounded-[var(--r)] bg-tint p-4 text-center">
+        <p className="text-sm font-bold text-ink">Overall <span className="font-normal text-muted">(required)</span></p>
+        <StarInput label="Overall" value={scores.overall} onChange={(value) => setScore('overall', value)} large />
+        <p className="text-xs text-muted" aria-live="polite">{scores.overall ? `${scores.overall} of 5` : 'Tap a star'}</p>
+      </div>
+      <div className="grid gap-1">
+        <p className="text-sm font-bold text-ink">More detail <span className="font-normal text-muted">(optional){mine ? ': unrated ones keep their score' : ''}</span></p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {optional.map(([key, label]) => <div key={key} className="flex items-center justify-between gap-3 rounded-[var(--r-sm)] bg-panel px-3 py-2">
+            <span className="text-sm font-semibold text-ink-2">{label}</span>
+            <StarInput label={label} value={scores[key]} onChange={(value) => setScore(key, value)} clearable />
+          </div>)}
+        </div>
+      </div>
       <label className="grid gap-2 text-sm font-bold text-ink">Your review (optional)
         <textarea maxLength={1000} rows={4} value={review} onChange={(event) => setReview(event.target.value)} placeholder="Keep it fair and about the errand." className="w-full rounded-xl border border-line bg-surface p-3 font-normal focus:outline-2 focus:outline-green-700" />
         <span className="text-xs font-normal text-muted">{review.length}/1000 characters. Reviews may be checked for safety and policy.</span>
       </label>
       {deadline ? <p className="text-xs text-muted">{mine ? 'Editable' : 'Submit'} until {formatDate(deadline)} (Lagos time).</p> : null}
-      <Button type="submit" disabled={!scores.overall || blocked || mutation.isPending}>{mutation.isPending ? 'Saving…' : mine ? 'Save changes' : 'Submit rating'}</Button>
+      <Button type="submit" className="w-fit" disabled={!scores.overall || blocked || mutation.isPending}>{mutation.isPending ? 'Saving…' : mine ? 'Save changes' : 'Submit rating'}</Button>
     </fieldset>
   </form>;
 }

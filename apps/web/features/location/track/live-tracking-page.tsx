@@ -1,6 +1,8 @@
 'use client';
 
 import { PageLoading } from '@/components/shell/page-loading';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -37,13 +39,13 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
   });
 
   if (assignment.isPending || location.isPending) {
-    return <PageLoading title="Live tracking" eyebrow="Requester" width="max-w-3xl" />;
+    return <PageLoading title="Live tracking" eyebrow="Requester" width="max-w-5xl" />;
   }
   if (assignment.error || !assignment.data || location.error || !location.data) {
     const error = assignment.error ?? location.error;
     const retry = () => { void assignment.refetch(); void location.refetch(); };
     return (
-      <main className="mx-auto max-w-3xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <Alert variant="danger" role="alert">
           <p>{isApiError(error) && error.code === 'RESOURCE_NOT_FOUND'
             ? 'This assignment could not be found, or you do not have permission to view it.'
@@ -58,7 +60,7 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
   const current = assignment.data.data;
   if (current.role !== 'REQUESTER') {
     return (
-      <main className="mx-auto grid max-w-3xl gap-3">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <Alert variant="warn" role="status">Live tracking is available to the requester on this assignment.</Alert>
         <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}`}>Back to assignment</Link></Button>
       </main>
@@ -69,15 +71,15 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
   const hasPin = live.point !== null && live.sharing === 'ACTIVE' && ['FRESH', 'STALE'].includes(live.freshness);
 
   return (
-    <main className="mx-auto grid max-w-3xl gap-4">
-      <Link href={`/assignments/${assignmentId}`} className="w-fit text-sm font-bold text-green-800 hover:underline">← Back to assignment</Link>
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Live tracking</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
-        <p className="mt-2 text-sm text-muted">This map uses the rounded location shared by the runner. It does not show an exact address.</p>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+      <PageHead
+        eyebrow="Live tracking"
+        title={<span className="block max-w-[760px] break-words">{current.errand.title}</span>}
+        description="This map uses the rounded location shared by the runner. It does not show an exact address."
+      />
       <JourneyHere />
-      <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+      <section className="grid min-w-0 gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
         <div>
           <h2 className="font-extrabold text-ink">Runner location</h2>
           <p role="status" className="mt-1 text-sm text-muted">{live.sharing === 'STOPPED' ? 'The runner stopped sharing location.' : freshnessCopy(live.freshness)}</p>

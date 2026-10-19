@@ -154,6 +154,9 @@ describe('requester errand detail', () => {
     expect(screen.getByText(/Waiting for the runner to reconfirm/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Select · ₦4,000/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Select · ₦4,500/ })).toBeInTheDocument();
+    // Each offer links to its negotiation, so the requester can counter from the errand.
+    const links = screen.getAllByRole('link', { name: 'Negotiate' });
+    expect(links.map((link) => link.getAttribute('href'))).toContain('/offers/offer-selectable');
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Sort offers' }), 'eta_asc');
     await waitFor(() => expect(queriedSorts).toContain('eta_asc'));

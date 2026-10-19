@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IsRestoringProvider, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -28,6 +28,12 @@ function assignment(data: AssignmentRatings) {
 beforeAll(() => listen());
 afterEach(() => { server.resetHandlers(); vi.restoreAllMocks(); });
 afterAll(() => server.close());
+
+/** Tap the stars of a rating group: the page uses stars, not menus. */
+async function tapStars(user: ReturnType<typeof userEvent.setup>, group: string, count: number) {
+  const radios = await screen.findByRole('radiogroup', { name: group });
+  await user.click(within(radios).getByRole('radio', { name: `${count} ${count === 1 ? 'star' : 'stars'}` }));
+}
 
 describe('assignment rating public UI', () => {
   it.each(['assignment', 'list'])('keeps a loading skeleton during persisted-cache restoration: %s', (view) => {
@@ -75,8 +81,8 @@ describe('assignment rating public UI', () => {
       }),
     );
     mount(<AssignmentRatingPage assignmentId="assignment-1" />);
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Overall' }), '5');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Communication' }), '4');
+    await tapStars(user, 'Overall', 5);
+    await tapStars(user, 'Communication', 4);
     await user.type(screen.getByRole('textbox'), 'Fair and helpful');
     await user.click(screen.getByRole('button', { name: 'Submit rating' }));
     await screen.findByRole('alert');
@@ -93,6 +99,38 @@ describe('assignment rating public UI', () => {
     expect(requests[0].body).toEqual({ scores: { overall: 5, communication: 4 }, review: 'Fair and helpful' });
   });
 
+  it('uses stars: the submit button waits for an overall star, and shows what was chosen', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('*/api/v1/assignments/:id/ratings', () => envelope({ ...initial })));
+    mount(<AssignmentRatingPage assignmentId="assignment-1" />);
+
+    const submit = await screen.findByRole('button', { name: 'Submit rating' });
+    expect(submit).toBeDisabled();
+    expect(screen.getByText('Tap a star')).toBeInTheDocument();
+    await tapStars(user, 'Overall', 4);
+
+    expect(submit).toBeEnabled();
+    expect(screen.getByText('4 of 5')).toBeInTheDocument();
+    expect(within(screen.getByRole('radiogroup', { name: 'Overall' })).getByRole('radio', { name: '4 stars' })).toBeChecked();
+  });
+
+  it('an optional star can be taken back by tapping it again, and is then left out of the request', async () => {
+    const user = userEvent.setup();
+    let body: unknown;
+    server.use(
+      http.get('*/api/v1/assignments/:id/ratings', () => envelope({ ...initial })),
+      http.post('*/api/v1/assignments/:id/ratings', async ({ request }) => { body = await request.json(); return envelope(rating); }),
+    );
+    mount(<AssignmentRatingPage assignmentId="assignment-1" />);
+
+    await tapStars(user, 'Overall', 5);
+    await tapStars(user, 'Timeliness', 3);
+    await tapStars(user, 'Timeliness', 3);
+    await user.click(screen.getByRole('button', { name: 'Submit rating' }));
+
+    await waitFor(() => expect(body).toEqual({ scores: { overall: 5 }, review: '' }));
+  });
+
   it('edits through PATCH, including clearing review text', async () => {
     const user = userEvent.setup();
     let data = { ...initial, mine: rating, canRate: false };
@@ -104,7 +142,7 @@ describe('assignment rating public UI', () => {
       return envelope(data.mine);
     }));
     mount(<AssignmentRatingPage assignmentId="assignment-1" />);
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Overall' }), '4');
+    await tapStars(user, 'Overall', 4);
     await user.clear(screen.getByRole('textbox'));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(body).toEqual({ scores: { overall: 4, communication: 4 }, review: null }));
@@ -148,7 +186,7 @@ describe('assignment rating public UI', () => {
       return failure('RATING_ALREADY_SUBMITTED', undefined, 409);
     }));
     mount(<AssignmentRatingPage assignmentId="assignment-1" />);
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Overall' }), '5');
+    await tapStars(user, 'Overall', 5);
     await user.click(screen.getByRole('button', { name: 'Submit rating' }));
     expect(await screen.findByText('My fair review', { selector: 'p' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Submit rating' })).not.toBeInTheDocument();

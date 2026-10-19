@@ -5,7 +5,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import type { Rating } from './api';
 
-export const panel = 'rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-6';
+export const panel = 'rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]';
 export const dimensions = [
   ['overall', 'Overall'], ['reliability', 'Reliability'], ['communication', 'Communication'],
   ['timeliness', 'Timeliness'], ['paymentConduct', 'Payment conduct'],
@@ -50,5 +50,29 @@ export function RatingContent({ rating }: { rating: Pick<Rating, 'scores' | 'rev
     <dl className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">{dimensions.slice(1).map(([key, label]) => rating.scores[key] != null
       ? <div key={key}><dt className="inline">{label}: </dt><dd className="inline font-bold text-ink">{rating.scores[key]}/5</dd></div> : null)}</dl>
     {rating.review ? <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">{rating.review}</p> : null}
+  </div>;
+}
+
+/**
+ * Five tappable stars as one group of radio buttons. A person on a phone taps instead of opening a
+ * menu. `clearable` lets an optional score be taken back by tapping the same star again.
+ */
+export function StarInput({ label, value, onChange, large = false, clearable = false }: {
+  label: string;
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+  large?: boolean;
+  clearable?: boolean;
+}) {
+  return <div role="radiogroup" aria-label={label} className="flex gap-0.5">
+    {[1, 2, 3, 4, 5].map((n) => <button
+      key={n}
+      type="button"
+      role="radio"
+      aria-checked={value === n}
+      aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
+      onClick={() => onChange(clearable && value === n ? undefined : n)}
+      className={`grid place-items-center rounded-md leading-none transition-colors focus-visible:outline-2 focus-visible:outline-green-700 disabled:opacity-60 ${large ? 'size-11 text-[34px]' : 'size-8 text-xl'} ${value !== undefined && n <= value ? 'text-amber' : 'text-muted/35'}`}
+    ><span aria-hidden="true">★</span></button>)}
   </div>;
 }

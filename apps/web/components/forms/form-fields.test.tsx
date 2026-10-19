@@ -33,11 +33,11 @@ describe('react-hook-form field components', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Budget' }), { target: { value: '1,500.25' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Phone' }), { target: { value: '08034567890' } });
-    fireEvent.change(screen.getByLabelText('Date (Lagos)'), { target: { value: '2026-10-13' } });
-    fireEvent.change(screen.getByLabelText('Time (Lagos)'), { target: { value: '18:30' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-10-13' } });
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '18:30' } });
 
     expect(screen.getByLabelText('Current values')).toHaveTextContent(
-      '{"amount":150025,"phone":"+2348034567890","scheduledAt":"2026-10-13T17:30:00.000Z"}',
+      '{"amount":150025,"phone":"+2348034567890","scheduledAt":"2099-10-13T17:30:00.000Z"}',
     );
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
   });

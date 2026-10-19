@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { LockKeyhole } from 'lucide-react';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Switch } from '@urgent/ui';
+import { TimePicker } from '@/components/forms/time-picker';
 import { api, isApiError } from '@/lib/api/client';
 
 type NotificationCategory = components['schemas']['NotificationCategory'];
@@ -258,34 +259,36 @@ export function NotificationPreferencesForm({
                 : 'The default quiet window will be restored when you save. Times are in Lagos time.'}
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <label className="grid min-w-0 gap-1.5 text-[12.5px] font-bold text-ink-2">
-              From
-              <input
-                type="time"
-                value={quietStart}
-                disabled={!useCustomQuietHours || isSaving}
-                onChange={(event) => {
-                  setQuietStart(event.currentTarget.value);
-                  setSaved(false);
-                }}
-                required={useCustomQuietHours}
-                className="min-h-12 w-full min-w-0 rounded-[var(--r-sm)] border border-line bg-surface px-4 text-sm font-normal text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 disabled:bg-panel disabled:text-muted"
-              />
-            </label>
-            <label className="grid min-w-0 gap-1.5 text-[12.5px] font-bold text-ink-2">
-              To
-              <input
-                type="time"
-                value={quietEnd}
-                disabled={!useCustomQuietHours || isSaving}
-                onChange={(event) => {
-                  setQuietEnd(event.currentTarget.value);
-                  setSaved(false);
-                }}
-                required={useCustomQuietHours}
-                className="min-h-12 w-full min-w-0 rounded-[var(--r-sm)] border border-line bg-surface px-4 text-sm font-normal text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 disabled:bg-panel disabled:text-muted"
-              />
-            </label>
+            <TimePicker
+              id="quiet-hours-start"
+              className="grid min-w-0 gap-1.5"
+              label="From"
+              labelClassName="text-[12.5px] font-bold text-ink-2"
+              triggerLabel="Choose quiet hours start"
+              dialogLabel="Choose quiet hours start"
+              value={quietStart}
+              disabled={!useCustomQuietHours || isSaving}
+              required={useCustomQuietHours}
+              onChange={(next) => {
+                setQuietStart(next);
+                setSaved(false);
+              }}
+            />
+            <TimePicker
+              id="quiet-hours-end"
+              className="grid min-w-0 gap-1.5"
+              label="To"
+              labelClassName="text-[12.5px] font-bold text-ink-2"
+              triggerLabel="Choose quiet hours end"
+              dialogLabel="Choose quiet hours end"
+              value={quietEnd}
+              disabled={!useCustomQuietHours || isSaving}
+              required={useCustomQuietHours}
+              onChange={(next) => {
+                setQuietEnd(next);
+                setSaved(false);
+              }}
+            />
           </div>
         </section>
         <Button

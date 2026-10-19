@@ -11,6 +11,8 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi, type ChangeRequest } from '@/features/offers/api';
 import { JourneyHere } from '@/features/journey/journey-context';
+import { LagosDateTimeField } from '@/components/forms/lagos-date-time-field';
+import { availableActions } from '../available-actions';
 
 type ChangeType = components['schemas']['CreateChangeRequestDto']['type'];
 
@@ -133,6 +135,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
   const current = assignment.data.data;
   const myId = current.role === 'REQUESTER' ? current.requesterId : current.runnerId;
   const pending = requests.data.find((request) => request.status === 'PENDING');
+  const canPropose = availableActions(current.role, current.status, current.errand.status).changeRequest;
   const isScheduled = Boolean(current.errand.scheduledAt);
   const payload = changePayload(type, { amount, lat, lng, address, landmark, scheduledAt, other }, isScheduled);
 
@@ -164,7 +167,13 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
           </div>
         ) : null}
       </section>
-      {!pending ? (
+      {!pending && !canPropose ? (
+        <Alert variant="info" role="status">
+          <p className="font-extrabold">New change requests are closed</p>
+          <p className="mt-1">Amount, address and time can only be changed before pickup. If something is wrong now, open a dispute from the assignment page.</p>
+        </Alert>
+      ) : null}
+      {!pending && canPropose ? (
         <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
           <h2 className="font-extrabold text-ink">Propose a change</h2>
           <label className="grid gap-1 text-sm font-bold text-ink">Change type
@@ -196,9 +205,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
             </>
           ) : null}
           {type === 'TIME' ? (
-            <label className="grid gap-1 text-sm font-bold text-ink">New scheduled time
-              <input type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} className="rounded-lg border border-line bg-panel p-3 font-normal" />
-            </label>
+            <LagosDateTimeField id="change-scheduled-at" label="New scheduled time" value={scheduledAt || null} onChange={(value) => setScheduledAt(value ?? '')} />
           ) : null}
           {type === 'OTHER' ? (
             <label className="grid gap-1 text-sm font-bold text-ink">Explain the requested change

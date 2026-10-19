@@ -9,7 +9,7 @@ import { isApiError } from '@/lib/api/client';
 import { useLocationSharingConsent } from '@/features/settings/consent-state';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
-import { shouldSendLocation, type SentLocation } from './location-throttle';
+import { MIN_SEND_SECONDS, shouldSendLocation, type SentLocation } from './location-throttle';
 
 export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }) {
   const client = useQueryClient();
@@ -64,8 +64,13 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
     },
     onError: (error) => {
       if (isApiError(error) && error.code === 'RATE_LIMITED') {
-        backoffUntil.current = Date.now() + 60_000;
-        setLocationError('Location updates are arriving too quickly. Sharing will retry after a short pause.');
+        // Not a fault: the server already has a recent position. Wait as long as it says (at least
+        // one normal interval), keep sharing, and say so quietly instead of showing an error.
+        const asked = error.details.retryAfterSeconds;
+        const waitSeconds = Math.max(typeof asked === 'number' ? asked : 0, 30);
+        backoffUntil.current = Date.now() + waitSeconds * 1000;
+        setLocationError(null);
+        setLocationNotice('Your location was shared a moment ago. The next update follows shortly.');
       } else if (isApiError(error) && error.code === 'LOCATION_PERMISSION_REQUIRED') {
         setLocationError('Location-sharing consent is required. Enable it in privacy settings before sharing.');
         setManualPause(true);
@@ -92,6 +97,15 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
     document.addEventListener('visibilitychange', updateVisibility);
     return () => document.removeEventListener('visibilitychange', updateVisibility);
   }, []);
+
+  // The server may already hold a position from a moment ago (the page was reloaded or reopened).
+  // Do not send another until a normal interval has passed since that one, or it will refuse it.
+  const lastKnownAge = live.data?.ageSeconds;
+  useEffect(() => {
+    if (typeof lastKnownAge === 'number' && lastKnownAge < MIN_SEND_SECONDS) {
+      backoffUntil.current = Math.max(backoffUntil.current, Date.now() + (MIN_SEND_SECONDS - lastKnownAge) * 1000);
+    }
+  }, [lastKnownAge, live.dataUpdatedAt]);
 
   useEffect(() => {
     if (!sharingEnabled || !consent.isEnabled || hidden || manualPause) return;

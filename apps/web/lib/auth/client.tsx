@@ -77,6 +77,11 @@ export function SessionProvider({ children, me }: { children: React.ReactNode; m
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
+/** The session when there is one, or undefined. For code that can do without it. */
+export function useOptionalSession() {
+  return React.useContext(SessionContext);
+}
+
 export function useSession() {
   const context = React.useContext(SessionContext);
   if (context === undefined) {

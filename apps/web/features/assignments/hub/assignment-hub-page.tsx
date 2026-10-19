@@ -16,7 +16,9 @@ import { offersApi, type AssignmentDetail } from '@/features/offers/api';
 import { AssignmentPendingPage } from '@/features/offers/assignment/assignment-pending-page';
 import { RouteBlock, stageBadge } from '../execution-progress';
 import { AssignmentPhoto, AssignmentTimeline } from '../assignment-timeline';
+import { availableActions } from '../available-actions';
 import { JourneyHere } from '@/features/journey/journey-context';
+import { useRatingAction } from '@/features/ratings/use-rating-action';
 
 type AssignedErrand = components['schemas']['AssignedErrandDto'];
 
@@ -64,6 +66,7 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
     retry: false,
     refetchInterval: polling,
   });
+  const ratingAction = useRatingAction(assignmentId, assignment.data?.data.status === 'COMPLETED');
   const timeline = useQuery({
     queryKey: queryKeys.assignments.timeline(assignmentId),
     queryFn: () => offersApi.assignmentTimeline(assignmentId),
@@ -101,6 +104,7 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
   const isRunner = current.role === 'RUNNER';
   const hasArrived = timeline.data?.some((event) => event.type === 'ARRIVED');
   const badge = stageBadge(errand.status, current.status === 'PENDING_ACCEPTANCE');
+  const can = availableActions(current.role, current.status, errand.status);
   const canArrive = isRunner && current.status === 'ACCEPTED' && errand.status === 'IN_PROGRESS' && timeline.isSuccess && !hasArrived;
 
   return (
@@ -158,41 +162,41 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
             <p className="mt-3 text-xs font-semibold text-green-900">{exact ? 'Exact details available' : 'Approximate details'}</p>
           </div>
           <div className="flex flex-wrap gap-2 border-t border-line-2 pt-4" aria-label="Your actions">
-          {isRunner && current.status === 'ACCEPTED' && ['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP'].includes(errand.status) ? (
+          {can.continueErrand ? (
             <>
               <p className="w-full text-sm text-muted">Continue the errand and record each step as it happens.</p>
               <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/run`}>Continue errand</Link></Button>
-              <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/problems`}>Problems, delays or receipt</Link></Button>
             </>
-          ) : current.status === 'COMPLETED' ? (
-            <p className="w-full text-sm text-muted">This errand is complete. Review the timeline for the recorded steps.</p>
+          ) : can.confirmDelivery ? (
+            <>
+              <p className="w-full text-sm text-muted">The runner marked this delivered. Confirm it is done, or open a dispute.</p>
+              <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/confirm`}>Confirm delivery</Link></Button>
+            </>
+          ) : can.rate ? (
+            <>
+              <p className="w-full text-sm text-muted">{ratingAction.note}</p>
+              {ratingAction.label ? <Button asChild className="w-full" variant={ratingAction.label === 'Rate this errand' ? 'primary' : 'ghost'}><Link href={`/assignments/${assignmentId}/rating`}>{ratingAction.label}</Link></Button> : null}
+            </>
           ) : current.status === 'CANCELLED' ? (
             <p className="w-full text-sm text-muted">This assignment was cancelled.</p>
           ) : errand.status === 'DISPUTED' ? (
             <p className="w-full text-sm text-muted">This errand is disputed. Automatic completion is paused while the team reviews it.</p>
+          ) : current.status === 'PENDING_ACCEPTANCE' ? (
+            <p className="w-full text-sm text-muted">{isRunner ? 'Accept or decline this job above.' : 'Waiting for the runner to answer.'}</p>
+          ) : errand.status === 'DELIVERED' ? (
+            <p className="w-full text-sm text-muted">Delivered. Waiting for the requester to confirm.</p>
           ) : (
-            <p className="w-full text-sm text-muted">{current.status === 'PENDING_ACCEPTANCE' ? (isRunner ? 'Accept or decline this job above.' : 'Waiting for the runner to answer.') : `This assignment is ${label(current.status).toLowerCase()}.`}</p>
+            <p className="w-full text-sm text-muted">This assignment is {label(current.status).toLowerCase()}.</p>
           )}
-          {current.role === 'REQUESTER' && current.status === 'ACCEPTED' && ['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP', 'DELIVERED'].includes(errand.status) ? (
-            <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/track`}>Track runner</Link></Button>
-          ) : null}
-          {current.status === 'ACCEPTED' ? (
-            <>
-              <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/changes`}>Request a change</Link></Button>
-              <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/payment`}>Payment agreement</Link></Button>
-              <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/cancel`}>Cancel assignment</Link></Button>
-              <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/no-show`}>No-show report</Link></Button>
-            </>
-          ) : null}
-          {current.role === 'REQUESTER' && current.status === 'ACCEPTED' && errand.status === 'DELIVERED' ? (
-            <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/confirm`}>Confirm delivery</Link></Button>
-          ) : null}
-          {current.status === 'COMPLETED' ? <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/rating`}>Rate this errand</Link></Button> : null}
+          {can.trackRunner ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/track`}>Track runner</Link></Button> : null}
+          {can.reportProblems ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/problems`}>Problems, delays or receipt</Link></Button> : null}
+          {can.changeRequest ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/changes`}>Request a change</Link></Button> : null}
+          {can.paymentTerms ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/payment`}>Payment agreement</Link></Button> : null}
+          {can.cancel ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/cancel`}>Cancel assignment</Link></Button> : null}
+          {can.noShow ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/no-show`}>No-show report</Link></Button> : null}
           {current.disputeId ? <Button asChild variant="ghost" size="sm"><Link href={`/disputes/${current.disputeId}`}>View dispute</Link></Button> : null}
-          {current.status === 'ACCEPTED' ? <>
-            {errand.status !== 'DISPUTED' || !current.disputeId ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/dispute`}>{errand.status === 'DISPUTED' ? 'View dispute' : 'Open a dispute'}</Link></Button> : null}
-            <Button asChild variant="ghost" size="sm"><Link href={`/errands/${current.errandId}/share`}>Share progress</Link></Button>
-          </> : null}
+          {can.dispute && !current.disputeId ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/dispute`}>Open a dispute</Link></Button> : null}
+          {can.shareProgress ? <Button asChild variant="ghost" size="sm"><Link href={`/errands/${current.errandId}/share`}>Share progress</Link></Button> : null}
           <Button asChild variant="ghost" size="sm"><Link href={`/safety?assignmentId=${assignmentId}`}>Safety & support</Link></Button>
           <p className="w-full border-t border-line pt-3 text-xs text-muted">Selected: {new Date(current.selectedAt).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })} (Lagos time)</p>
         </div>

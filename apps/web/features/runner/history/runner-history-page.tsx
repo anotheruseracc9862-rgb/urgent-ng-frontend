@@ -4,7 +4,8 @@ import { runnerQueries } from '@/features/runner/queries';
 import { useSession } from '@/lib/auth/client';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { DatePicker } from '@/components/forms/date-picker';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -27,6 +28,23 @@ function statusStyle(status: string) {
   if (status === 'COMPLETED') return 'bg-green-bg text-green-900';
   if (status === 'CANCELLED' || status === 'DECLINED' || status === 'TIMED_OUT') return 'bg-panel text-muted';
   return 'bg-amber-bg text-amber';
+}
+
+function HistoryDateFilter({ id, name, label, initial }: { id: string; name: string; label: string; initial: string }) {
+  const [value, setValue] = useState(initial);
+  return (
+    <DatePicker
+      id={id}
+      name={name}
+      label={label}
+      labelClassName="text-xs font-bold text-muted"
+      className="grid gap-1"
+      value={value}
+      onChange={setValue}
+      triggerLabel={`Choose ${label.toLowerCase()} date`}
+      dialogLabel={`Choose ${label.toLowerCase()} date`}
+    />
+  );
 }
 
 export function RunnerHistoryPage() {
@@ -173,12 +191,8 @@ export function RunnerHistoryPage() {
           <label className="grid gap-1 text-xs font-bold text-muted">Search
             <input name="q" defaultValue={filters.q ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
           </label>
-          <label className="grid gap-1 text-xs font-bold text-muted">From
-            <input name="from" type="date" defaultValue={filters.from ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
-          </label>
-          <label className="grid gap-1 text-xs font-bold text-muted">To
-            <input name="to" type="date" defaultValue={filters.to ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" />
-          </label>
+          <HistoryDateFilter id="history-from" name="from" label="From" initial={filters.from ?? ''} />
+          <HistoryDateFilter id="history-to" name="to" label="To" initial={filters.to ?? ''} />
           <label className="grid gap-1 text-xs font-bold text-muted">Status
             <select name="status" defaultValue={filters.status ?? ''} className="min-h-10 rounded-[var(--r-sm)] border-0 bg-panel px-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700">
               <option value="">All statuses</option>

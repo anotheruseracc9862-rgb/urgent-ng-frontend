@@ -4,6 +4,7 @@ import { useApiMutation } from '@/lib/query/mutations';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PageHead } from '@/components/shell/page-head';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrandJourney } from '@/features/journey/errand-journey';
@@ -28,6 +29,8 @@ import { authApi } from '@/lib/api/auth';
 import { api, isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { errandsApi, type Errand, type ErrandOffer, type OfferSort } from '../api';
+import { availableActions } from '@/features/assignments/available-actions';
+import { useRatingAction } from '@/features/ratings/use-rating-action';
 
 type Status = components['schemas']['ErrandStatus'];
 type PublicProfile = components['schemas']['PublicProfileDto'];
@@ -185,7 +188,7 @@ function Progress({ errand }: { errand: Errand }) {
   const currentStep = STATUS_PROGRESS[errand.status];
   const isStopped = errand.status === 'CANCELLED' || errand.status === 'DISPUTED';
   return (
-    <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="errand-progress">
+    <section className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="errand-progress">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 id="errand-progress" className="text-base font-extrabold text-ink">Progress</h2>
@@ -233,7 +236,7 @@ function RunnerCard({ runnerId, amountMinor }: { runnerId: string; amountMinor: 
   const name = displayName(runner);
   const rating = runner.stats.runnerRating;
   return (
-    <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5">
+    <section className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
       <h2 className="text-base font-extrabold text-ink">Runner</h2>
       <div className="mt-4 flex items-center gap-3">
         <MediaThumbnail mediaId={runner.photoMediaId} name={name} size="size-14" />
@@ -279,9 +282,12 @@ function OfferCard({ offer, onSelect, selecting }: { offer: ErrandOffer; onSelec
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
         <strong className="text-lg font-extrabold text-ink">{money(offer.amountMinor)}</strong>
-        <Button type="button" size="sm" disabled={!canSelect || selecting} onClick={() => onSelect(offer)}>
-          {selecting ? 'Selecting…' : canSelect ? `Select · ${money(offer.amountMinor)}` : 'Waiting'}
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button asChild type="button" size="sm" variant="ghost"><Link href={`/offers/${offer.id}`}>{offer.awaitingParty === 'REQUESTER' ? 'Negotiate' : 'View offer'}</Link></Button>
+          <Button type="button" size="sm" disabled={!canSelect || selecting} onClick={() => onSelect(offer)}>
+            {selecting ? 'Selecting…' : canSelect ? `Select · ${money(offer.amountMinor)}` : 'Waiting'}
+          </Button>
+        </div>
       </div>
     </article>
   );
@@ -307,6 +313,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
     enabled: errand?.status === 'OPEN',
   });
   const assignment = errand?.assignment ?? null;
+  const ratingAction = useRatingAction(assignment?.id ?? '', errand?.status === 'COMPLETED' && Boolean(assignment));
   const timelineQuery = useQuery({
     queryKey: queryKeys.assignments.timeline(assignment?.id ?? ''),
     queryFn: () => errandsApi.timeline(assignment!.id),
@@ -346,10 +353,10 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
   });
 
   if (errandQuery.isPending) {
-    return <div className="mx-auto grid max-w-6xl gap-4"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[1fr_20rem]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
+    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[1fr_20rem]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
   }
   if (errandQuery.error || !errand) {
-    return <div className="mx-auto max-w-4xl"><Link href="/errands" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;
+    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;
   }
 
   const hasLocations = Boolean(errand.pickup || errand.destination);
@@ -372,19 +379,13 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
   const selectionConflict = isApiError(actionError) && ['ASSIGNMENT_CONFLICT', 'OFFER_VERSION_MISMATCH'].includes(actionError.code);
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-4">
-      <Link href="/errands" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link>
-      <ErrandJourney errand={errand} />
-      <header className="flex flex-col gap-4 rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:flex-row sm:items-start sm:justify-between sm:p-6">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-wider text-green-800">{errand.id} · {errand.category.name}</p>
-          <h1 className="mt-2 max-w-3xl break-words text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">{errand.title}</h1>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${STATUS_STYLE[errand.status]}`}>{STATUS_LABEL[errand.status]}</span>
-            <span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <div className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link>
+      <PageHead
+        eyebrow={`${errand.id} · ${errand.category.name}`}
+        title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
+        description={<span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_STYLE[errand.status]}`}>{STATUS_LABEL[errand.status]}</span><span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span></span>}
+        actions={<>
           {errand.status === 'DRAFT' ? <>
             <Button asChild><Link href={`/errands/${errandId}/edit`}>Edit draft</Link></Button>
             <Button asChild variant="ghost"><Link href={`/errands/${errandId}/review`}>Review and publish</Link></Button>
@@ -402,8 +403,9 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           {errand.status === 'EXPIRED' || errand.status === 'CANCELLED' ? (
             <Button type="button" disabled={duplicate.isPending} onClick={() => duplicate.mutate()}>{duplicate.isPending ? 'Creating draft…' : 'Repost as draft'}</Button>
           ) : null}
-        </div>
-      </header>
+        </>}
+      />
+      <ErrandJourney errand={errand} />
 
       {actionErrorMessage ? <Alert variant={selectionConflict ? 'info' : 'danger'} role={selectionConflict ? 'status' : 'alert'}><div className="flex flex-wrap items-center justify-between gap-3"><div><p>{actionErrorMessage}</p>{isApiError(actionError) && actionError.requestId ? <p className="mt-1 text-xs">Request ID: {actionError.requestId}</p> : null}</div><Button type="button" size="sm" variant="ghost" onClick={() => { extend.reset(); duplicate.reset(); selectRunner.reset(); void errandQuery.refetch(); void offersQuery.refetch(); }}>Refresh errand</Button></div></Alert> : null}
 
@@ -412,7 +414,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-4">
           {showOffers ? (
-            <section id="offers" className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="errand-offers">
+            <section id="offers" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="errand-offers">
               <header className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 id="errand-offers" className="text-base font-extrabold text-ink">Offers ({errand.offerCount})</h2>
@@ -434,7 +436,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
             </section>
           ) : null}
 
-          <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5">
+          <section className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="text-base font-extrabold text-ink">Errand details</h2>
             <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-2">{errand.description || 'No additional description.'}</p>
             {errand.instructions ? <div className="mt-4 rounded-[var(--r)] bg-panel p-3"><p className="text-xs font-extrabold uppercase tracking-wide text-muted">Instructions</p><p className="mt-1 whitespace-pre-wrap text-sm text-ink-2">{errand.instructions}</p></div> : null}
@@ -452,7 +454,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           </section>
 
           {assignment ? (
-            <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="errand-timeline">
+            <section className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="errand-timeline">
               <h2 id="errand-timeline" className="text-base font-extrabold text-ink">Timeline</h2>
               {timelineQuery.isLoading ? <div className="mt-4 grid gap-3"><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : null}
               {timelineQuery.error ? <div className="mt-4"><ApiErrorMessage error={timelineQuery.error} fallback="We could not load the assignment timeline." /><Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => void timelineQuery.refetch()}>Try again</Button></div> : null}
@@ -465,7 +467,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
         <aside className="grid gap-4">
           {assignment ? <RunnerCard runnerId={assignment.runnerId} amountMinor={assignment.agreedAmountMinor} /> : null}
           {errand.status === 'OPEN' ? (
-            <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+            <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
               <h2 className="text-base font-extrabold text-ink">Manage errand</h2>
               <p className="mt-1 text-sm text-muted">{errand.extended ? 'You have already extended this deadline once.' : 'Keep your errand open longer to receive offers.'}</p>
               <Button type="button" className="mt-4 w-full" variant="ghost" disabled={!canExtend || extend.isPending} onClick={() => extend.mutate()}>
@@ -475,9 +477,9 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
             </section>
           ) : null}
           {assignment ? <Link href={`/assignments/${assignment.id}`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline"><Truck aria-hidden="true" className="mr-2 inline size-4" />Assignment hub</Link> : null}
-          {assignment?.status === 'ACCEPTED' ? <Link href={`/errands/${errand.id}/share`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline">Share progress with a trusted contact</Link> : null}
-          {errand.status === 'DISPUTED' ? <Link href={assignment ? `/assignments/${assignment.id}` : '/support'} className="rounded-[var(--r-lg)] border border-amber/30 bg-amber-bg p-4 text-sm font-bold text-amber"><AlertCircle aria-hidden="true" className="mr-2 inline size-4" />View dispute and next steps</Link> : null}
-          {errand.status === 'COMPLETED' ? <div className="rounded-[var(--r-lg)] border border-green-200 bg-green-bg p-4 text-sm text-green-900"><CheckCircle2 aria-hidden="true" className="mr-2 inline size-4" />This errand is complete.</div> : null}
+          {assignment && availableActions('REQUESTER', assignment.status, errand.status).shareProgress ? <Link href={`/errands/${errand.id}/share`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline">Share progress with a trusted contact</Link> : null}
+          {errand.status === 'DISPUTED' ? <Link href={assignment ? `/assignments/${assignment.id}` : '/safety'} className="rounded-[var(--r-lg)] border border-amber/30 bg-amber-bg p-4 text-sm font-bold text-amber"><AlertCircle aria-hidden="true" className="mr-2 inline size-4" />View dispute and next steps</Link> : null}
+          {errand.status === 'COMPLETED' ? <div className="rounded-[var(--r-lg)] border border-green-200 bg-green-bg p-4 text-sm text-green-900"><CheckCircle2 aria-hidden="true" className="mr-2 inline size-4" />This errand is complete.{assignment && ratingAction.label ? <> <Link href={`/assignments/${assignment.id}/rating`} className="font-extrabold underline">{ratingAction.label === 'Rate this errand' ? 'Rate your runner' : ratingAction.label}</Link></> : null}</div> : null}
           {errand.status === 'CANCELLED' ? <div className="rounded-[var(--r-lg)] border border-red-200 bg-red-bg p-4 text-sm text-red">This errand is closed. Repost it to create a fresh draft.</div> : null}
         </aside>
       </div>

@@ -8,6 +8,8 @@ import { queryKeys } from '@/lib/query/keys';
 import { AssignmentJourney } from '@/features/journey/assignment-journey';
 import { AssignmentHubPage } from '@/features/assignments/hub/assignment-hub-page';
 import { RunnerExecutionPage } from '@/features/execution/runner-execution-page';
+import { AssignmentRatingPage } from '@/features/ratings/assignment-rating-page';
+import { ratingKeys } from '@/features/ratings/api';
 
 const me = { id: 'run-1', name: 'Tunde Okon', firstName: 'Tunde', lastName: 'Okon', phone: null, phoneVerified: true, status: 'ACTIVE', startMode: 'RUNNER' } as unknown as Me;
 
@@ -23,7 +25,7 @@ const assignment = (status: string, errandStatus: string) => ({
 });
 
 /** The real hub page over sample data, for checking spacing. The sample never reaches the API. */
-export function HubPreview({ status, errandStatus, screen = 'hub' }: { status: string; errandStatus: string; screen?: 'hub' | 'run' }) {
+export function HubPreview({ status, errandStatus, screen = 'hub' }: { status: string; errandStatus: string; screen?: 'hub' | 'run' | 'rating' }) {
   const [client] = useState(() => {
     const created = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false, refetchOnMount: false, refetchOnWindowFocus: false, refetchInterval: false } } });
     created.setQueryData(queryKeys.assignments.detail('a1'), { data: assignment(status, errandStatus), dateHeader: new Date().toUTCString() });
@@ -34,13 +36,14 @@ export function HubPreview({ status, errandStatus, screen = 'hub' }: { status: s
     // The run page also shows the location-sharing card, which asks for consent and the last position.
     created.setQueryData(queryKeys.consents.history('run-1'), { consents: [] });
     created.setQueryData(queryKeys.assignments.liveLocation('a1'), null);
+    created.setQueryData(ratingKeys.assignment('run-1', 'a1'), { canRate: true, reason: null, windowEndsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(), mine: null, theirs: null, counterpartRated: true });
     return created;
   });
   return (
     <QueryClientProvider client={client}>
       <SessionProvider me={me}>
         <AssignmentJourney assignmentId="a1">
-          {screen === 'run' ? <RunnerExecutionPage assignmentId="a1" /> : <AssignmentHubPage assignmentId="a1" />}
+          {screen === 'run' ? <RunnerExecutionPage assignmentId="a1" /> : screen === 'rating' ? <AssignmentRatingPage assignmentId="a1" /> : <AssignmentHubPage assignmentId="a1" />}
         </AssignmentJourney>
       </SessionProvider>
     </QueryClientProvider>

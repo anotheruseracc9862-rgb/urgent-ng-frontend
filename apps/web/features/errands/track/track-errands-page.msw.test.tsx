@@ -62,6 +62,40 @@ describe('Track your errands', () => {
     expect(screen.getByText('On the way to pickup')).toBeInTheDocument();
   });
 
+  it('offers only the actions the stage allows: after pickup there is no cancel or change, only a dispute', async () => {
+    server.use(http.get('*/errands/mine', () => envelope([
+      {
+        ...base, id: 'e3', title: 'Parcel', status: 'PICKED_UP',
+        runner: { firstName: 'Tunde', lastName: 'Okon', photoMediaId: null, rating: 4.9, ratingCount: 30, completedErrands: 52 },
+        agreedAmountMinor: 300_000, assignmentId: 'a3', conversationId: null,
+      },
+    ])));
+
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Live tracker' })).toHaveAttribute('href', '/assignments/a3/track');
+    expect(screen.getByRole('link', { name: 'Open a dispute' })).toHaveAttribute('href', '/assignments/a3/dispute');
+    expect(screen.getByRole('link', { name: 'Payment terms' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Change request' })).not.toBeInTheDocument();
+  });
+
+  it('a delivered errand is for confirming: no cancel, no change request', async () => {
+    server.use(http.get('*/errands/mine', () => envelope([
+      {
+        ...base, id: 'e4', title: 'Parcel', status: 'DELIVERED',
+        runner: { firstName: 'Tunde', lastName: 'Okon', photoMediaId: null, rating: 4.9, ratingCount: 30, completedErrands: 52 },
+        agreedAmountMinor: 300_000, assignmentId: 'a4', conversationId: null,
+      },
+    ])));
+
+    renderPage();
+
+    expect(await screen.findByRole('link', { name: 'Confirm delivery' })).toHaveAttribute('href', '/assignments/a4/confirm');
+    expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Change request' })).not.toBeInTheDocument();
+  });
+
   it('says what to do when nothing is in progress', async () => {
     server.use(http.get('*/errands/mine', () => envelope([])));
     renderPage();

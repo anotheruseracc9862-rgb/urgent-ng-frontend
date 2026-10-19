@@ -11,7 +11,7 @@ export default async function AssignmentHubPreviewPage({ searchParams }: { searc
   return (
     <div className="grid min-h-screen gap-4 p-3 sm:p-4 lg:grid-cols-[276px_minmax(0,1fr)]">
       <div className="hidden rounded-[var(--r-xl)] bg-surface shadow-[var(--shadow)] lg:block" aria-hidden="true" />
-      <main className="min-w-0 pb-24 lg:pb-10"><HubPreview screen={screen === 'run' ? 'run' : 'hub'} status={pending ? 'PENDING_ACCEPTANCE' : 'ACCEPTED'} errandStatus={pending ? 'RUNNER_SELECTED' : 'IN_PROGRESS'} /></main>
+      <main className="min-w-0 pb-24 lg:pb-10"><HubPreview screen={screen === 'run' ? 'run' : screen === 'rating' ? 'rating' : 'hub'} status={pending ? 'PENDING_ACCEPTANCE' : screen === 'rating' ? 'COMPLETED' : 'ACCEPTED'} errandStatus={pending ? 'RUNNER_SELECTED' : screen === 'rating' ? 'COMPLETED' : 'IN_PROGRESS'} /></main>
     </div>
   );
 }

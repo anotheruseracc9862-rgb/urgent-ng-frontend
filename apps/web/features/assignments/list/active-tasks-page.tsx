@@ -10,6 +10,7 @@ import { useSession } from '@/lib/auth/client';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { assignmentQueries, type RunnerTask } from '../queries';
 import { ExecutionProgress, RouteBlock, stageBadge } from '../execution-progress';
+import { availableActions } from '../available-actions';
 
 
 function useAssignments(status: 'ACTIVE' | 'PENDING_ACCEPTANCE', userId: string) {
@@ -26,6 +27,7 @@ const lagosTime = (iso: string) =>
 export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respond?: boolean }) {
   const id = encodeURIComponent(assignment.id);
   const badge = stageBadge(assignment.errandStatus, Boolean(respond));
+  const can = availableActions('RUNNER', assignment.status, assignment.errandStatus);
   return (
     <li className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -48,8 +50,8 @@ export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respo
           <Link href={`/assignments/${id}`} className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-white">Respond</Link>
         ) : (
           <>
-            <Link href={`/assignments/${id}/run`} className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-white">Update progress</Link>
-            <Link href={`/assignments/${id}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-extrabold text-ink hover:bg-panel">Open task</Link>
+            {can.continueErrand ? <Link href={`/assignments/${id}/run`} className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-white">Update progress</Link> : null}
+            <Link href={`/assignments/${id}`} className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-extrabold ${can.continueErrand ? 'border border-line text-ink hover:bg-panel' : 'bg-ink text-white'}`}>Open task</Link>
           </>
         )}
         {assignment.conversationId ? (
@@ -58,12 +60,12 @@ export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respo
           </Link>
         ) : null}
       </div>
-      {respond ? null : (
+      {respond || !(can.paymentTerms || can.changeRequest || can.dispute || can.cancel) ? null : (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-line-2 pt-4">
-          <Link href={`/assignments/${id}/payment`} className={chip}>Payment terms</Link>
-          <Link href={`/assignments/${id}/changes`} className={chip}>Change request</Link>
-          <Link href={`/assignments/${id}/dispute`} className={chip}>Open a dispute</Link>
-          <Link href={`/assignments/${id}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-xs font-extrabold text-red hover:opacity-80">Cancel</Link>
+          {can.paymentTerms ? <Link href={`/assignments/${id}/payment`} className={chip}>Payment terms</Link> : null}
+          {can.changeRequest ? <Link href={`/assignments/${id}/changes`} className={chip}>Change request</Link> : null}
+          {can.dispute ? <Link href={`/assignments/${id}/dispute`} className={chip}>Open a dispute</Link> : null}
+          {can.cancel ? <Link href={`/assignments/${id}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-xs font-extrabold text-red hover:opacity-80">Cancel</Link> : null}
         </div>
       )}
     </li>

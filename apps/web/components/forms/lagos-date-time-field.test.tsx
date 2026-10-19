@@ -15,10 +15,10 @@ describe('LagosDateTimeField', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Date (Lagos)'), { target: { value: '2026-10-13' } });
-    fireEvent.change(screen.getByLabelText('Time (Lagos)'), { target: { value: '18:30' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '13/10/2099' } });
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '18:30' } });
 
-    expect(onChange).toHaveBeenLastCalledWith('2026-10-13T17:30:00.000Z');
+    expect(onChange).toHaveBeenLastCalledWith('2099-10-13T17:30:00.000Z');
   });
 
   it('reflects a server-controlled timestamp as Lagos wall time', () => {
@@ -36,7 +36,18 @@ describe('LagosDateTimeField', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Date (Lagos)')).toHaveValue('2026-10-13');
-    expect(screen.getByLabelText('Time (Lagos)')).toHaveValue('18:30');
+    expect(screen.getByLabelText('Date')).toHaveValue('13/10/2026');
+    expect(screen.getByLabelText('Time')).toHaveValue('18:30');
+  });
+
+  it('rejects a typed date in the past', () => {
+    const onChange = vi.fn();
+    render(<LagosDateTimeField id="scheduled-at" label="Scheduled time" value={null} onChange={onChange} />);
+
+    const date = screen.getByLabelText('Date') as HTMLInputElement;
+    fireEvent.change(date, { target: { value: '01/01/2020' } });
+
+    expect(date.validationMessage).toBe('This date has already passed.');
+    expect(onChange).not.toHaveBeenCalledWith(expect.stringContaining('2020'));
   });
 });

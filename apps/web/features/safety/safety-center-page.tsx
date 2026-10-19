@@ -9,11 +9,11 @@ import { offersApi } from '@/features/offers/api';
 import { queryKeys } from '@/lib/query/keys';
 import { BlockUserButton } from '@/features/blocks/block-user-button';
 import { CaseError } from './case-ui';
+import { availableActions } from '@/features/assignments/available-actions';
 
 export function SafetyCenterPage({ assignmentId }: { assignmentId?: string }) {
   const assignment = useQuery({ queryKey: queryKeys.assignments.detail(assignmentId ?? ''), queryFn: () => offersApi.assignment(assignmentId!), enabled: Boolean(assignmentId), retry: false });
   const current = assignment.data?.data;
-  const active = current?.status === 'ACCEPTED';
   const actions = [
     { title: 'Get help', detail: 'Answers to common questions and how Urgent.ng works.', href: '/help', Icon: HelpCircle, tone: 'blue' },
     { title: 'Report a concern', detail: 'Safety, prohibited items, behaviour or payment conduct.', href: current ? `/report?targetType=ERRAND&targetId=${current.errandId}` : '/report', Icon: FileWarning, tone: 'red' },
@@ -78,7 +78,7 @@ export function SafetyCenterPage({ assignmentId }: { assignmentId?: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${current.id}`}>Back to assignment</Link></Button>
             <BlockUserButton userId={current.role === 'REQUESTER' ? current.runnerId : current.requesterId} userName="this errand partner" />
-            {active ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${current.id}/no-show`}>Report a no-show</Link></Button> : null}
+            {current && availableActions(current.role, current.status, current.errand.status).noShow ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${current.id}/no-show`}>Report a no-show</Link></Button> : null}
           </div>
         </section>
       ) : null}

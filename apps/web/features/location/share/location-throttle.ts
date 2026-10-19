@@ -7,7 +7,9 @@ export interface SentLocation extends LocationSample {
   sentAt: number;
 }
 
-const MIN_SEND_INTERVAL_MS = 30_000;
+/** The server refuses a second update sooner than this after the last one. */
+export const MIN_SEND_SECONDS = 30;
+const MIN_SEND_INTERVAL_MS = MIN_SEND_SECONDS * 1000;
 const MIN_MOVEMENT_METERS = 100;
 const EARTH_RADIUS_METERS = 6_371_000;
 

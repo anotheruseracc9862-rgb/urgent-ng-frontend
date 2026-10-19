@@ -2,9 +2,17 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { listen, server } from '@/test/msw/server';
+import { SessionProvider } from '@/lib/auth/client';
+import type { Me } from '@/lib/api/types';
 import { AssignmentHubPage } from './hub/assignment-hub-page';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/assignments/assignment-hub-1',
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 const envelope = (data: unknown) => HttpResponse.json({ data, meta: {}, requestId: 'req-assignment-hub' });
 
@@ -149,5 +157,47 @@ describe('assignment hub privacy', () => {
     expect(await screen.findByText('99 Secret Street, Yaba')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Continue errand' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept assignment' })).not.toBeInTheDocument();
+  });
+});
+
+describe('assignment hub: rating a completed errand', () => {
+  const user = { id: 'requester-1', name: 'Ada', firstName: 'Ada', lastName: 'Obi', phone: null, phoneVerified: true, status: 'ACTIVE', startMode: 'REQUESTER' } as unknown as Me;
+  const mine = { id: 'r1', assignmentId: 'assignment-hub-1', direction: 'REQUESTER_TO_RUNNER', scores: { overall: 5 }, review: null, status: 'PUBLISHED', revealed: true, editable: false, editableUntil: '2026-10-01T00:00:00Z', createdAt: '2026-10-01T00:00:00Z' };
+
+  function renderCompleted(ratings: unknown) {
+    server.use(
+      http.get('*/api/v1/assignments/assignment-hub-1', () => envelope({
+        ...baseAssignment, role: 'REQUESTER', status: 'COMPLETED', completedAt: '2026-10-02T10:00:00.000Z',
+        errand: { ...baseAssignment.errand, status: 'COMPLETED' },
+      })),
+      http.get('*/api/v1/assignments/assignment-hub-1/timeline', () => envelope([])),
+      http.get('*/api/v1/assignments/assignment-hub-1/ratings', () => envelope(ratings)),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    return render(<QueryClientProvider client={client}><SessionProvider me={user}><AssignmentHubPage assignmentId="assignment-hub-1" /></SessionProvider></QueryClientProvider>);
+  }
+
+  it('an errand you have already rated shows "View your rating", not "Rate this errand"', async () => {
+    renderCompleted({ canRate: false, reason: 'ALREADY_RATED', windowEndsAt: '2026-10-09T10:00:00.000Z', mine, theirs: null, counterpartRated: true });
+
+    expect(await screen.findByRole('link', { name: 'View your rating' })).toHaveAttribute('href', '/assignments/assignment-hub-1/rating');
+    expect(screen.queryByRole('link', { name: 'Rate this errand' })).not.toBeInTheDocument();
+  });
+
+  it('an errand nobody has rated yet offers "Rate this errand"', async () => {
+    renderCompleted({ canRate: true, reason: null, windowEndsAt: '2099-01-01T00:00:00.000Z', mine: null, theirs: null, counterpartRated: false });
+
+    expect(await screen.findByRole('link', { name: 'Rate this errand' })).toBeInTheDocument();
+  });
+
+  it('shows no rating button until it knows the rating state, rather than a wrong one', async () => {
+    server.use(http.get('*/api/v1/assignments/assignment-hub-1/ratings', () => HttpResponse.json({ error: { code: 'SERVER_ERROR', message: 'x' }, requestId: 'r' }, { status: 500 })));
+    renderCompleted({});
+    server.use(http.get('*/api/v1/assignments/assignment-hub-1/ratings', () => HttpResponse.json({ error: { code: 'SERVER_ERROR', message: 'x' }, requestId: 'r' }, { status: 500 })));
+
+    await screen.findByRole('heading', { name: 'Collect a parcel' });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(screen.queryByRole('link', { name: 'Rate this errand' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'View your rating' })).not.toBeInTheDocument();
   });
 });

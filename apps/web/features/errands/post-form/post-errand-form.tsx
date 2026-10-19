@@ -1,6 +1,8 @@
 'use client';
 
 import { PageLoading } from '@/components/shell/page-loading';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
 import { clearErrandDraft, readErrandDraft } from '@/lib/drafts/errand-draft';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -19,7 +21,7 @@ import { queryKeys } from '@/lib/query/keys';
 import type { Category, ParticipantLocation } from '@/lib/api/types';
 import { useCategories, requiredLocations } from '@/features/reference/hooks';
 import { errandsApi, type Errand, type UpdateErrand } from '../api';
-import { isScheduledTimeInRange } from '../schemas';
+import { isScheduledTimeInRange, SCHEDULE_MAX_DAYS_AHEAD, SCHEDULE_MIN_LEAD_HOURS } from '../schemas';
 
 const LocationPicker = dynamic(
   () => import('@/components/map/LocationPicker').then((module) => module.LocationPicker),
@@ -338,7 +340,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
 
   if (initialErrand && !['DRAFT', 'OPEN'].includes(initialErrand.status)) {
     return (
-      <div className="mx-auto grid max-w-3xl gap-4">
+      <div className="grid min-w-0 content-start gap-4 pb-10">
         <Alert variant="warn" role="status">This errand can no longer be edited because a runner has been selected or its status has changed.</Alert>
         <Link href={errandId ? `/errands/${errandId}` : '/errands'} className="font-bold text-green-800 underline">Return to errand details</Link>
       </div>
@@ -346,17 +348,18 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Requester</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">{errandId ? 'Edit errand' : 'Post an errand'}</h1>
-        <p className="mt-1 text-sm text-muted">Share the essentials. You review runner offers before agreeing a price.</p>
-      </header>
+    <div className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={errandId ? `/errands/${errandId}` : '/errands'} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />{errandId ? 'Back to errand' : 'My errands'}</Link>
+      <PageHead
+        eyebrow="Requester"
+        title={errandId ? 'Edit errand' : 'Post an errand'}
+        description="Share the essentials. You review runner offers before agreeing a price."
+      />
       {saveMessage ? <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{saveMessage}</p>{isApiError(saveError) && saveError.requestId ? <p className="text-xs">Request ID: {saveError.requestId}</p> : null}<Button type="button" variant="ghost" onClick={retrySave} disabled={create.isPending || save.isPending || dateInvalid}>Try again</Button></div></Alert> : null}
       {validationError ? <Alert variant="danger" role="alert">{validationError}</Alert> : null}
       {warnsAboutOffers ? <Alert variant="warn" role="status">Changing the category, timing, size, value or location asks existing runners to reconfirm their offers before you can select one.</Alert> : null}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <form className="grid gap-5 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)]" onSubmit={(event) => { event.preventDefault(); if (!errandId) startDraft(); }}>
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
+        <form className="grid min-w-0 gap-5 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" onSubmit={(event) => { event.preventDefault(); if (!errandId) startDraft(); }}>
           <div className="border-b border-line pb-3">
             <h2 className="font-extrabold text-ink">Errand details</h2>
             <p className="mt-1 text-xs text-muted">{errandId ? 'Changes save automatically as you go.' : 'Start a draft with a title and category, then add the details.'}</p>
@@ -393,7 +396,9 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                   onChange={(value) => update('scheduledAt', value)}
                   hint="Choose a time at least one hour from now and within the next seven days."
                   required
-                  error={dateInvalid ? 'This time is outside the allowed scheduling window.' : locationErrorMessage(saveError) ?? undefined}
+                  minLeadMinutes={SCHEDULE_MIN_LEAD_HOURS * 60}
+                  maxDaysAhead={SCHEDULE_MAX_DAYS_AHEAD}
+                  error={dateInvalid && form.scheduledAt !== null ? 'This time is outside the allowed scheduling window.' : locationErrorMessage(saveError) ?? undefined}
                 />
               ) : null}
               {locations?.pickup ? <div id="errand-pickup"><LocationPicker label="Pickup location" value={form.pickup} onChange={(value) => update('pickup', value)} /></div> : null}
@@ -435,12 +440,12 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
             </div>
           )}
         </form>
-        <aside className="grid content-start gap-4">
-          <section className="rounded-[var(--r-lg)] border border-line bg-tint p-4">
+        <aside className="grid content-start gap-4 lg:sticky lg:top-6">
+          <section className="rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Tips for faster offers</h2>
             <ul className="mt-3 grid gap-2 pl-5 text-sm text-ink-2"><li>Name the item and exact task.</li><li>Add a photo if it helps.</li><li>Set a fair budget; offers may differ.</li><li>Keep chat inside Urgent.ng.</li></ul>
           </section>
-          <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+          <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">What runners see</h2>
             <p className="mt-2 text-sm text-muted">Title, approximate area, distance and budget. Exact addresses and contacts are shown only to the runner you select, after acceptance.</p>
           </section>

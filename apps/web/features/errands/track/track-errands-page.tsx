@@ -10,6 +10,7 @@ import { useSession } from '@/lib/auth/client';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { errandQueries } from '../queries';
 import type { ErrandSummary } from '../api';
+import { availableActions } from '@/features/assignments/available-actions';
 
 const STAGES = ['Accepted', 'Started', 'Picked up', 'Delivered', 'Done'];
 
@@ -43,6 +44,7 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
   const runner = errand.runner;
   const assignment = errand.assignmentId ? encodeURIComponent(errand.assignmentId) : null;
   const delivered = errand.status === 'DELIVERED';
+  const can = availableActions('REQUESTER', errand.status === 'RUNNER_SELECTED' ? 'PENDING_ACCEPTANCE' : 'ACCEPTED', errand.status);
   const link = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
   const soft = 'inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-[12.5px] font-bold text-ink hover:bg-tint-2';
 
@@ -79,10 +81,10 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2.5">
-        {assignment && delivered ? (
+        {assignment && can.confirmDelivery ? (
           <Link href={`/assignments/${assignment}/confirm`} className={`${link} bg-lime text-ink hover:bg-lime-600`}>Confirm delivery</Link>
         ) : null}
-        {assignment ? (
+        {assignment && can.trackRunner ? (
           <Link href={`/assignments/${assignment}/track`} className={`${link} bg-ink text-white hover:bg-[#0f1822]`}>Live tracker</Link>
         ) : null}
         {errand.conversationId ? (
@@ -90,17 +92,17 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
             <MessageSquare aria-hidden="true" className="size-4" />Message{runner ? ` ${runner.firstName}` : ''}
           </Link>
         ) : null}
-        <Link href={`/errands/${errand.id}/share`} className={`${link} bg-surface text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel`}>Share with trusted contact</Link>
+        {can.shareProgress ? <Link href={`/errands/${errand.id}/share`} className={`${link} bg-surface text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel`}>Share with trusted contact</Link> : null}
       </div>
 
-      {assignment ? (
+      {assignment && (can.paymentTerms || can.changeRequest || can.dispute || can.cancel) ? (
         <>
           <hr className="my-[18px] border-0 border-t border-line" />
           <div className="flex flex-wrap gap-2">
-            <Link href={`/assignments/${assignment}/payment`} className={soft}>Payment terms</Link>
-            <Link href={`/assignments/${assignment}/changes`} className={soft}>Change request</Link>
-            <Link href={`/assignments/${assignment}/dispute`} className={soft}>Open a dispute</Link>
-            <Link href={`/assignments/${assignment}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-[12.5px] font-bold text-red hover:bg-[#ffe1dc]">Cancel</Link>
+            {can.paymentTerms ? <Link href={`/assignments/${assignment}/payment`} className={soft}>Payment terms</Link> : null}
+            {can.changeRequest ? <Link href={`/assignments/${assignment}/changes`} className={soft}>Change request</Link> : null}
+            {can.dispute ? <Link href={`/assignments/${assignment}/dispute`} className={soft}>Open a dispute</Link> : null}
+            {can.cancel ? <Link href={`/assignments/${assignment}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-[12.5px] font-bold text-red hover:bg-[#ffe1dc]">Cancel</Link> : null}
           </div>
         </>
       ) : null}
