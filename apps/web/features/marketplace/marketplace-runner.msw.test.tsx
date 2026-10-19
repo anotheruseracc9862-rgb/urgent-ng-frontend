@@ -134,7 +134,7 @@ describe('runner marketplace phase', () => {
   });
 
   it('restores filters from a shared URL and only renders approximate feed areas', async () => {
-    window.history.replaceState({}, '', '/marketplace?category=cat-1&q=pharmacy&budgetMin=5000');
+    window.history.replaceState({}, '', '/marketplace?category=health&q=pharmacy&budgetMin=5000');
     let receivedUrl: URL | undefined;
     server.use(
       http.get('*/api/v1/reference/categories', () => envelope([{ id: 'cat-1', key: 'health', name: 'Health' }])),
@@ -157,11 +157,12 @@ describe('runner marketplace phase', () => {
     expect(feed.getByRole('heading', { name: 'Collect medicine' })).toBeInTheDocument();
     expect(feed.getByRole('link', { name: 'View details' })).toHaveAttribute('href', '/marketplace/errand-1');
     await waitFor(() => expect(receivedUrl?.searchParams.get('q')).toBe('pharmacy'));
-    expect(receivedUrl?.searchParams.getAll('category')).toEqual(['cat-1']);
+    expect(receivedUrl?.searchParams.getAll('category')).toEqual(['health']);
+    expect(screen.getByRole('checkbox', { name: 'Health' })).toBeChecked();
     expect(receivedUrl?.searchParams.get('budgetMin')).toBe('5000');
     expect(screen.queryByText(/address|street|unit/i)).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Marketplace errands' })).getByText('Yaba')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Map view' })).toHaveAttribute('href', '/marketplace?category=cat-1&q=pharmacy&budgetMin=5000&view=map');
+    expect(screen.getByRole('link', { name: 'Map view' })).toHaveAttribute('href', '/marketplace?category=health&q=pharmacy&budgetMin=5000&view=map');
   });
 
   it('previews the selected errand with its own route, budget and offer link', async () => {
@@ -210,8 +211,56 @@ describe('runner marketplace phase', () => {
     expect(replace).toHaveBeenCalledWith(`/marketplace?${view === 'map' ? 'view=map&' : ''}q=groceries&sort=recommended`, { scroll: false });
   });
 
+  it.each(['list', 'map'])('keeps draft filters when selecting or clearing %s categories', async (view) => {
+    window.history.replaceState({}, '', `/marketplace?category=pickup&sort=newest${view === 'map' ? '&view=map' : ''}`);
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([
+        { id: 'cat-1', key: 'delivery', name: 'Delivery' },
+        { id: 'cat-2', key: 'pickup', name: 'Pickup' },
+      ])),
+      http.get('*/api/v1/marketplace/errands', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands/map', () => envelope([])),
+    );
+    renderWithClient(view === 'map' ? <MarketplaceMapPage /> : <MarketplaceFeedPage />);
+    const user = userEvent.setup();
+    await screen.findByRole('checkbox', { name: 'Delivery' });
+    expect(screen.getByRole('checkbox', { name: 'Pickup' })).toBeChecked();
+    await user.type(screen.getByRole('searchbox', { name: 'Search', exact: true }), 'parcel');
+    await user.click(screen.getByText('More filters'));
+    await user.type(screen.getByRole('spinbutton', { name: 'Radius (km)' }), '4');
+    await user.type(screen.getByRole('spinbutton', { name: 'Min budget (kobo)' }), '280000');
+    screen.getByRole('combobox', { name: 'Time mode' }).focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('option', { name: 'Scheduled', exact: true });
+    expect(screen.queryByRole('option', { name: 'Window', exact: true })).not.toBeInTheDocument();
+    await user.keyboard('{End}{Enter}');
+    await user.click(screen.getByRole('checkbox', { name: 'Delivery' }));
+    expect(replace).toHaveBeenLastCalledWith(`/marketplace?${view === 'map' ? 'view=map&' : ''}category=pickup&category=delivery&timeMode=SCHEDULED&radiusKm=4&budgetMin=280000&q=parcel&sort=newest`, { scroll: false });
+    await user.click(screen.getByRole('button', { name: 'All categories', exact: true }));
+    expect(replace).toHaveBeenLastCalledWith(`/marketplace?${view === 'map' ? 'view=map&' : ''}timeMode=SCHEDULED&radiusKm=4&budgetMin=280000&q=parcel&sort=newest`, { scroll: false });
+    await user.click(screen.getByRole('checkbox', { name: 'Pickup' }));
+    expect(replace).toHaveBeenLastCalledWith(`/marketplace?${view === 'map' ? 'view=map&' : ''}timeMode=SCHEDULED&radiusKm=4&budgetMin=280000&q=parcel&sort=newest`, { scroll: false });
+  });
+
+  it('limits typed and pasted search text to the API maximum', async () => {
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+      http.get('*/api/v1/marketplace/errands', () => envelope([])),
+    );
+    renderWithClient(<MarketplaceFeedPage />);
+    await screen.findByText('No errands match your filters right now.');
+    const user = userEvent.setup();
+    const input = screen.getByRole('searchbox', { name: 'Search', exact: true });
+    await user.type(input, 'x'.repeat(101));
+    expect(input).toHaveValue('x'.repeat(100));
+    await user.clear(input);
+    await user.click(input);
+    await user.paste('y'.repeat(101));
+    expect(input).toHaveValue('y'.repeat(100));
+  });
+
   it('shares map controls, preserves filters when returning to the list, and retains the SDK fallback', async () => {
-    window.history.replaceState({}, '', '/marketplace?category=cat-1&category=cat-2&q=pharmacy&timeMode=ASAP&radiusKm=7&budgetMin=5000&sort=newest&view=map');
+    window.history.replaceState({}, '', '/marketplace?category=health&category=delivery&q=pharmacy&timeMode=ASAP&radiusKm=7&budgetMin=5000&sort=newest&view=map');
     let receivedUrl: URL | undefined;
     server.use(
       http.get('*/api/v1/reference/categories', () => envelope([{ id: 'cat-1', key: 'health', name: 'Health' }])),
@@ -226,8 +275,9 @@ describe('runner marketplace phase', () => {
     expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('pharmacy');
     expect(screen.getByRole('checkbox', { name: 'Health' })).toBeChecked();
     expect(screen.getByRole('link', { name: 'Map view' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'List view' })).toHaveAttribute('href', '/marketplace?category=cat-1&category=cat-2&q=pharmacy&timeMode=ASAP&radiusKm=7&budgetMin=5000&sort=newest');
-    expect(receivedUrl?.searchParams.getAll('category')).toEqual(['cat-1', 'cat-2']);
+    expect(screen.queryByRole('combobox', { name: 'Sort', exact: true })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'List view' })).toHaveAttribute('href', '/marketplace?category=health&category=delivery&q=pharmacy&timeMode=ASAP&radiusKm=7&budgetMin=5000&sort=newest');
+    expect(receivedUrl?.searchParams.getAll('category')).toEqual(['health', 'delivery']);
     expect(receivedUrl?.searchParams.get('q')).toBe('pharmacy');
     expect(receivedUrl?.searchParams.get('timeMode')).toBe('ASAP');
     expect(receivedUrl?.searchParams.get('radiusKm')).toBe('7');
@@ -263,6 +313,57 @@ describe('runner marketplace phase', () => {
     expect(screen.getByRole('link', { name: 'Complete verification' })).toHaveAttribute('href', '/verification');
     expect(screen.queryByRole('link', { name: 'Send an offer' })).not.toBeInTheDocument();
     expect(screen.queryByText(/street address|apartment/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the full public errand details and keeps offer and save actions usable', async () => {
+    let saved = false;
+    server.use(
+      http.get('*/api/v1/marketplace/errands/errand-detail', () => envelope({
+        id: 'errand-detail', title: 'Deliver a framed print', description: 'Keep the frame upright.',
+        category: { key: 'delivery', name: 'Delivery' },
+        pickup: { area: 'Ikeja', lga: 'Ikeja', state: 'Lagos' },
+        destination: { area: 'Yaba', lga: 'Lagos Mainland', state: 'Lagos' },
+        pickupApprox: null, destinationApprox: null, distance: { upperKm: 5, label: '< 5 km' },
+        timeMode: 'SCHEDULED', priority: 'URGENT', scheduledAt: '2026-11-02T14:30:00.000Z',
+        suggestedBudgetMinor: 725000, itemValueMinor: 1895000, itemSize: 'EXTRA_LARGE',
+        instructions: 'Call on arrival. Do not leave with security.',
+        requester: { firstName: 'Tola', photoMediaId: 'requester-photo', rating: 4.8, ratingCount: 17, badges: ['RELIABLE_REQUESTER'] },
+        photos: [{ mediaId: 'frame-photo' }], postedAt: '2026-11-01T10:00:00.000Z',
+        expiresAt: '2026-11-02T10:00:00.000Z', offerCount: 3, boosted: true, saved,
+      })),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: [], canOffer: true, canBrowseFeed: true })),
+      http.get('*/api/v1/media/:id/url', ({ params }) => envelope({ url: `https://example.test/${params.id}.jpg` })),
+      http.post('*/api/v1/saved-errands/errand-detail', () => { saved = true; return envelope({ saved }); }),
+      http.delete('*/api/v1/saved-errands/errand-detail', () => { saved = false; return envelope({ saved }); }),
+    );
+
+    renderWithClient(<MarketplaceErrandPage errandId="errand-detail" />);
+
+    expect(await screen.findByRole('heading', { name: 'Deliver a framed print' })).toBeInTheDocument();
+    const details = within(screen.getByRole('region', { name: 'Details', exact: true }));
+    expect(details.getByText('Keep the frame upright.')).toBeInTheDocument();
+    expect(details.getByText('Ikeja, Lagos')).toBeInTheDocument();
+    expect(details.getByText('Yaba, Lagos Mainland, Lagos')).toBeInTheDocument();
+    expect(details.getByText(/7,250/)).toBeInTheDocument();
+    expect(details.getByText(/18,950/)).toBeInTheDocument();
+    expect(details.getByText('extra large')).toBeInTheDocument();
+    expect(details.getByText('< 5 km')).toBeInTheDocument();
+    expect(details.getByText('Call on arrival. Do not leave with security.')).toBeInTheDocument();
+    expect(details.getByText(/Exact pickup and destination details are kept private/)).toBeInTheDocument();
+    expect(screen.getByText('Boosted')).toBeInTheDocument();
+    expect(screen.getByText('4.8 / 5 · 17 ratings')).toBeInTheDocument();
+    expect(screen.getByText('reliable requester')).toBeInTheDocument();
+    expect(screen.getByText('Errand reference: errand-detail')).toBeInTheDocument();
+    expect(document.querySelector('time[datetime="2026-11-02T14:30:00.000Z"]')).toHaveTextContent('2 Nov 2026');
+    expect(document.querySelector('time[datetime="2026-11-02T10:00:00.000Z"]')).toHaveTextContent('2 Nov 2026');
+    expect(screen.getByRole('link', { name: 'Send an offer' })).toHaveAttribute('href', '/marketplace/errand-detail/offer');
+    expect(await screen.findByRole('img', { name: 'Errand item' })).toHaveAttribute('src', 'https://example.test/frame-photo.jpg');
+    await waitFor(() => expect(document.querySelector('img[src="https://example.test/requester-photo.jpg"]')).toBeInTheDocument());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save errand' }));
+    expect(await screen.findByRole('button', { name: 'Remove from saved errands' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Remove from saved errands' }));
+    expect(await screen.findByRole('button', { name: 'Save errand' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('removes an unsaved errand and synchronizes the cached feed save state', async () => {

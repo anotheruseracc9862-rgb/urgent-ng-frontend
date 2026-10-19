@@ -99,6 +99,7 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
   const pending = assignment.status === 'PENDING_ACCEPTANCE';
   const isRunner = assignment.role === 'RUNNER';
   const expired = assignment.status === 'TIMED_OUT';
+  const windowMinutes = Math.max(1, Math.round((Date.parse(assignment.acceptanceDeadline) - Date.parse(assignment.selectedAt)) / 60_000));
 
   return (
     <section className="grid gap-4">
@@ -116,7 +117,12 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
       {decline.error && !isApiError(decline.error) ? <Alert variant="danger" role="alert">{decline.error.message}</Alert> : null}
 
       {pending && !expired ? (
-        <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)] sm:grid-cols-[1fr_auto] sm:items-center">
+        <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-tint p-5 shadow-[var(--shadow)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-wide text-green-900">Selected at {money(assignment.agreedAmountMinor)}</span>
+            <span className="rounded-full bg-amber-bg px-3 py-1 text-[11px] font-extrabold text-amber">Awaiting acceptance</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
             <h2 className="text-base font-extrabold text-ink">{isRunner ? 'Your response is needed' : 'Waiting for the runner to accept'}</h2>
             <p className="mt-1 text-sm text-muted">The acceptance window ends {new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Lagos' }).format(new Date(assignment.acceptanceDeadline))} (Lagos time).</p>
@@ -133,6 +139,17 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
               <Button type="button" variant="ghost" disabled={accept.isPending || decline.isPending} onClick={() => setDeclineOpen(true)}>Decline</Button>
             </div>
           ) : null}
+          </div>
+          <div className="grid gap-2 rounded-[var(--r-sm)] bg-surface/70 p-3 text-xs leading-relaxed text-ink-2 sm:grid-cols-2">
+            <div>
+              <p className="font-extrabold text-ink">If there is no answer</p>
+              <p className="mt-1">After {windowMinutes} minutes the selection times out. The offer closes for good and the errand reopens with the same deadline.</p>
+            </div>
+            <div>
+              <p className="font-extrabold text-ink">{isRunner ? 'What the requester sees' : 'What you can do meanwhile'}</p>
+              <p className="mt-1">{isRunner ? 'The errand shows "Runner selected". Other offers stay open until you accept.' : 'Other offers stay open until the runner accepts. You can cancel now with no penalty.'}</p>
+            </div>
+          </div>
         </section>
       ) : null}
 

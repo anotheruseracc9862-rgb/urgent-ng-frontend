@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -114,7 +114,7 @@ describe('Phase 4 offer and assignment flows', () => {
       updatedAt: '2026-10-14T10:00:00.000Z',
       availabilityConfirmedAt: '2026-10-14T10:00:00.000Z',
       message: null,
-      errandTitle: 'Pick up a cake',
+      errandTitle: 'Pick up a cake', roundsUsed: 0, roundsLimit: 6,
       history: [{
         id: 'event-initial', type: 'INITIAL_OFFER', actorUserId: 'runner-1', amountMinor: 500000,
         durationMinutes: 30, message: 'Available now.', createdAt: '2026-10-14T10:00:00.000Z',
@@ -177,7 +177,7 @@ describe('Phase 4 offer and assignment flows', () => {
       updatedAt: '2026-10-14T10:00:00.000Z',
       availabilityConfirmedAt: '2026-10-14T10:00:00.000Z',
       message: null,
-      errandTitle: 'Pick up a cake',
+      errandTitle: 'Pick up a cake', roundsUsed: 0, roundsLimit: 6,
       history: [],
     };
     server.use(
@@ -198,6 +198,44 @@ describe('Phase 4 offer and assignment flows', () => {
     expect(await screen.findByText(/refreshed the latest terms and negotiation turn/)).toBeInTheDocument();
     expect(screen.getByText(/₦6,000/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Amount (NGN)')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { name: 'runner waiting', runner: true, status: 'ACTIVE', turn: 'REQUESTER', reconfirm: false, buttons: ['Edit offer', 'Withdraw offer'] },
+    { name: 'requester turn', runner: false, status: 'ACTIVE', turn: 'REQUESTER', reconfirm: false, buttons: ['Counter', 'Decline offer'] },
+    { name: 'requester agreed', runner: false, status: 'ACTIVE', turn: 'NONE', reconfirm: false, buttons: ['Decline offer'] },
+    { name: 'runner reconfirmation', runner: true, status: 'ACTIVE', turn: 'RUNNER', reconfirm: true, buttons: ['Reconfirm offer', 'Withdraw offer'] },
+    { name: 'requester awaiting reconfirmation', runner: false, status: 'ACTIVE', turn: 'NONE', reconfirm: true, buttons: ['Decline offer'] },
+    { name: 'selected runner', runner: true, status: 'SELECTED', turn: 'NONE', reconfirm: false, buttons: [] },
+    { name: 'closed runner', runner: true, status: 'CLOSED', turn: 'NONE', reconfirm: false, buttons: [] },
+  ])('preserves role-specific negotiation actions for $name', async ({ runner, status, turn, reconfirm, buttons }) => {
+    server.use(http.get('*/api/v1/offers/offer-states', () => envelope({
+      id: 'offer-states', errandId: 'errand-states', runnerId: runner ? 'runner-1' : 'other-runner',
+      requesterId: runner ? 'other-requester' : 'runner-1', amountMinor: 375000, durationMinutes: 45,
+      status, awaitingParty: turn, version: 4, needsReconfirmation: reconfirm, closeReason: null,
+      conversationId: 'chat-states', assignmentId: status === 'SELECTED' ? 'assignment-states' : null,
+      createdAt: '2026-10-14T10:00:00.000Z', updatedAt: '2026-10-14T10:05:00.000Z',
+      availabilityConfirmedAt: null, message: 'Keep the parcel upright.', errandTitle: 'Deliver a parcel', roundsUsed: 0, roundsLimit: 6, history: [],
+    })));
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-states" />);
+    await screen.findByRole('heading', { name: 'Deliver a parcel' });
+    const actions = within(screen.getByRole('complementary', { name: 'Current terms and your actions' }));
+    expect(actions.queryAllByRole('button').map((button) => button.textContent).sort()).toEqual([...buttons].sort());
+    expect(actions.getByText('₦3,750')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: runner ? 'My offers' : 'Back to errand' })).toHaveAttribute('href', runner ? '/offers' : '/errands/errand-states');
+    expect(screen.getByRole('link', { name: 'Open chat' })).toHaveAttribute('href', '/conversations/chat-states');
+    expect(screen.getByText('Keep the parcel upright.')).toBeInTheDocument();
+    if (status === 'SELECTED') {
+      expect(actions.getByRole('link', { name: 'Open assignment' })).toHaveAttribute('href', '/assignments/assignment-states');
+      expect(actions.queryByText(/This offer is closed/)).not.toBeInTheDocument();
+    }
+    if (status === 'CLOSED') expect(actions.getByText('This negotiation is read-only.')).toBeInTheDocument();
+    if (!runner && reconfirm) {
+      expect(actions.getByText(/The runner must reconfirm/)).toBeInTheDocument();
+      expect(actions.queryByRole('link', { name: 'Review and select' })).not.toBeInTheDocument();
+    }
+    if (!runner && !reconfirm && turn === 'NONE') expect(actions.getByRole('link', { name: 'Review and select' })).toHaveAttribute('href', '/errands/errand-states');
   });
 
   it('shows timeout and reopening after the server rejects a late acceptance', async () => {
@@ -342,6 +380,10 @@ describe('Phase 4 offer and assignment flows', () => {
     const user = userEvent.setup();
     const cursors: string[] = [];
     server.use(
+      http.get('*/api/v1/me/summary', () => envelope({ asRunner: { activeOffers: 13, offersAwaitingYou: 5 } })),
+      http.get('*/api/v1/runner/offer-limit', () => envelope({
+        used: 3, limit: 10, remaining: 7, resetsAt: '2026-10-15T00:00:00.000Z', isPro: false, isAtLimit: false,
+      })),
       http.get('*/api/v1/runner/offers', ({ request }) => {
         const cursor = new URL(request.url).searchParams.get('cursor') ?? '';
         cursors.push(cursor);
@@ -349,13 +391,13 @@ describe('Phase 4 offer and assignment flows', () => {
           ? envelope([{
             id: 'offer-closed', errandId: 'errand-closed', status: 'CLOSED', awaitingParty: 'NONE',
             amountMinor: 350000, durationMinutes: 45, needsReconfirmation: false, version: 2,
-            closeReason: 'ERRAND_CANCELLED', errandTitle: 'Deliver documents', errandStatus: 'CANCELLED',
+            closeReason: 'ERRAND_CANCELLED', errandTitle: 'Deliver documents', roundsUsed: 0, roundsLimit: 6, errandStatus: 'CANCELLED',
             pickupArea: 'Ikeja', destinationArea: null, createdAt: '2026-10-13T10:00:00.000Z',
           }])
           : envelope([{
             id: 'offer-active', errandId: 'errand-active', status: 'ACTIVE', awaitingParty: 'RUNNER',
             amountMinor: 500000, durationMinutes: 30, needsReconfirmation: false, version: 4,
-            closeReason: null, errandTitle: 'Pick up a cake', errandStatus: 'OPEN',
+            closeReason: null, errandTitle: 'Pick up a cake', roundsUsed: 0, roundsLimit: 6, errandStatus: 'OPEN',
             pickupArea: 'Ikeja', destinationArea: 'Magodo', createdAt: '2026-10-14T10:00:00.000Z',
           }], { nextCursor: 'cursor-2' });
       }),
@@ -363,8 +405,133 @@ describe('Phase 4 offer and assignment flows', () => {
 
     renderWithQuery(<MyOffersPage />);
     expect(await screen.findByText('Counter received · Your turn')).toBeInTheDocument();
+    const overview = screen.getByLabelText('Offer overview');
+    expect(await within(overview).findByText('13')).toBeInTheDocument();
+    expect(await within(overview).findByText('5')).toBeInTheDocument();
+    expect(await within(overview).findByText('7')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Respond: Pick up a cake' })).toHaveAttribute('href', '/offers/offer-active');
     await user.click(screen.getByRole('button', { name: 'Load more offers' }));
     expect(await screen.findByText(/Closed: Errand Cancelled/)).toBeInTheDocument();
     expect(cursors).toEqual(['', 'cursor-2']);
+    expect(within(overview).getByText('13')).toBeInTheDocument();
+  });
+
+  it('filters all offer statuses on the server and retains the action, route and closed details', async () => {
+    const user = userEvent.setup();
+    const requested: string[] = [];
+    const offers = ['ACTIVE', 'SELECTED', 'WITHDRAWN', 'REJECTED', 'EXPIRED', 'CLOSED'].map((status) => ({
+      id: status.toLowerCase(), errandId: `errand-${status}`, errandTitle: `${status} parcel`, errandStatus: 'OPEN',
+      status, awaitingParty: status === 'ACTIVE' ? 'RUNNER' : 'NONE', amountMinor: 725000, durationMinutes: 35,
+      needsReconfirmation: status === 'ACTIVE', closeReason: status === 'CLOSED' ? 'ERRAND_CANCELLED' : null,
+      pickupArea: 'Ikeja', destinationArea: 'Yaba', createdAt: '2026-10-14T10:00:00.000Z', version: 1,
+    }));
+    server.use(
+      http.get('*/api/v1/me/summary', () => envelope({ asRunner: { activeOffers: 1, offersAwaitingYou: 1 } })),
+      http.get('*/api/v1/runner/offer-limit', () => envelope({
+        used: 6, limit: 10, remaining: 4, resetsAt: '2026-10-15T00:00:00.000Z', isPro: false, isAtLimit: false,
+      })),
+      http.get('*/api/v1/runner/offers', ({ request }) => {
+        const status = new URL(request.url).searchParams.get('status') ?? 'ALL';
+        requested.push(status);
+        return envelope(status === 'ALL' ? offers : offers.filter((offer) => offer.status === status));
+      }),
+    );
+
+    renderWithQuery(<MyOffersPage />);
+    await screen.findByRole('link', { name: 'Respond: ACTIVE parcel' });
+    expect(screen.getByText('Reconfirm details')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Assignment details: SELECTED parcel' })).toHaveAttribute('href', '/offers/selected');
+    expect(screen.getByText(/Closed: Errand Cancelled/)).toBeInTheDocument();
+    for (const status of ['Active', 'Selected', 'Withdrawn', 'Rejected', 'Expired', 'Closed']) {
+      await user.click(screen.getByRole('tab', { name: status, exact: true }));
+      await waitFor(() => expect(requested.at(-1)).toBe(status.toUpperCase()));
+      expect(await screen.findByRole('heading', { name: `${status.toUpperCase()} parcel` })).toBeInTheDocument();
+      await waitFor(() => expect(within(screen.getByRole('tabpanel')).getAllByRole('article')).toHaveLength(1));
+      expect(screen.getByRole('tab', { name: status, exact: true })).toHaveAttribute('aria-selected', 'true');
+    }
+    await user.click(screen.getByRole('tab', { name: 'All offers', exact: true }));
+    await waitFor(() => expect(within(screen.getByRole('tabpanel')).getAllByRole('article')).toHaveLength(6));
+  });
+
+  it('keeps offers usable when overview requests fail and shows the real Pro allowance after retry', async () => {
+    let failed = true;
+    server.use(
+      http.get('*/api/v1/me/summary', () => failed
+        ? HttpResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Unavailable' } }, { status: 500 })
+        : envelope({ asRunner: { activeOffers: 4, offersAwaitingYou: 2 } })),
+      http.get('*/api/v1/runner/offer-limit', () => failed
+        ? HttpResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Unavailable' } }, { status: 500 })
+        : envelope({ used: 12, limit: 100, remaining: 88, resetsAt: '2026-10-15T00:00:00.000Z', isPro: true, isAtLimit: false })),
+      http.get('*/api/v1/runner/offers', () => envelope([{
+        id: 'offer-waiting', errandId: 'errand-waiting', errandTitle: 'Deliver medicine', roundsUsed: 0, roundsLimit: 6, errandStatus: 'OPEN',
+        status: 'ACTIVE', awaitingParty: 'REQUESTER', amountMinor: 350000, durationMinutes: 20,
+        needsReconfirmation: false, closeReason: null, pickupArea: null, destinationArea: null,
+        createdAt: '2026-10-14T10:00:00.000Z', version: 1,
+      }])),
+    );
+
+    renderWithQuery(<MyOffersPage />);
+    expect(await screen.findByRole('link', { name: 'View offer: Deliver medicine' })).toHaveAttribute('href', '/offers/offer-waiting');
+    expect(await screen.findByRole('button', { name: 'Retry overview' })).toBeInTheDocument();
+    expect(screen.queryByText('No offers yet')).not.toBeInTheDocument();
+    failed = false;
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Retry overview' }));
+    expect(await screen.findByText('88')).toBeInTheDocument();
+    expect(screen.getByText('Runner Pro', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(/12 of 100 new offers used today/)).toBeInTheDocument();
+    expect(screen.queryByText(/Unlimited/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry overview' })).not.toBeInTheDocument();
+  });
+});
+
+describe('negotiation rounds', () => {
+  const offerAt = (over: Record<string, unknown>) => ({
+    id: 'offer-rounds', errandId: 'errand-rounds', runnerId: 'other-runner', requesterId: 'runner-1', amountMinor: 520000, durationMinutes: 30,
+    status: 'ACTIVE', awaitingParty: 'REQUESTER', version: 8, needsReconfirmation: false, closeReason: null, conversationId: null, assignmentId: null,
+    createdAt: '2026-10-14T10:00:00.000Z', updatedAt: '2026-10-14T10:30:00.000Z', availabilityConfirmedAt: '2026-10-14T10:00:00.000Z', message: null,
+    errandTitle: 'Pick up a cake', roundsUsed: 3, roundsLimit: 6, history: [], ...over,
+  });
+
+  it('shows the round, whose turn it is, and how many counters are left', async () => {
+    server.use(http.get('*/api/v1/offers/offer-rounds', () => envelope(offerAt({}))));
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-rounds" />);
+
+    expect(await screen.findByText(/Round 3 of 6/)).toBeInTheDocument();
+    expect(screen.getByText(/It is your turn\. 3 counter-offers left/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Counter' })).toBeInTheDocument();
+  });
+
+  it('tells the person who is waiting that they cannot counter again', async () => {
+    server.use(http.get('*/api/v1/offers/offer-rounds', () => envelope(offerAt({ awaitingParty: 'RUNNER', roundsUsed: 4 }))));
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-rounds" />);
+
+    expect(await screen.findByText(/You cannot counter again until they answer\. 2 counter-offers left/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Counter' })).not.toBeInTheDocument();
+  });
+
+  it('at the limit the requester can only select or decline: no Counter button', async () => {
+    server.use(http.get('*/api/v1/offers/offer-rounds', () => envelope(offerAt({ roundsUsed: 6 }))));
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-rounds" />);
+
+    expect(await screen.findByText(/Counter-offer limit reached \(6 of 6\)\. Select this runner at the latest terms, or decline\./)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Counter' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Decline offer' })).toBeInTheDocument();
+  });
+
+  it('explains a refused counter when the server says the limit was reached', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('*/api/v1/offers/offer-rounds', () => envelope(offerAt({ roundsUsed: 5 }))),
+      http.post('*/api/v1/offers/offer-rounds/counter', () => HttpResponse.json({ error: { code: 'OFFER_ROUND_LIMIT_REACHED', message: 'limit' }, requestId: 'r' }, { status: 409 })),
+    );
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-rounds" />);
+    await user.click(await screen.findByRole('button', { name: 'Counter' }));
+    await user.click(screen.getByRole('button', { name: 'Send counter' }));
+
+    expect(await screen.findByText(/The counter-offer limit is reached\. Accept or decline the latest terms\./)).toBeInTheDocument();
   });
 });

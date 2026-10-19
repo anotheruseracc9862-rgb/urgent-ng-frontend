@@ -93,6 +93,27 @@ describe('business topbar', () => {
     }
   });
 
+  it('shows the marketplace detail hierarchy without exposing the errand id on desktop and mobile', () => {
+    navigation.pathname = '/marketplace/c82687f7-edc3-59d6-934e-3aea6684e1d7';
+    renderTopbar('RUNNER');
+    for (const crumb of screen.getAllByRole('navigation', { name: 'Breadcrumb' })) {
+      expect(crumb).toHaveTextContent(/Runner\s*›\s*Find errands\s*›\s*Errand details/);
+      expect(within(crumb).getByRole('link', { name: 'Find errands' })).toHaveAttribute('href', '/marketplace');
+      expect(within(crumb).getByText('Errand details')).toHaveAttribute('aria-current', 'page');
+      expect(crumb).not.toHaveTextContent('c82687f7');
+    }
+  });
+
+  it.each(['REQUESTER', 'RUNNER'] as const)('shows offer details under the correct %s workspace on desktop and mobile', (mode) => {
+    navigation.pathname = '/offers/ec79ce0f-a34e-5e3b-9f2a-932a0454b56b';
+    renderTopbar(mode);
+    for (const crumb of screen.getAllByRole('navigation', { name: 'Breadcrumb' })) {
+      expect(within(crumb).getByRole('link', { name: mode === 'RUNNER' ? 'My offers' : 'My errands' })).toHaveAttribute('href', mode === 'RUNNER' ? '/offers' : '/errands');
+      expect(within(crumb).getByText('Offer details')).toHaveAttribute('aria-current', 'page');
+      expect(crumb).not.toHaveTextContent('ec79ce0f');
+    }
+  });
+
   it.each(['REQUESTER', 'RUNNER'] as const)('shows the settings hierarchy for %s on desktop and mobile', (mode) => {
     const settingsPages = [
       ['/settings/contact', 'Contact methods'],

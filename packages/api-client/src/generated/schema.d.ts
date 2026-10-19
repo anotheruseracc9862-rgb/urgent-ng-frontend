@@ -6586,6 +6586,10 @@ export interface components {
             message: string | null;
             assignmentId: string | null;
             errandTitle: string;
+            /** @description Counter-offers made so far, by both sides together. */
+            roundsUsed: number;
+            /** @description Counter-offers this negotiation allows. After that the only moves are accept or decline. */
+            roundsLimit: number;
             history: components["schemas"]["NegotiationEventDto"][];
         };
         CounterOfferDto: {

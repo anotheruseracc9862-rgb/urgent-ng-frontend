@@ -269,7 +269,7 @@ export function MarketplaceFeedPage() {
                 <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="inline-flex items-center gap-1.5 text-muted"><MessageSquare aria-hidden="true" className="size-3.5" />Offers so far</dt><dd className="font-bold text-ink">{selected.offerCount}</dd></div>
                 <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Expires</dt><dd className="text-right font-bold text-ink"><time dateTime={selected.expiresAt}>{dateLabel(selected.expiresAt)}</time></dd></div>
               </dl>
-              <div className="flex items-start gap-2 rounded-[var(--r-sm)] bg-tint px-3 py-3 text-xs leading-relaxed text-green-900"><LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p>Exact locations and contact details unlock after you’re selected and accept.</p></div>
+              <div className="flex items-start gap-2 rounded-[var(--r-sm)] bg-tint px-3 py-3 text-xs leading-relaxed text-green-900"><LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p>Addresses and contacts unlock after you accept.</p></div>
               <div className="grid grid-cols-2 gap-2">
                 <Button asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
                 <Button variant="ghost" asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}`}>View details<ChevronRight aria-hidden="true" className="size-4" /></Link></Button>

@@ -58,6 +58,8 @@ export function Topbar({ mode }: { mode: ShellMode }) {
   const crumb = titleForPath(pathname);
   const isSettingsSubpage = pathname.startsWith('/settings/');
   const isProfileSubpage = pathname.startsWith('/profile/');
+  const isMarketplaceDetail = pathname.startsWith('/marketplace/') && crumb === 'Errand details';
+  const isOfferDetail = pathname.startsWith('/offers/') && crumb === 'Offer details';
 
   const { requestSwitch: switchMode, dialog: modeDialog } = useModeSwitch(mode);
 
@@ -73,9 +75,9 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-2 truncate text-[12.5px] font-semibold text-muted sm:flex">
           <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
           <span aria-hidden="true">›</span>
-          {isSettingsSubpage || isProfileSubpage ? <>
-            <Link href={isSettingsSubpage ? '/settings' : '/profile'} className="shrink-0 hover:text-ink">
-              {isSettingsSubpage ? 'Settings' : 'Profile & account'}
+          {isSettingsSubpage || isProfileSubpage || isMarketplaceDetail || isOfferDetail ? <>
+            <Link href={isSettingsSubpage ? '/settings' : isMarketplaceDetail ? '/marketplace' : isOfferDetail ? mode === 'RUNNER' ? '/offers' : '/errands' : '/profile'} className="shrink-0 hover:text-ink">
+              {isSettingsSubpage ? 'Settings' : isMarketplaceDetail ? 'Find errands' : isOfferDetail ? mode === 'RUNNER' ? 'My offers' : 'My errands' : 'Profile & account'}
             </Link>
             <span aria-hidden="true">›</span>
           </> : null}
@@ -184,9 +186,9 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 truncate px-3 text-xs font-semibold text-muted sm:hidden">
           <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
           <span aria-hidden="true">›</span>
-          {isSettingsSubpage || isProfileSubpage ? <>
-            <Link href={isSettingsSubpage ? '/settings' : '/profile'} className="shrink-0 hover:text-ink">
-              {isSettingsSubpage ? 'Settings' : 'Profile & account'}
+          {isSettingsSubpage || isProfileSubpage || isMarketplaceDetail || isOfferDetail ? <>
+            <Link href={isSettingsSubpage ? '/settings' : isMarketplaceDetail ? '/marketplace' : isOfferDetail ? mode === 'RUNNER' ? '/offers' : '/errands' : '/profile'} className="shrink-0 hover:text-ink">
+              {isSettingsSubpage ? 'Settings' : isMarketplaceDetail ? 'Find errands' : isOfferDetail ? mode === 'RUNNER' ? 'My offers' : 'My errands' : 'Profile & account'}
             </Link>
             <span aria-hidden="true">›</span>
           </> : null}

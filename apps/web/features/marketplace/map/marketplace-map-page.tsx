@@ -42,14 +42,14 @@ function clusterPoints(points: MapPoint[], projection: google.maps.Projection, z
   return groups.map((group) => group.points);
 }
 
-function fitErrands(map: google.maps.Map, points: MapPoint[]) {
+function fitErrands(map: google.maps.Map, points: MapPoint[], maxZoom = 15) {
   if (!points.length) return;
   const bounds = new google.maps.LatLngBounds();
   points.forEach((point) => bounds.extend(point.approx));
   map.fitBounds(bounds, 64);
   // Only limit auto-framing. A runner's subsequent zoom must never be snapped back.
   return google.maps.event.addListenerOnce(map, 'idle', () => {
-    if ((map.getZoom() ?? 0) > 15) map.setZoom(15);
+    if ((map.getZoom() ?? 0) > maxZoom) map.setZoom(maxZoom);
   });
 }
 
@@ -141,10 +141,7 @@ export function MarketplaceMapPage() {
         });
         const listener = marker.addListener('click', () => {
           setSelectedIds(group.map((point) => point.id));
-          if (clustered) {
-            map.panTo(position);
-            map.setZoom(Math.min(20, (map.getZoom() ?? 12) + 2));
-          }
+          if (clustered) fitErrands(map, group, 20);
         });
         return { marker, listener };
       });

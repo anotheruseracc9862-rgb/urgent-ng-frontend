@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ErrandJourney } from '@/features/journey/errand-journey';
 import {
   AlertCircle,
   ArrowLeft,
@@ -373,6 +374,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
   return (
     <div className="mx-auto grid max-w-6xl gap-4">
       <Link href="/errands" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link>
+      <ErrandJourney errand={errand} />
       <header className="flex flex-col gap-4 rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:flex-row sm:items-start sm:justify-between sm:p-6">
         <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-wider text-green-800">{errand.id} · {errand.category.name}</p>

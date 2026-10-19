@@ -160,6 +160,9 @@ export function isItemActive(item: NavItem, pathname: string, search: URLSearchP
 }
 
 export function titleForPath(pathname: string): string {
+  if (/^\/marketplace\/[^/]+$/.test(pathname) && pathname !== '/marketplace/saved') return 'Errand details';
+  if (/^\/offers\/[^/]+$/.test(pathname)) return 'Offer details';
+
   const candidates = [
     ...NAV_ITEMS.filter((item) => !item.query).map(({ href, label }) => ({ href, label })),
     ...Object.entries(ROUTE_TITLES).map(([href, label]) => ({ href, label })),
