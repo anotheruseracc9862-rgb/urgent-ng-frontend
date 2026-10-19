@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ImagePlus, Info, Send } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
+import { PaymentTermsStrip } from '@/features/assignments/payment/payment-terms-strip';
 import { MediaUpload } from '@/components/media/MediaUpload';
 import { api, isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
@@ -17,6 +18,7 @@ import { avatarTone, counterpartName, counterpartSubtitle, errandStatusLabel, in
 const READ_ONLY_COPY: Record<string, string> = {
   BLOCKED: 'You blocked this person, so the conversation is read-only.',
   ERRAND_ENDED: 'This errand ended, so the conversation is read-only.',
+  NOT_ASSIGNED: 'Chat opens once the runner accepts this errand. Until then, use the offer note and counter-offers.',
   NO_ACTIVE_OFFER: 'This offer is closed, so the conversation is read-only.',
   COMPLETION_WINDOW_ENDED: 'The window after completion has ended, so the conversation is read-only.',
 };
@@ -199,6 +201,9 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
         </div>
       ) : (
         <form onSubmit={submit} className="grid gap-3 border-t border-line p-3.5">
+          {current.assignmentId ? (
+            <PaymentTermsStrip assignmentId={current.assignmentId} role={current.counterpart.role === 'RUNNER' ? 'REQUESTER' : 'RUNNER'} />
+          ) : null}
           {attachOpen ? (
             <MediaUpload purpose="CHAT_IMAGE" maxFiles={1} value={imageId ? [imageId] : []} onChange={(ids) => setImageId(ids[0])} />
           ) : null}

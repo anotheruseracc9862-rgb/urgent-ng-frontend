@@ -45,11 +45,11 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
   const assignment = errand.assignmentId ? encodeURIComponent(errand.assignmentId) : null;
   const delivered = errand.status === 'DELIVERED';
   const can = availableActions('REQUESTER', errand.status === 'RUNNER_SELECTED' ? 'PENDING_ACCEPTANCE' : 'ACCEPTED', errand.status);
-  const link = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
-  const soft = 'inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-[12.5px] font-bold text-ink hover:bg-tint-2';
+  const link = 'relative z-10 inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
+  const soft = 'relative z-10 inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-[12.5px] font-bold text-ink hover:bg-tint-2';
 
   return (
-    <section className="rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby={`track-${errand.id}`}>
+    <section className="relative rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] transition-shadow hover:shadow-[var(--shadow-pop)] motion-reduce:transition-none sm:p-[22px]" aria-labelledby={`track-${errand.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${delivered ? 'bg-ok-bg text-ok' : 'bg-blue-bg text-blue'}`}>
           {delivered ? null : <span aria-hidden="true" className="size-[7px] animate-pulse rounded-full bg-current" />}
@@ -59,7 +59,7 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
       </div>
 
       <h2 id={`track-${errand.id}`} className="mb-1 mt-3 text-xl font-extrabold tracking-[-0.02em] text-ink">
-        <Link href={`/errands/${errand.id}`} className="hover:underline">{errand.title}</Link>
+        <Link href={assignment ? `/assignments/${assignment}` : `/errands/${errand.id}`} className="hover:underline after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-green-700">{errand.title}</Link>
       </h2>
       <p className="text-sm text-muted">
         {runner ? `Runner: ${runner.firstName}${runner.lastName ? ` ${runner.lastName[0]}.` : ''} · ` : ''}
@@ -81,13 +81,16 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2.5">
+        {assignment ? (
+          <Link href={`/assignments/${assignment}`} className={`${link} bg-surface text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel`}>View assignment</Link>
+        ) : null}
         {assignment && can.confirmDelivery ? (
           <Link href={`/assignments/${assignment}/confirm`} className={`${link} bg-lime text-ink hover:bg-lime-600`}>Confirm delivery</Link>
         ) : null}
         {assignment && can.trackRunner ? (
           <Link href={`/assignments/${assignment}/track`} className={`${link} bg-ink text-white hover:bg-[#0f1822]`}>Live tracker</Link>
         ) : null}
-        {errand.conversationId ? (
+        {errand.conversationId && errand.status !== 'RUNNER_SELECTED' ? (
           <Link href={`/messages/${encodeURIComponent(errand.conversationId)}`} className={`${link} bg-surface text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel`}>
             <MessageSquare aria-hidden="true" className="size-4" />Message{runner ? ` ${runner.firstName}` : ''}
           </Link>
@@ -99,10 +102,11 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
         <>
           <hr className="my-[18px] border-0 border-t border-line" />
           <div className="flex flex-wrap gap-2">
+            <Link href={`/errands/${errand.id}`} className={soft}>Errand details</Link>
             {can.paymentTerms ? <Link href={`/assignments/${assignment}/payment`} className={soft}>Payment terms</Link> : null}
             {can.changeRequest ? <Link href={`/assignments/${assignment}/changes`} className={soft}>Change request</Link> : null}
             {can.dispute ? <Link href={`/assignments/${assignment}/dispute`} className={soft}>Open a dispute</Link> : null}
-            {can.cancel ? <Link href={`/assignments/${assignment}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-[12.5px] font-bold text-red hover:bg-[#ffe1dc]">Cancel</Link> : null}
+            {can.cancel ? <Link href={`/assignments/${assignment}/cancel`} className="relative z-10 inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-[12.5px] font-bold text-red hover:bg-[#ffe1dc]">Cancel</Link> : null}
           </div>
         </>
       ) : null}

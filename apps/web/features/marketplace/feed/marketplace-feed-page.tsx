@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQueryClient, type InfiniteData, keepPreviousData } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
-import { ArrowRight, Bookmark, ChevronRight, Clock3, LockKeyhole, MapPin, MessageSquare, Package, ShieldCheck, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, Bookmark, ChevronRight, Clock3, MapPin, MessageSquare, Package, ShieldCheck, Sparkles, Star } from 'lucide-react';
 import { api, apiResponse, isApiError, type ApiResponse } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { PageHead } from '@/components/shell/page-head';
@@ -256,9 +256,9 @@ export function MarketplaceFeedPage() {
               );
             })}
           </section>
-          {selected && <aside id="marketplace-errand-preview" aria-label="Errand preview" tabIndex={0} className="sticky top-4 hidden max-h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 xl:block">
+          {selected && <aside id="marketplace-errand-preview" aria-label="Errand preview" tabIndex={0} className="sticky top-4 hidden h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 xl:flex xl:flex-col">
             <div className="flex items-center justify-between gap-3 border-b border-line bg-tint/60 px-5 py-4"><span className="inline-flex items-center gap-2 text-xs font-extrabold text-green-900"><Package aria-hidden="true" className="size-4" />Quick look</span><span className="text-[11px] text-muted">{selected.category.name}</span></div>
-            <div key={selected.id} className="grid gap-5 p-5">
+            <div key={selected.id} className="flex flex-1 flex-col gap-5 p-5">
               <div className="min-w-0"><h2 className="break-words text-lg font-extrabold leading-6 tracking-tight text-ink">{selected.title}</h2><p className="mt-2 line-clamp-3 break-words text-sm leading-relaxed text-muted">{selected.description}</p></div>
               <ErrandRoute item={selected} />
               <dl className="divide-y divide-line text-xs">
@@ -269,8 +269,7 @@ export function MarketplaceFeedPage() {
                 <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="inline-flex items-center gap-1.5 text-muted"><MessageSquare aria-hidden="true" className="size-3.5" />Offers so far</dt><dd className="font-bold text-ink">{selected.offerCount}</dd></div>
                 <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Expires</dt><dd className="text-right font-bold text-ink"><time dateTime={selected.expiresAt}>{dateLabel(selected.expiresAt)}</time></dd></div>
               </dl>
-              <div className="flex items-start gap-2 rounded-[var(--r-sm)] bg-tint px-3 py-3 text-xs leading-relaxed text-green-900"><LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p>Addresses and contacts unlock after you accept.</p></div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
                 <Button asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
                 <Button variant="ghost" asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}`}>View details<ChevronRight aria-hidden="true" className="size-4" /></Link></Button>
               </div>

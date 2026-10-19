@@ -155,7 +155,7 @@ describe('assignment hub privacy', () => {
     expect(screen.queryByText(/99 Secret Street/)).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', { name: 'Accept assignment' }));
     expect(await screen.findByText('99 Secret Street, Yaba')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Continue errand' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Run errand' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept assignment' })).not.toBeInTheDocument();
   });
 });

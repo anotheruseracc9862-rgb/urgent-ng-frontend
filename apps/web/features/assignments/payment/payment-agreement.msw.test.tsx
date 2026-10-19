@@ -61,11 +61,13 @@ describe('payment agreement', () => {
     const user = userEvent.setup();
 
     expect(await screen.findByText('Both parties confirmed these terms.')).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText('Payment method'), 'BANK_TRANSFER');
+    screen.getByRole('combobox', { name: 'Payment method' }).focus();
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByRole('option', { name: 'Bank Transfer' }));
     await user.click(screen.getByRole('button', { name: 'Save payment terms' }));
     expect(await screen.findByText('Waiting for both parties to confirm the current terms.')).toBeInTheDocument();
-    expect(screen.getByText('You (Runner): not confirmed')).toBeInTheDocument();
-    expect(screen.getByText('Other party: not confirmed')).toBeInTheDocument();
+    expect(screen.getByText('You (Runner)').nextSibling).toHaveTextContent('Not confirmed');
+    expect(screen.getByText('Other party').nextSibling).toHaveTextContent('Not confirmed');
     expect(screen.getByText(/Urgent.ng never holds or transfers this money/)).toBeInTheDocument();
   });
 });

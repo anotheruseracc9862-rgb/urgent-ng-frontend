@@ -18,6 +18,8 @@ import { JourneyHere } from '@/features/journey/journey-context';
 import { AssignmentTimeline } from '@/features/assignments/assignment-timeline';
 import { ExecutionProgress } from '@/features/assignments/execution-progress';
 import { availableActions } from '@/features/assignments/available-actions';
+import { ActionRow } from '@/features/assignments/action-row';
+import { paymentPrompt } from '@/features/assignments/payment/payment-prompt';
 
 type Step = 'start' | 'pickup' | 'deliver';
 
@@ -44,7 +46,6 @@ const doingNow: Record<string, string> = {
   PICKED_UP: 'Heading to drop-off',
 };
 
-const helpful = 'flex min-h-11 items-center justify-center gap-2 rounded-full bg-panel px-4 text-sm font-extrabold text-ink hover:bg-tint-2';
 
 function nextStep(status: string): Step | null {
   if (status === 'ACCEPTED') return 'start';
@@ -66,6 +67,12 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
     queryFn: () => offersApi.assignmentTimeline(assignmentId),
     retry: false,
     enabled: Boolean(assignment.data),
+  });
+  const agreement = useQuery({
+    queryKey: queryKeys.assignments.paymentAgreement(assignmentId),
+    queryFn: () => offersApi.paymentAgreement(assignmentId),
+    retry: false,
+    enabled: assignment.data?.data.status === 'ACCEPTED',
   });
   const [recorded, setRecorded] = useState<Step | null>(null);
   const [note, setNote] = useState('');
@@ -128,6 +135,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
   const errand = assignment.data.data.errand;
   const errandId = assignment.data.data.errandId;
   const can = availableActions('RUNNER', assignment.data.data.status, errand.status);
+  const payment = paymentPrompt('RUNNER', agreement.data);
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
       <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline">
@@ -211,12 +219,12 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
 
         <aside aria-label="Helpful actions" className="grid min-w-0 gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
           <h2 className="text-sm font-extrabold text-ink">Helpful actions</h2>
-          {can.reportProblems ? <Link href={`/assignments/${assignmentId}/problems`} className={helpful}><Flag aria-hidden="true" className="size-4" />Delay, problem or receipt</Link> : null}
-          {can.changeRequest ? <Link href={`/assignments/${assignmentId}/changes`} className={helpful}><MessageSquare aria-hidden="true" className="size-4" />Ask to change amount, address or time</Link> : null}
-          {can.paymentTerms ? <Link href={`/assignments/${assignmentId}/payment`} className={helpful}><Wallet aria-hidden="true" className="size-4" />Payment terms</Link> : null}
-          {can.shareProgress ? <Link href={`/errands/${errandId}/share`} className={helpful}><Share2 aria-hidden="true" className="size-4" />Trusted-contact link</Link> : null}
-          {can.dispute && !can.cancel ? <Link href={`/assignments/${assignmentId}/dispute`} className={helpful}><Flag aria-hidden="true" className="size-4" />Something is wrong: open a dispute</Link> : null}
-          {can.cancel ? <Link href={`/assignments/${assignmentId}/cancel`} className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-red-bg px-4 text-sm font-extrabold text-red hover:opacity-80"><X aria-hidden="true" className="size-4" />Cancel as runner</Link> : null}
+          {can.reportProblems ? <ActionRow href={`/assignments/${assignmentId}/problems`} icon={Flag}>Delay, problem or receipt</ActionRow> : null}
+          {can.changeRequest ? <ActionRow href={`/assignments/${assignmentId}/changes`} icon={MessageSquare}>Request a change</ActionRow> : null}
+          {can.paymentTerms ? <ActionRow href={`/assignments/${assignmentId}/payment`} icon={Wallet} badge={payment.badge} badgeTone={payment.needsAction ? 'amber' : 'muted'}>Payment terms</ActionRow> : null}
+          {can.shareProgress ? <ActionRow href={`/errands/${errandId}/share`} icon={Share2}>Trusted-contact link</ActionRow> : null}
+          {can.dispute && !can.cancel ? <ActionRow href={`/assignments/${assignmentId}/dispute`} icon={Flag}>Open a dispute</ActionRow> : null}
+          {can.cancel ? <ActionRow href={`/assignments/${assignmentId}/cancel`} icon={X} danger>Cancel as runner</ActionRow> : null}
         </aside>
       </div>
       <Dialog open={intent !== null && intent.step === currentStep} onOpenChange={(open) => { if (!open && !execute.isPending) setIntent(null); }}>

@@ -35,7 +35,7 @@ const TABS: Array<{ value: Tab | 'ALL'; label: string; count: keyof Counts }> = 
 ];
 
 const SORTS: Array<{ value: Sort; label: string }> = [
-  { value: 'RECENT', label: 'Most recent' },
+  { value: 'RECENT', label: 'Recent activity' },
   { value: 'NEEDS_ATTENTION', label: 'Needs attention' },
   { value: 'HIGHEST_AMOUNT', label: 'Highest amount' },
 ];

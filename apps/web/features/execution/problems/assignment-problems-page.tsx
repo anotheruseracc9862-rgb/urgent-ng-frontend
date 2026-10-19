@@ -6,7 +6,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Skeleton } from '@urgent/ui';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
+import { DurationInput } from '@/components/forms/duration-input';
+import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@urgent/ui';
 import { MediaUpload } from '@/components/media-upload/media-upload';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -35,14 +38,14 @@ function ProblemRow({ problem, onResolve, resolving }: {
   resolving: boolean;
 }) {
   return (
-    <li className="grid gap-2 rounded-xl bg-panel p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+    <li className="grid gap-2 rounded-[var(--r-sm)] bg-panel p-3.5">
       <div>
-        <p className="font-bold text-ink">{label(problem.type)} · {label(problem.status)}</p>
+        <p className="text-sm font-extrabold text-ink">{label(problem.type)} <span className="font-semibold text-muted">· {label(problem.status)}</span></p>
         {problem.note ? <p className="mt-1 text-sm text-ink-2">{problem.note}</p> : null}
-        {problem.suggestDispute ? <p className="mt-1 text-sm font-bold text-amber-900">There are multiple open problems. Consider opening a dispute.</p> : null}
+        {problem.suggestDispute ? <p className="mt-1 text-xs font-bold text-amber">There are multiple open problems. Consider opening a dispute.</p> : null}
       </div>
       {problem.status === 'OPEN' ? (
-        <Button type="button" size="sm" variant="ghost" disabled={resolving} onClick={() => onResolve(problem.id)}>
+        <Button type="button" size="sm" variant="ghost" className="w-fit" disabled={resolving} onClick={() => onResolve(problem.id)}>
           Mark resolved
         </Button>
       ) : null}
@@ -68,7 +71,7 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
   const [problemNote, setProblemNote] = useState('');
   const [problemMediaId, setProblemMediaId] = useState<string>();
   const [delayReason, setDelayReason] = useState<DelayReason>('TRAFFIC');
-  const [estimate, setEstimate] = useState('30');
+  const [estimate, setEstimate] = useState<number | null>(30);
   const [delayNote, setDelayNote] = useState('');
   const [receiptMediaId, setReceiptMediaId] = useState<string>();
   const [receiptNote, setReceiptNote] = useState('');
@@ -98,7 +101,7 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
   const delay = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.delayNotice(assignmentId, {
       reason: delayReason,
-      newEstimateMinutes: Number(estimate),
+      newEstimateMinutes: estimate ?? 0,
       ...(delayNote.trim() ? { note: delayNote.trim() } : {}),
     }),
     onSuccess: async () => {
@@ -122,18 +125,18 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
   });
 
   if (assignment.isPending || problems.isPending) {
-    return <PageLoading title="Problems and delays" eyebrow="Assignment" width="max-w-3xl" />;
+    return <PageLoading title="Problems and delays" eyebrow="Assignment" width="max-w-5xl" />;
   }
   if (assignment.error || !assignment.data || problems.error || !problems.data) {
     const error = assignment.error ?? problems.error;
     return (
-      <main className="mx-auto max-w-3xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <Alert variant="danger" role="alert">
           <p>{isApiError(error) && error.code === 'RESOURCE_NOT_FOUND'
             ? 'This assignment could not be found, or you do not have permission to view it.'
             : 'We could not load the assignment problems.'}</p>
           {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
-          <Button type="button" variant="ghost" className="mt-2" onClick={() => { void assignment.refetch(); void problems.refetch(); }}>Try again</Button>
+          <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => { void assignment.refetch(); void problems.refetch(); }}>Try again</Button>
         </Alert>
       </main>
     );
@@ -144,79 +147,104 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
   const isShopping = categoryKey(current.errand.category) === 'SHOPPING_PURCHASE';
   const hasOpenProblem = problems.data.some((problem) => problem.status === 'OPEN');
 
-  return (
-    <main className="mx-auto grid max-w-3xl gap-4">
-      <Link href={`/assignments/${assignmentId}`} className="w-fit text-sm font-bold text-green-800 hover:underline">← Back to assignment</Link>
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Errand support</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
-        <p className="mt-2 text-sm text-muted">Report problems as they happen. The other party can see the report and its resolution.</p>
-      </header>
-      <JourneyHere />
-
-      <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        <h2 className="font-extrabold text-ink">Reported problems</h2>
-        {problems.data.length ? <ul className="grid gap-2">{problems.data.map((problem) => (
-          <ProblemRow key={problem.id} problem={problem} onResolve={(id) => resolveProblem.mutate(id)} resolving={resolveProblem.isPending} />
-        ))}</ul> : <p className="text-sm text-muted">No problems have been reported.</p>}
-        {hasOpenProblem && problems.data.filter((problem) => problem.status === 'OPEN').length >= 2 ? (
-          <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}/dispute`}>Open a dispute</Link></Button>
-        ) : null}
-      </section>
-
-      {isRunner ? (
-        <>
-          <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-            <h2 className="font-extrabold text-ink">Report a problem</h2>
-            <label className="grid gap-1 text-sm font-bold text-ink">Problem type
-              <select value={problemType} onChange={(event) => setProblemType(event.target.value as ProblemType)} className="rounded-lg border border-line bg-panel p-3 font-normal">
-                {problemTypes.map((type) => <option key={type} value={type}>{label(type)}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-1 text-sm font-bold text-ink">Details (optional)
-              <textarea maxLength={500} value={problemNote} onChange={(event) => setProblemNote(event.target.value)} className="min-h-20 rounded-lg border border-line bg-panel p-3 font-normal" />
-            </label>
-            <MediaUpload purpose="PICKUP_EVIDENCE" maxFiles={1} value={problemMediaId ? [problemMediaId] : []} onChange={(ids: string[]) => setProblemMediaId(ids[0])} />
-            {reportProblem.error ? <MutationError error={reportProblem.error} fallback="We could not report the problem." /> : null}
-            {reportProblem.isSuccess ? <Alert variant="ok" role="status">Problem reported.</Alert> : null}
-            <Button type="button" className="w-fit" disabled={reportProblem.isPending} onClick={() => reportProblem.mutate()}>{reportProblem.isPending ? 'Reporting…' : 'Report problem'}</Button>
-          </section>
-
-          <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-            <h2 className="font-extrabold text-ink">Send a delay notice</h2>
-            <p className="text-sm text-muted">You can send up to three notices for this errand. The new estimate starts from now.</p>
-            <label className="grid gap-1 text-sm font-bold text-ink">Reason
-              <select value={delayReason} onChange={(event) => setDelayReason(event.target.value as DelayReason)} className="rounded-lg border border-line bg-panel p-3 font-normal">
-                {delayReasons.map((reason) => <option key={reason} value={reason}>{label(reason)}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-1 text-sm font-bold text-ink">Estimated minutes until completion
-              <input type="number" min={1} max={1440} value={estimate} onChange={(event) => setEstimate(event.target.value)} className="rounded-lg border border-line bg-panel p-3 font-normal" />
-            </label>
-            <label className="grid gap-1 text-sm font-bold text-ink">Note (optional)
-              <textarea maxLength={500} value={delayNote} onChange={(event) => setDelayNote(event.target.value)} className="min-h-20 rounded-lg border border-line bg-panel p-3 font-normal" />
-            </label>
-            {delay.error ? <MutationError error={delay.error} fallback="We could not send the delay notice." /> : null}
-            {delay.isSuccess ? <Alert variant="ok" role="status">Delay notice sent.</Alert> : null}
-            <Button type="button" className="w-fit" disabled={delay.isPending || Number(estimate) < 1 || Number(estimate) > 1440} onClick={() => delay.mutate()}>{delay.isPending ? 'Sending…' : 'Send delay notice'}</Button>
-          </section>
-
-          {isShopping ? (
-            <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-              <h2 className="font-extrabold text-ink">Add a purchase receipt</h2>
-              <MediaUpload purpose="PURCHASE_RECEIPT" maxFiles={1} value={receiptMediaId ? [receiptMediaId] : []} onChange={(ids: string[]) => setReceiptMediaId(ids[0])} />
-              <label className="grid gap-1 text-sm font-bold text-ink">Note (optional)
-                <textarea maxLength={500} value={receiptNote} onChange={(event) => setReceiptNote(event.target.value)} className="min-h-20 rounded-lg border border-line bg-panel p-3 font-normal" />
-              </label>
-              {receipt.error ? <MutationError error={receipt.error} fallback="We could not add the receipt." /> : null}
-              {receipt.isSuccess ? <Alert variant="ok" role="status">Receipt added.</Alert> : null}
-              <Button type="button" className="w-fit" disabled={!receiptMediaId || receipt.isPending} onClick={() => receipt.mutate()}>{receipt.isPending ? 'Adding…' : 'Add receipt'}</Button>
-            </section>
-          ) : null}
-        </>
+  const openCount = problems.data.filter((problem) => problem.status === 'OPEN').length;
+  const reported = (
+    <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] content-start gap-3 lg:sticky lg:top-6" aria-labelledby="reported-problems">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="reported-problems" className="text-base font-extrabold text-ink">Reported problems</h2>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${openCount ? 'bg-amber-bg text-amber' : 'bg-panel text-muted'}`}>{openCount ? `${openCount} open` : 'None open'}</span>
+      </div>
+      {problems.data.length ? <ul className="grid gap-2">{problems.data.map((problem) => (
+        <ProblemRow key={problem.id} problem={problem} onResolve={(id) => resolveProblem.mutate(id)} resolving={resolveProblem.isPending} />
+      ))}</ul> : <p className="py-4 text-center text-sm text-muted">No problems have been reported.</p>}
+      {openCount >= 2 ? (
+        <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}/dispute`}>Open a dispute</Link></Button>
       ) : null}
       {resolveProblem.error ? <MutationError error={resolveProblem.error} fallback="We could not resolve the problem." /> : null}
       {resolveProblem.isSuccess ? <Alert variant="ok" role="status">Problem resolved.</Alert> : null}
+    </section>
+  );
+
+  return (
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+      <PageHead
+        eyebrow="Errand support"
+        title={<span className="block max-w-[760px] break-words">{current.errand.title}</span>}
+        description="Report problems as they happen. The other party can see the report and its resolution."
+      />
+      <JourneyHere />
+
+      {isRunner ? (
+        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid min-w-0 content-start gap-4">
+            <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] gap-4" aria-labelledby="report-problem">
+              <h2 id="report-problem" className="text-base font-extrabold text-ink">Report a problem</h2>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-bold text-ink-2" htmlFor="problem-type">Problem type</label>
+                <Select value={problemType} onValueChange={(value) => setProblemType(value as ProblemType)}>
+                  <SelectTrigger id="problem-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>{problemTypes.map((type) => <SelectItem key={type} value={type}>{label(type)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-bold text-ink-2" htmlFor="problem-note">Details <span className="font-normal text-muted">(optional)</span></label>
+                <Textarea id="problem-note" maxLength={500} value={problemNote} onChange={(event) => setProblemNote(event.target.value)} />
+              </div>
+              <MediaUpload purpose="PICKUP_EVIDENCE" maxFiles={1} value={problemMediaId ? [problemMediaId] : []} onChange={(ids: string[]) => setProblemMediaId(ids[0])} />
+              {reportProblem.error ? <MutationError error={reportProblem.error} fallback="We could not report the problem." /> : null}
+              {reportProblem.isSuccess ? <Alert variant="ok" role="status">Problem reported.</Alert> : null}
+              <div className="flex justify-end border-t border-line-2 pt-4">
+                <Button type="button" disabled={reportProblem.isPending} onClick={() => reportProblem.mutate()}>{reportProblem.isPending ? 'Reporting…' : 'Report problem'}</Button>
+              </div>
+            </section>
+
+            <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] gap-4" aria-labelledby="delay-notice">
+              <div>
+                <h2 id="delay-notice" className="text-base font-extrabold text-ink">Send a delay notice</h2>
+                <p className="mt-1 text-xs text-muted">You can send up to three notices for this errand. The new estimate starts from now.</p>
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-bold text-ink-2" htmlFor="delay-reason">Reason</label>
+                <Select value={delayReason} onValueChange={(value) => setDelayReason(value as DelayReason)}>
+                  <SelectTrigger id="delay-reason"><SelectValue /></SelectTrigger>
+                  <SelectContent>{delayReasons.map((reason) => <SelectItem key={reason} value={reason}>{label(reason)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <span className="text-xs font-bold text-ink-2">Time until completion</span>
+                <DurationInput id="delay-estimate" value={estimate} onChange={setEstimate} />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-bold text-ink-2" htmlFor="delay-note">Note <span className="font-normal text-muted">(optional)</span></label>
+                <Textarea id="delay-note" maxLength={500} value={delayNote} onChange={(event) => setDelayNote(event.target.value)} />
+              </div>
+              {delay.error ? <MutationError error={delay.error} fallback="We could not send the delay notice." /> : null}
+              {delay.isSuccess ? <Alert variant="ok" role="status">Delay notice sent.</Alert> : null}
+              <div className="flex justify-end border-t border-line-2 pt-4">
+                <Button type="button" disabled={delay.isPending || estimate === null || estimate < 1 || estimate > 1440} onClick={() => delay.mutate()}>{delay.isPending ? 'Sending…' : 'Send delay notice'}</Button>
+              </div>
+            </section>
+
+            {isShopping ? (
+              <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] gap-4" aria-labelledby="purchase-receipt">
+                <h2 id="purchase-receipt" className="text-base font-extrabold text-ink">Add a purchase receipt</h2>
+                <MediaUpload purpose="PURCHASE_RECEIPT" maxFiles={1} value={receiptMediaId ? [receiptMediaId] : []} onChange={(ids: string[]) => setReceiptMediaId(ids[0])} />
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-bold text-ink-2" htmlFor="receipt-note">Note <span className="font-normal text-muted">(optional)</span></label>
+                  <Textarea id="receipt-note" maxLength={500} value={receiptNote} onChange={(event) => setReceiptNote(event.target.value)} />
+                </div>
+                {receipt.error ? <MutationError error={receipt.error} fallback="We could not add the receipt." /> : null}
+                {receipt.isSuccess ? <Alert variant="ok" role="status">Receipt added.</Alert> : null}
+                <div className="flex justify-end border-t border-line-2 pt-4">
+                  <Button type="button" disabled={!receiptMediaId || receipt.isPending} onClick={() => receipt.mutate()}>{receipt.isPending ? 'Adding…' : 'Add receipt'}</Button>
+                </div>
+              </section>
+            ) : null}
+          </div>
+          {reported}
+        </div>
+      ) : reported}
     </main>
   );
 }

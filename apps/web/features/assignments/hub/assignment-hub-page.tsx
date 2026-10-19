@@ -5,7 +5,7 @@ import { PageHead } from '@/components/shell/page-head';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Flag, HandCoins, MapPin, MessageSquare, Scale, Share2, ShieldCheck, UserX, Wallet, X } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
@@ -17,6 +17,8 @@ import { AssignmentPendingPage } from '@/features/offers/assignment/assignment-p
 import { RouteBlock, stageBadge } from '../execution-progress';
 import { AssignmentPhoto, AssignmentTimeline } from '../assignment-timeline';
 import { availableActions } from '../available-actions';
+import { paymentPrompt } from '../payment/payment-prompt';
+import { ActionRow } from '../action-row';
 import { JourneyHere } from '@/features/journey/journey-context';
 import { useRatingAction } from '@/features/ratings/use-rating-action';
 
@@ -74,6 +76,13 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
     enabled: Boolean(assignment.data),
     refetchInterval: polling,
   });
+  const wantsPayment = assignment.data ? availableActions(assignment.data.data.role, assignment.data.data.status, assignment.data.data.errand.status).paymentTerms : false;
+  const payment = useQuery({
+    queryKey: queryKeys.assignments.paymentAgreement(assignmentId),
+    queryFn: () => offersApi.paymentAgreement(assignmentId),
+    retry: false,
+    enabled: wantsPayment,
+  });
   const arrived = useApiMutation({ affects: ['assignments'],
     mutationFn: () => offersApi.arrived(assignmentId, {}, arrivalKey),
     onSuccess: async () => {
@@ -106,11 +115,13 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
   const badge = stageBadge(errand.status, current.status === 'PENDING_ACCEPTANCE');
   const can = availableActions(current.role, current.status, errand.status);
   const canArrive = isRunner && current.status === 'ACCEPTED' && errand.status === 'IN_PROGRESS' && timeline.isSuccess && !hasArrived;
+  const notStarted = errand.status === 'ACCEPTED';
+  const prompt = paymentPrompt(current.role, payment.data);
 
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href={isRunner ? '/assignments' : `/errands/${current.errandId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline">
-        <ArrowLeft aria-hidden="true" className="size-4" />{isRunner ? 'Active tasks' : 'Back to errand'}
+      <Link href={isRunner ? '/assignments' : '/track'} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline">
+        <ArrowLeft aria-hidden="true" className="size-4" />{isRunner ? 'Active tasks' : 'Track errands'}
       </Link>
       <PageHead
         eyebrow={`Assignment · ${isRunner ? 'Runner' : 'Requester'} view`}
@@ -118,6 +129,19 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
         description={`Payment is arranged directly with the ${isRunner ? 'requester' : 'runner'}. Urgent.ng never holds the money.`}
       />
       <JourneyHere />
+
+      {can.paymentTerms && prompt.needsAction && prompt.message ? (
+        <section aria-label="Payment agreement" className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--r-lg)] bg-tint p-4 sm:px-[22px]">
+          <div className="flex min-w-0 items-start gap-3">
+            <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-green-900"><HandCoins className="size-[18px]" /></span>
+            <div className="min-w-0">
+              <p className="text-sm font-extrabold text-ink">{prompt.title}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-green-900">{prompt.message}</p>
+            </div>
+          </div>
+          <Button asChild size="sm"><Link href={`/assignments/${assignmentId}/payment`}>{prompt.step === 'SET_TERMS' ? 'Set payment terms' : 'Review and confirm'}</Link></Button>
+        </section>
+      ) : null}
 
       {current.status === 'PENDING_ACCEPTANCE' ? <AssignmentPendingPage assignmentId={assignmentId} embedded /> : null}
 
@@ -164,8 +188,8 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
           <div className="flex flex-wrap gap-2 border-t border-line-2 pt-4" aria-label="Your actions">
           {can.continueErrand ? (
             <>
-              <p className="w-full text-sm text-muted">Continue the errand and record each step as it happens.</p>
-              <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/run`}>Continue errand</Link></Button>
+              <p className="w-full text-sm text-muted">{notStarted ? 'Open the errand to start it and record each step as it happens.' : 'Continue the errand and record each step as it happens.'}</p>
+              <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/run`}>{notStarted ? 'Run errand' : 'Continue errand'}</Link></Button>
             </>
           ) : can.confirmDelivery ? (
             <>
@@ -188,16 +212,18 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
           ) : (
             <p className="w-full text-sm text-muted">This assignment is {label(current.status).toLowerCase()}.</p>
           )}
-          {can.trackRunner ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/track`}>Track runner</Link></Button> : null}
-          {can.reportProblems ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/problems`}>Problems, delays or receipt</Link></Button> : null}
-          {can.changeRequest ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/changes`}>Request a change</Link></Button> : null}
-          {can.paymentTerms ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/payment`}>Payment agreement</Link></Button> : null}
-          {can.cancel ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/cancel`}>Cancel assignment</Link></Button> : null}
-          {can.noShow ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/no-show`}>No-show report</Link></Button> : null}
-          {current.disputeId ? <Button asChild variant="ghost" size="sm"><Link href={`/disputes/${current.disputeId}`}>View dispute</Link></Button> : null}
-          {can.dispute && !current.disputeId ? <Button asChild variant="ghost" size="sm"><Link href={`/assignments/${assignmentId}/dispute`}>Open a dispute</Link></Button> : null}
-          {can.shareProgress ? <Button asChild variant="ghost" size="sm"><Link href={`/errands/${current.errandId}/share`}>Share progress</Link></Button> : null}
-          <Button asChild variant="ghost" size="sm"><Link href={`/safety?assignmentId=${assignmentId}`}>Safety & support</Link></Button>
+          <nav aria-label="More actions" className="grid w-full gap-2">
+            {can.trackRunner ? <ActionRow href={`/assignments/${assignmentId}/track`} icon={MapPin}>Track runner</ActionRow> : null}
+            {can.reportProblems ? <ActionRow href={`/assignments/${assignmentId}/problems`} icon={Flag}>Delay, problem or receipt</ActionRow> : null}
+            {can.changeRequest ? <ActionRow href={`/assignments/${assignmentId}/changes`} icon={MessageSquare}>Request a change</ActionRow> : null}
+            {can.paymentTerms ? <ActionRow href={`/assignments/${assignmentId}/payment`} icon={Wallet} badge={prompt.badge} badgeTone={prompt.needsAction ? 'amber' : 'muted'}>Payment terms</ActionRow> : null}
+            {can.shareProgress ? <ActionRow href={`/errands/${current.errandId}/share`} icon={Share2}>Trusted-contact link</ActionRow> : null}
+            {can.noShow ? <ActionRow href={`/assignments/${assignmentId}/no-show`} icon={UserX}>No-show report</ActionRow> : null}
+            {current.disputeId ? <ActionRow href={`/disputes/${current.disputeId}`} icon={Scale}>View dispute</ActionRow> : null}
+            {can.dispute && !current.disputeId ? <ActionRow href={`/assignments/${assignmentId}/dispute`} icon={Scale}>Open a dispute</ActionRow> : null}
+            <ActionRow href={`/safety?assignmentId=${assignmentId}`} icon={ShieldCheck}>Safety &amp; support</ActionRow>
+            {can.cancel ? <ActionRow href={`/assignments/${assignmentId}/cancel`} icon={X} danger>{isRunner ? 'Cancel as runner' : 'Cancel assignment'}</ActionRow> : null}
+          </nav>
           <p className="w-full border-t border-line pt-3 text-xs text-muted">Selected: {new Date(current.selectedAt).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })} (Lagos time)</p>
         </div>
         </aside>

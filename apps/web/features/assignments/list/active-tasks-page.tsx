@@ -54,7 +54,7 @@ export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respo
             <Link href={`/assignments/${id}`} className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-extrabold ${can.continueErrand ? 'border border-line text-ink hover:bg-panel' : 'bg-ink text-white'}`}>Open task</Link>
           </>
         )}
-        {assignment.conversationId ? (
+        {assignment.conversationId && !respond ? (
           <Link href={`/messages/${encodeURIComponent(assignment.conversationId)}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-5 text-sm font-extrabold text-ink hover:bg-panel">
             <MessageCircle aria-hidden="true" className="size-4" />Message
           </Link>

@@ -33,7 +33,7 @@ function renderWorkspace(activeId?: string) {
   server.use(
     http.get('*/conversations', ({ request }) => {
       const filter = new URL(request.url).searchParams.get('filter');
-      return envelope(filter === 'OFFERS' ? [emeka] : [tunde, emeka]);
+      return envelope(filter === 'CLOSED' ? [emeka] : [tunde, emeka]);
     }),
     http.get('*/conversations/c1', () => envelope(tunde)),
     http.get('*/conversations/c2', () => envelope(emeka)),
@@ -70,7 +70,8 @@ describe('Messages workspace', () => {
   it('filters with the demo tabs', async () => {
     renderWorkspace();
     expect(await screen.findByText('Tunde O.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Offers' }));
+    expect(screen.queryByRole('button', { name: 'Offers' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Closed' }));
     expect(await screen.findByText('Emeka N.')).toBeInTheDocument();
     expect(screen.queryByText('Tunde O.')).toBeNull();
     expect(screen.getByText('All read')).toBeInTheDocument();

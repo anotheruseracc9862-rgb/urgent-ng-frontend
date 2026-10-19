@@ -63,19 +63,6 @@ const STATUS_STYLE: Record<Status, string> = {
   DISPUTED: 'bg-amber-bg text-amber',
 };
 
-const PROGRESS_STEPS = ['Draft', 'Open', 'Runner selected', 'Accepted', 'In progress', 'Picked up', 'Delivered', 'Completed'];
-const STATUS_PROGRESS: Partial<Record<Status, number>> = {
-  DRAFT: 0,
-  OPEN: 1,
-  RUNNER_SELECTED: 2,
-  ACCEPTED: 3,
-  IN_PROGRESS: 4,
-  PICKED_UP: 5,
-  DELIVERED: 6,
-  COMPLETED: 7,
-  EXPIRED: 1,
-};
-
 const SORTS: Array<{ value: OfferSort; label: string }> = [
   { value: 'price_asc', label: 'Lowest price' },
   { value: 'recommended', label: 'Recommended' },
@@ -184,41 +171,18 @@ function Contact({ label, contact }: { label: string; contact: Errand['pickupCon
   );
 }
 
-function Progress({ errand }: { errand: Errand }) {
-  const currentStep = STATUS_PROGRESS[errand.status];
-  const isStopped = errand.status === 'CANCELLED' || errand.status === 'DISPUTED';
-  return (
-    <section className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="errand-progress">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 id="errand-progress" className="text-base font-extrabold text-ink">Progress</h2>
-          <p className="mt-1 text-sm text-muted">Current status: {STATUS_LABEL[errand.status]}</p>
-        </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${STATUS_STYLE[errand.status]}`}>{STATUS_LABEL[errand.status]}</span>
-      </div>
-      <ol className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8" aria-label="Errand status progression">
-        {PROGRESS_STEPS.map((step, index) => {
-          const complete = currentStep !== undefined && index < currentStep;
-          const current = currentStep === index && !isStopped;
-          return (
-            <li key={step} className={`flex items-center gap-2 text-xs ${complete || current ? 'font-bold text-green-900' : 'text-muted'}`}>
-              <span className={`grid size-6 shrink-0 place-items-center rounded-full ${complete ? 'bg-green-800 text-white' : current ? 'bg-lime text-ink' : 'bg-panel text-muted'}`}>
-                {complete ? <CheckCircle2 aria-hidden="true" className="size-4" /> : index + 1}
-              </span>
-              <span>{step}</span>
-            </li>
-          );
-        })}
-      </ol>
-      {errand.status === 'CANCELLED' ? (
-        <Alert variant="danger" className="mt-4"><span>This errand was cancelled{errand.cancellationReason ? ` (${errand.cancellationReason.toLowerCase().replaceAll('_', ' ')})` : ''}.</span></Alert>
-      ) : errand.status === 'EXPIRED' ? (
-        <Alert variant="info" className="mt-4"><span>This errand expired before a runner was selected. You can repost it as a new draft.</span></Alert>
-      ) : errand.status === 'DISPUTED' ? (
-        <Alert variant="warn" className="mt-4"><span>This errand is under review. Manage the issue from the assignment hub.</span></Alert>
-      ) : null}
-    </section>
-  );
+/** Terminal states the journey bar does not explain. The journey bar already shows the steps. */
+function StatusNotice({ errand }: { errand: Errand }) {
+  if (errand.status === 'CANCELLED') {
+    return <Alert variant="danger"><span>This errand was cancelled{errand.cancellationReason ? ` (${errand.cancellationReason.toLowerCase().replaceAll('_', ' ')})` : ''}.</span></Alert>;
+  }
+  if (errand.status === 'EXPIRED') {
+    return <Alert variant="info"><span>This errand expired before a runner was selected. You can repost it as a new draft.</span></Alert>;
+  }
+  if (errand.status === 'DISPUTED') {
+    return <Alert variant="warn"><span>This errand is under review. Manage the issue from the assignment hub.</span></Alert>;
+  }
+  return null;
 }
 
 function RunnerCard({ runnerId, amountMinor }: { runnerId: string; amountMinor: number }) {
@@ -353,7 +317,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
   });
 
   if (errandQuery.isPending) {
-    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[1fr_20rem]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
+    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
   }
   if (errandQuery.error || !errand) {
     return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;
@@ -382,7 +346,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
     <div className="grid min-w-0 content-start gap-4 pb-10">
       <Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link>
       <PageHead
-        eyebrow={`${errand.id} · ${errand.category.name}`}
+        eyebrow={`Errand · ${errand.category.name}`}
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
         description={<span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_STYLE[errand.status]}`}>{STATUS_LABEL[errand.status]}</span><span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span></span>}
         actions={<>
@@ -409,9 +373,9 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
 
       {actionErrorMessage ? <Alert variant={selectionConflict ? 'info' : 'danger'} role={selectionConflict ? 'status' : 'alert'}><div className="flex flex-wrap items-center justify-between gap-3"><div><p>{actionErrorMessage}</p>{isApiError(actionError) && actionError.requestId ? <p className="mt-1 text-xs">Request ID: {actionError.requestId}</p> : null}</div><Button type="button" size="sm" variant="ghost" onClick={() => { extend.reset(); duplicate.reset(); selectRunner.reset(); void errandQuery.refetch(); void offersQuery.refetch(); }}>Refresh errand</Button></div></Alert> : null}
 
-      <Progress errand={errand} />
+      <StatusNotice errand={errand} />
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid min-w-0 gap-4">
           {showOffers ? (
             <section id="offers" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="errand-offers">
@@ -464,7 +428,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           ) : null}
         </div>
 
-        <aside className="grid gap-4">
+        <aside className="grid min-w-0 content-start gap-4 lg:sticky lg:top-6">
           {assignment ? <RunnerCard runnerId={assignment.runnerId} amountMinor={assignment.agreedAmountMinor} /> : null}
           {errand.status === 'OPEN' ? (
             <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
@@ -476,11 +440,11 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
               {errand.expiresAt ? <p className="mt-3 text-xs text-muted">Current deadline: {dateLabel(errand.expiresAt)}</p> : null}
             </section>
           ) : null}
-          {assignment ? <Link href={`/assignments/${assignment.id}`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline"><Truck aria-hidden="true" className="mr-2 inline size-4" />Assignment hub</Link> : null}
-          {assignment && availableActions('REQUESTER', assignment.status, errand.status).shareProgress ? <Link href={`/errands/${errand.id}/share`} className="rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm font-bold text-green-900 hover:underline">Share progress with a trusted contact</Link> : null}
-          {errand.status === 'DISPUTED' ? <Link href={assignment ? `/assignments/${assignment.id}` : '/safety'} className="rounded-[var(--r-lg)] border border-amber/30 bg-amber-bg p-4 text-sm font-bold text-amber"><AlertCircle aria-hidden="true" className="mr-2 inline size-4" />View dispute and next steps</Link> : null}
-          {errand.status === 'COMPLETED' ? <div className="rounded-[var(--r-lg)] border border-green-200 bg-green-bg p-4 text-sm text-green-900"><CheckCircle2 aria-hidden="true" className="mr-2 inline size-4" />This errand is complete.{assignment && ratingAction.label ? <> <Link href={`/assignments/${assignment.id}/rating`} className="font-extrabold underline">{ratingAction.label === 'Rate this errand' ? 'Rate your runner' : ratingAction.label}</Link></> : null}</div> : null}
-          {errand.status === 'CANCELLED' ? <div className="rounded-[var(--r-lg)] border border-red-200 bg-red-bg p-4 text-sm text-red">This errand is closed. Repost it to create a fresh draft.</div> : null}
+          {assignment ? <Link href={`/assignments/${assignment.id}`} className="rounded-[var(--r-lg)] bg-tint p-4 text-sm font-bold text-green-900 hover:underline"><Truck aria-hidden="true" className="mr-2 inline size-4" />Assignment hub</Link> : null}
+          {assignment && availableActions('REQUESTER', assignment.status, errand.status).shareProgress ? <Link href={`/errands/${errand.id}/share`} className="rounded-[var(--r-lg)] bg-tint p-4 text-sm font-bold text-green-900 hover:underline">Share progress with a trusted contact</Link> : null}
+          {errand.status === 'DISPUTED' ? <Link href={assignment ? `/assignments/${assignment.id}` : '/safety'} className="rounded-[var(--r-lg)] bg-amber-bg p-4 text-sm font-bold text-amber"><AlertCircle aria-hidden="true" className="mr-2 inline size-4" />View dispute and next steps</Link> : null}
+          {errand.status === 'COMPLETED' ? <div className="rounded-[var(--r-lg)] bg-green-bg p-4 text-sm text-green-900"><CheckCircle2 aria-hidden="true" className="mr-2 inline size-4" />This errand is complete.{assignment && ratingAction.label ? <> <Link href={`/assignments/${assignment.id}/rating`} className="font-extrabold underline">{ratingAction.label === 'Rate this errand' ? 'Rate your runner' : ratingAction.label}</Link></> : null}</div> : null}
+          {errand.status === 'CANCELLED' ? <div className="rounded-[var(--r-lg)] bg-red-bg p-4 text-sm text-red">This errand is closed. Repost it to create a fresh draft.</div> : null}
         </aside>
       </div>
 

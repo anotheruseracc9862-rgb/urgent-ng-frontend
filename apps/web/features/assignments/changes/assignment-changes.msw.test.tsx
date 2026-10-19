@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -84,9 +84,9 @@ describe('assignment change requests', () => {
     render(<QueryClientProvider client={client}><AssignmentChangesPage assignmentId="change-assignment" /></QueryClientProvider>);
     const user = userEvent.setup();
 
-    expect(await screen.findByText(/Agreed runner fee:/)).toHaveTextContent('₦1,000.00');
+    expect((await screen.findByText('Agreed runner fee')).nextSibling).toHaveTextContent('₦1,000.00');
     await user.click(await screen.findByRole('button', { name: 'Accept change' }));
-    expect(await screen.findByText(/Agreed runner fee:/)).toHaveTextContent('₦2,500.00');
+    await waitFor(() => expect(screen.getByText('Agreed runner fee').nextSibling).toHaveTextContent('₦2,500.00'));
   });
   it.each(['ACCEPTED', 'IN_PROGRESS'])('offers the propose form while the errand is %s', async (errandStatus) => {
     renderChanges(errandStatus);

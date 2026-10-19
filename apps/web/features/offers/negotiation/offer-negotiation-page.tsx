@@ -6,8 +6,10 @@ import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowUpRight, Clock3, History, Info, MessageCircle, RefreshCw } from 'lucide-react';
-import { Alert, Button, Input } from '@urgent/ui';
+import { ArrowLeft, ArrowUpRight, Clock3, History, Info, RefreshCw } from 'lucide-react';
+import { Alert, Button, MoneyInput } from '@urgent/ui';
+import { ContactSharingNotice } from '@/components/forms/contact-sharing-notice';
+import { DurationInput, formatDuration } from '@/components/forms/duration-input';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -40,7 +42,7 @@ function eventDescription(event: OfferNegotiation['history'][number], currentUse
   const party = event.actorUserId === currentUserId ? 'You' : event.actorUserId === offer.runnerId ? 'Runner' : 'Requester';
   const terms = [
     event.amountMinor === null ? null : money(event.amountMinor),
-    event.durationMinutes === null ? null : `${event.durationMinutes} min`,
+    event.durationMinutes === null ? null : formatDuration(event.durationMinutes),
   ].filter(Boolean).join(' · ');
   return `${party} ${event.type === 'INITIAL_OFFER' ? 'offered' : 'countered'}${terms ? ` ${terms}` : ''}${event.message ? ` — “${event.message}”` : ''}`;
 }
@@ -49,8 +51,8 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
   const session = useSession();
   const client = useQueryClient();
   const [formAction, setFormAction] = useState<'edit' | 'counter' | null>(null);
-  const [amount, setAmount] = useState('');
-  const [duration, setDuration] = useState('30');
+  const [amountMinor, setAmountMinor] = useState<number | null>(null);
+  const [duration, setDuration] = useState<number | null>(30);
   const [message, setMessage] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const queryKey = queryKeys.offers.detail(offerId);
@@ -119,22 +121,21 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
       : mutation.error.message
     : mutation.error instanceof Error ? mutation.error.message : null;
   const openTermsForm = (action: 'edit' | 'counter') => {
-    setAmount(String(Math.round(offer.amountMinor / 100)));
-    setDuration(String(offer.durationMinutes));
+    setAmountMinor(Math.round(offer.amountMinor / 100) * 100);
+    setDuration(offer.durationMinutes);
     setMessage('');
     setNotice(null);
     setFormAction(action);
   };
   const submitTerms = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const naira = Number(amount);
-    const durationMinutes = Number(duration);
-    if (!Number.isSafeInteger(naira) || naira < 1 || !Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440) {
+    const durationMinutes = duration ?? 0;
+    if (amountMinor === null || amountMinor < 100 || durationMinutes < 1 || durationMinutes > 1440) {
       setNotice('Enter a positive whole-naira amount and an estimated time between 1 minute and 24 hours. The current system limits are checked when you submit.');
       return;
     }
     const terms: OfferTerms = {
-      amountMinor: naira * 100,
+      amountMinor,
       durationMinutes,
       ...(message.trim() ? { message: message.trim() } : {}),
     };
@@ -153,8 +154,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
       <PageHead
         eyebrow={active ? `Offer negotiation · ${offer.roundsUsed === 0 ? 'No counters yet' : `Round ${offer.roundsUsed} of ${offer.roundsLimit}`}` : 'Offer negotiation'}
         title={<span className="block max-w-[760px] break-words">{offer.errandTitle}</span>}
-        description="Agree on a price and time. Both sides see the same history."
-        actions={offer.conversationId ? <Button asChild variant="ghost" size="sm"><Link href={`/messages/${offer.conversationId}`}><MessageCircle aria-hidden="true" />Open chat</Link></Button> : undefined}
+        description="Agree on a price and time using offers, counters and notes. Chat opens once the runner accepts the errand."
       />
       <JourneyHere />
 
@@ -182,7 +182,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
           <div className="rounded-[var(--r)] bg-tint p-4">
             <p className="text-xs font-semibold text-green-900">{active && offer.awaitingParty === 'NONE' && !offer.needsReconfirmation ? 'Agreed amount' : 'Latest offer amount'}</p>
             <p className="mt-2 break-words text-[36px] font-extrabold leading-none tracking-tight tabular-nums text-ink">{money(offer.amountMinor)}</p>
-            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-green-900"><Clock3 aria-hidden="true" className="size-3.5" />{offer.durationMinutes} min estimated time</p>
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-green-900"><Clock3 aria-hidden="true" className="size-3.5" />{formatDuration(offer.durationMinutes)} estimated time</p>
           </div>
           <div className="text-xs leading-relaxed text-muted" role="status">
             {active ? offer.needsReconfirmation
@@ -206,9 +206,9 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
           {formAction ? (
             <form className="grid min-w-0 gap-3 border-t border-line-2 pt-4" onSubmit={submitTerms}>
               <h3 className="text-sm font-extrabold text-ink">{formAction === 'edit' ? 'Edit your offer' : 'Make a counter-offer'}</h3>
-              <div className="grid gap-1.5"><label className="text-xs font-bold text-ink-2" htmlFor="offer-amount">Amount (NGN)</label><Input id="offer-amount" inputMode="numeric" type="number" min={1} step={1} required value={amount} onChange={(event) => setAmount(event.target.value)} /></div>
-              <div className="grid gap-1.5"><label className="text-xs font-bold text-ink-2" htmlFor="offer-duration">Estimated duration (minutes)</label><Input id="offer-duration" type="number" min={1} max={1440} step={1} required value={duration} onChange={(event) => setDuration(event.target.value)} /></div>
-              <p className="text-xs leading-relaxed text-muted">The current system offer amount and duration limits are validated when you submit.</p>
+              <div className="grid gap-1.5"><label className="text-xs font-bold text-ink-2" htmlFor="offer-amount">Amount</label><MoneyInput id="offer-amount" allowKobo={false} required value={amountMinor} onChange={setAmountMinor} autoComplete="off" /></div>
+              <div className="grid gap-1.5"><span id="offer-duration-label" className="text-xs font-bold text-ink-2">Estimated duration</span><DurationInput id="offer-duration" value={duration} onChange={setDuration} /></div>
+              <ContactSharingNotice />
               <label className="grid gap-1.5"><span className="text-xs font-bold text-ink-2">Message (optional)</span><textarea maxLength={500} value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-20 w-full rounded-[var(--r)] border border-line bg-surface p-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-lime-600" /></label>
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Sending…' : formAction === 'edit' ? 'Save offer' : 'Send counter'}</Button>

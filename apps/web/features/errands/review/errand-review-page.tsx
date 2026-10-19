@@ -1,6 +1,8 @@
 'use client';
 
 import { PageLoading } from '@/components/shell/page-loading';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -93,16 +95,18 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
   }
   if (errand.error || !errand.data) {
     return (
-      <Alert variant="danger" role="alert">
-        <div className="grid gap-2">
-          <p>{errand.error ? 'We could not load this errand for review.' : 'This errand could not be found.'}</p>
-          {isApiError(errand.error) && errand.error.requestId ? <p className="text-xs">Request ID: {errand.error.requestId}</p> : null}
-          <div className="flex flex-wrap gap-3">
-            <Button type="button" variant="ghost" onClick={() => void errand.refetch()}>Try again</Button>
-            <Link href={`/errands/${errandId}/edit`} className="inline-flex items-center font-bold underline">Back to edit</Link>
+      <div className="grid min-w-0 content-start gap-4 pb-10">
+        <Alert variant="danger" role="alert">
+          <div className="grid gap-2">
+            <p>{errand.error ? 'We could not load this errand for review.' : 'This errand could not be found.'}</p>
+            {isApiError(errand.error) && errand.error.requestId ? <p className="text-xs">Request ID: {errand.error.requestId}</p> : null}
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="ghost" onClick={() => void errand.refetch()}>Try again</Button>
+              <Link href={`/errands/${errandId}/edit`} className="inline-flex items-center font-bold underline">Back to edit</Link>
+            </div>
           </div>
-        </div>
-      </Alert>
+        </Alert>
+      </div>
     );
   }
 
@@ -121,12 +125,13 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
   };
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Post an errand · Step 2 of 2</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Review your errand</h1>
-        <p className="mt-1 text-sm text-muted">Check what runners will see. Exact addresses stay hidden until a runner accepts.</p>
-      </header>
+    <div className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={`/errands/${errandId}/edit`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to edit</Link>
+      <PageHead
+        eyebrow="Post an errand · Step 2 of 2"
+        title="Review your errand"
+        description="Check what runners will see. Exact addresses stay hidden until a runner accepts."
+      />
       {currentErrand.status !== 'DRAFT' ? (
         <Alert variant="info" role="status">
           <div className="grid gap-2">
@@ -163,9 +168,9 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
           </div>
         </Alert>
       ) : null}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="grid content-start gap-4">
-          <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)]">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid min-w-0 content-start gap-4">
+          <section className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-xl font-extrabold text-ink">{currentErrand.title}</h2>
@@ -185,16 +190,16 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
           </section>
           <Alert variant="info"><strong>Payment is made directly to the runner.</strong> Urgent.ng does not handle the errand payment. Agree the amount before work starts.</Alert>
         </div>
-        <aside className="grid content-start gap-4">
-          <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+        <aside className="grid min-w-0 content-start gap-4 lg:sticky lg:top-6">
+          <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Runners see now</h2>
             <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>Title, category and approximate areas</li><li>Timing, item size and suggested budget</li><li>Photos you attached</li></ul>
           </section>
-          <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+          <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Shared after acceptance</h2>
             <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>Exact addresses and landmarks</li><li>Pickup and drop-off contacts</li><li>Your phone number</li></ul>
           </section>
-          <label className="flex items-start gap-3 rounded-[var(--r-lg)] border border-line bg-tint p-4 text-sm text-ink">
+          <label className="flex items-start gap-3 rounded-[var(--r-lg)] bg-tint p-4 text-sm text-ink sm:p-[22px]">
             <input
               type="checkbox"
               className="mt-0.5 size-4 accent-green-800"

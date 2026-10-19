@@ -608,7 +608,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
                       <TaskProgress status={assignment.errandStatus} />
                       <div className="flex flex-wrap gap-2.5">
                         <Link href={`/assignments/${assignment.id}`} className="inline-flex min-h-9 items-center rounded-full bg-ink px-3.5 text-[12.5px] font-bold text-white hover:bg-[#0f1822]">{step.action}</Link>
-                        {assignment.conversationId ? (
+                        {assignment.conversationId && assignment.errandStatus !== 'RUNNER_SELECTED' ? (
                           <Link
                             href={`/messages/${encodeURIComponent(assignment.conversationId)}`}
                             className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel"

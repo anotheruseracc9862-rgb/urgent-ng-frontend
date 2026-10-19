@@ -65,7 +65,7 @@ export function PushOptInPrompt() {
   if (dismissed) return null;
 
   return (
-    <section aria-label="Push notification option" className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-tint p-4">
+    <section aria-label="Push notification option" className="grid gap-3 rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">
       <div>
         <h2 className="text-sm font-extrabold text-ink">Get updates when you are away</h2>
         <p className="mt-1 text-xs leading-relaxed text-muted">Allow browser notifications for important offers, messages and errand updates. You can change this later in browser settings.</p>

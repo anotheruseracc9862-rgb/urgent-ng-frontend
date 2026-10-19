@@ -6664,7 +6664,7 @@ export interface components {
             /** @description Whether this user can send a message now. */
             canSend: boolean;
             /** @enum {string|null} */
-            readOnlyReason: "BLOCKED" | "ERRAND_ENDED" | "NO_ACTIVE_OFFER" | "COMPLETION_WINDOW_ENDED" | null;
+            readOnlyReason: "BLOCKED" | "ERRAND_ENDED" | "NO_ACTIVE_OFFER" | "NOT_ASSIGNED" | "COMPLETION_WINDOW_ENDED" | null;
             /** Format: date-time */
             createdAt: string;
         };

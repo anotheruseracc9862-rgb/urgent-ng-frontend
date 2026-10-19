@@ -4,7 +4,7 @@ import { Alert, Button } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 
-export const casePanel = 'grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-6';
+export const casePanel = 'grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]';
 export const caseInput = 'min-h-11 min-w-0 w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm font-normal text-ink';
 export const caseLabel = 'grid gap-2 text-sm font-bold text-ink';
 export const caseDate = (value: string) => `${formatDate(value)} (Lagos time)`;

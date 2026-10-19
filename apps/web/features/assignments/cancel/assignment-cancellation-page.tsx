@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Skeleton } from '@urgent/ui';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
+import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
@@ -45,11 +47,11 @@ export function AssignmentCancellationPage({ assignmentId }: { assignmentId: str
   });
 
   if (assignment.isPending) {
-    return <PageLoading title="Cancel assignment" eyebrow="Assignment" width="max-w-3xl" />;
+    return <PageLoading title="Cancel assignment" eyebrow="Assignment" width="max-w-5xl" />;
   }
   if (assignment.error || !assignment.data) {
     return (
-      <main className="mx-auto max-w-3xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <ApiError error={assignment.error} fallback="We could not load this assignment." onRetry={() => void assignment.refetch()} />
       </main>
     );
@@ -62,36 +64,43 @@ export function AssignmentCancellationPage({ assignmentId }: { assignmentId: str
   const completed = cancel.data?.status === 'CANCELLED';
 
   return (
-    <main className="mx-auto grid max-w-3xl gap-4">
-      <Link href={`/assignments/${assignmentId}`} className="w-fit text-sm font-bold text-green-800 hover:underline">← Back to assignment</Link>
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wide text-red-800">Cancel assignment</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+      <PageHead
+        eyebrow="Cancel assignment"
+        title={<span className="block max-w-[760px] break-words">{current.errand.title}</span>}
+        description="Cancelling ends this assignment for both of you."
+      />
       <JourneyHere />
       <Alert variant={guidance.canCancel ? 'warn' : 'info'} role="status">{guidance.message}</Alert>
       {completed ? (
         <Alert variant="ok" role="status">The assignment was cancelled.</Alert>
       ) : guidance.canCancel ? (
-        <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-          <label className="grid gap-1 text-sm font-bold text-ink">Reason
-            <select value={reason} onChange={(event) => setReason(event.target.value as CancelReason)} className="rounded-lg border border-line bg-panel p-3 font-normal">
-              {reasons.map((item) => <option key={item} value={item}>{label(item)}</option>)}
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm font-bold text-ink">Additional details (optional)
-            <textarea maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} className="min-h-20 rounded-lg border border-line bg-panel p-3 font-normal" />
-          </label>
+        <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] gap-4" aria-labelledby="cancel-form">
+          <h2 id="cancel-form" className="text-base font-extrabold text-ink">Why are you cancelling?</h2>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-bold text-ink-2" htmlFor="cancel-reason">Reason</label>
+            <Select value={reason} onValueChange={(value) => setReason(value as CancelReason)}>
+              <SelectTrigger id="cancel-reason"><SelectValue /></SelectTrigger>
+              <SelectContent>{reasons.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-bold text-ink-2" htmlFor="cancel-note">Additional details <span className="font-normal text-muted">(optional)</span></label>
+            <Textarea id="cancel-note" maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
+          </div>
           {cancel.error ? <ApiError error={cancel.error} fallback="We could not cancel this assignment." /> : null}
           {action === 'DECLINE' ? (
             <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}`}>Go to assignment response</Link></Button>
           ) : null}
-          <Button type="button" variant="danger" className="w-fit" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
-            {cancel.isPending ? 'Cancelling…' : 'Cancel assignment'}
-          </Button>
+          <div className="flex justify-end border-t border-line-2 pt-4">
+            <Button type="button" variant="danger" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+              {cancel.isPending ? 'Cancelling…' : 'Cancel assignment'}
+            </Button>
+          </div>
         </section>
       ) : (
-        <section className="grid gap-2 rounded-[var(--r-lg)] border border-line bg-surface p-4">
+        <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] content-start gap-3">
           {cancel.error ? <ApiError error={cancel.error} fallback="Cancellation is unavailable at this stage." /> : null}
           {action === 'OPEN_DISPUTE' || guidance.nextAction === 'OPEN_DISPUTE' ? (
             <Button asChild><Link href={`/assignments/${assignmentId}/dispute`}>Open a dispute</Link></Button>

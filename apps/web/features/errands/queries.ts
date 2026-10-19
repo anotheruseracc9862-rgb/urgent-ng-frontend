@@ -45,12 +45,12 @@ export const errandQueries = {
       ...persistedQuery('live'),
     }),
 
-  /** Errands that have a runner. Carries assignment and conversation ids, so it is not persisted. */
+  /** Errands that have a runner, latest update first. Carries assignment and conversation ids, so it is not persisted. */
   tracked: (userId: string) =>
     queryOptions({
       queryKey: queryKeys.errands.tracked(userId),
       queryFn: ({ signal }) =>
-        apiResponse<ErrandSummary[]>('/errands/mine', { query: { tab: 'ACTIVE', sort: 'NEEDS_ATTENTION', limit: LIST_LIMIT }, signal }),
+        apiResponse<ErrandSummary[]>('/errands/mine', { query: { tab: 'ACTIVE', sort: 'RECENT', limit: LIST_LIMIT }, signal }),
       ...liveQuery('live'),
     }),
 

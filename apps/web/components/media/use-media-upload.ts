@@ -381,6 +381,9 @@ export function useMediaUpload({
 
   React.useEffect(() => () => {
     for (const controller of activeRequests.current.values()) controller.abort();
+    activeRequests.current.clear();
+    // A remount (React Strict Mode, Suspense) must hydrate the value again; the aborted requests never finish.
+    previousValue.current = [];
     for (const file of filesRef.current) {
       if (file.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(file.previewUrl);
     }

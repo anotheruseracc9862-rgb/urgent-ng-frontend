@@ -3,10 +3,13 @@
 import { PageLoading } from '@/components/shell/page-loading';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Skeleton } from '@urgent/ui';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
+import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
@@ -28,6 +31,7 @@ function money(minor: number, currency: string) {
 
 export function PaymentAgreementPage({ assignmentId }: { assignmentId: string }) {
   const client = useQueryClient();
+  const router = useRouter();
   const agreementKey = queryKeys.assignments.paymentAgreement(assignmentId);
   const agreement = useQuery({
     queryKey: agreementKey,
@@ -43,20 +47,22 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
   const [timingDraft, setTimingDraft] = useState<PaymentTiming | ''>('');
   const update = useApiMutation({ affects: ['assignments'],
     mutationFn: (input: components['schemas']['UpdatePaymentAgreementDto']) => offersApi.updatePaymentAgreement(assignmentId, input),
-    onSuccess: (result) => {
+    onSuccess: (result, input) => {
       client.setQueryData(agreementKey, result);
       setMethodDraft('');
       setTimingDraft('');
+      // Confirming is the last step here; saving terms keeps the person on the page to confirm next.
+      if (input.confirm) router.push(`/assignments/${assignmentId}`);
     },
   });
 
   if (agreement.isPending || assignment.isPending) {
-    return <PageLoading title="Payment agreement" eyebrow="Assignment" width="max-w-3xl" />;
+    return <PageLoading title="Payment agreement" eyebrow="Assignment" width="max-w-5xl" />;
   }
   if (agreement.error || !agreement.data || assignment.error || !assignment.data) {
     const error = agreement.error ?? assignment.error;
     return (
-      <main className="mx-auto max-w-3xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <ApiError error={error} fallback="We could not load this payment agreement." onRetry={() => { void agreement.refetch(); void assignment.refetch(); }} />
       </main>
     );
@@ -69,60 +75,78 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
   const confirmedAt = role === 'REQUESTER' ? current.confirmedByRequesterAt : current.confirmedByRunnerAt;
   const otherConfirmedAt = role === 'REQUESTER' ? current.confirmedByRunnerAt : current.confirmedByRequesterAt;
 
+  const termsChanged = Boolean((methodDraft && methodDraft !== current.paymentMethod) || (timingDraft && timingDraft !== current.paymentTiming));
+
   return (
-    <main className="mx-auto grid max-w-3xl gap-4">
-      <Link href={`/assignments/${assignmentId}`} className="w-fit text-sm font-bold text-green-800 hover:underline">← Back to assignment</Link>
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Payment agreement</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{assignment.data.data.errand.title}</h1>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+      <PageHead
+        eyebrow="Payment agreement"
+        title={<span className="block max-w-[760px] break-words">{assignment.data.data.errand.title}</span>}
+        description="Agree how and when the runner fee is paid. Both sides confirm the same terms."
+      />
       <JourneyHere />
       <Alert variant="warn" role="note">
         <p>Urgent.ng never holds or transfers this money. The payment is arranged directly between the requester and runner.</p>
       </Alert>
-      <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        <div className="rounded-xl bg-panel p-3">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Agreed runner fee · read-only</p>
-          <p className="mt-1 text-xl font-extrabold text-ink">{money(current.agreedAmountMinor, current.currency)}</p>
-        </div>
-        <label className="grid gap-1 text-sm font-bold text-ink">Payment method
-          <select value={method} onChange={(event) => setMethodDraft(event.target.value as PaymentMethod)} className="rounded-lg border border-line bg-panel p-3 font-normal">
-            <option value="">Choose a method</option>
-            {methods.map((item) => <option key={item} value={item}>{label(item)}</option>)}
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm font-bold text-ink">Payment timing
-          <select value={timing} onChange={(event) => setTimingDraft(event.target.value as PaymentTiming)} className="rounded-lg border border-line bg-panel p-3 font-normal">
-            <option value="">Choose timing</option>
-            {timings.map((item) => <option key={item} value={item}>{label(item)}</option>)}
-          </select>
-        </label>
-        {methodDraft && methodDraft !== current.paymentMethod || timingDraft && timingDraft !== current.paymentTiming ? (
-          <p className="text-sm text-amber-900">Saving changed payment terms clears both parties&apos; confirmations. Both parties will need to confirm the updated agreement.</p>
-        ) : null}
-        {update.error ? <ApiError error={update.error} fallback="We could not update the payment agreement." /> : null}
-        {update.isSuccess ? <Alert variant="ok" role="status">Payment terms updated. Both confirmations were refreshed by the server.</Alert> : null}
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-fit"
-          disabled={!method || !timing || update.isPending || (method === current.paymentMethod && timing === current.paymentTiming)}
-          onClick={() => update.mutate({ paymentMethod: method as PaymentMethod, paymentTiming: timing as PaymentTiming })}
-        >
-          {update.isPending ? 'Saving…' : 'Save payment terms'}
-        </Button>
-      </section>
-      <section className="grid gap-2 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
-        <h2 className="font-extrabold text-ink">Confirmations</h2>
-        <p className="text-sm text-ink-2">You ({label(role)}): {confirmedAt ? `confirmed ${new Date(confirmedAt).toLocaleString()}` : 'not confirmed'}</p>
-        <p className="text-sm text-ink-2">Other party: {otherConfirmedAt ? `confirmed ${new Date(otherConfirmedAt).toLocaleString()}` : 'not confirmed'}</p>
-        <p role="status" className="text-sm font-bold text-ink">{current.fullyConfirmed ? 'Both parties confirmed these terms.' : 'Waiting for both parties to confirm the current terms.'}</p>
-        {confirmedAt ? null : (
-          <Button type="button" className="w-fit" disabled={!current.paymentMethod || !current.paymentTiming || update.isPending} onClick={() => update.mutate({ confirm: true })}>
-            {update.isPending ? 'Confirming…' : 'Confirm payment agreement'}
-          </Button>
-        )}
-      </section>
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="payment-terms">
+          <div className="border-b border-line-2 pb-4">
+            <h2 id="payment-terms" className="text-base font-extrabold text-ink">Payment terms</h2>
+            <p className="mt-1 text-xs text-muted">Choose how the fee is paid and when.</p>
+          </div>
+          <div className="rounded-[var(--r)] bg-tint p-4">
+            <p className="text-xs font-semibold text-green-900">Agreed runner fee · read-only</p>
+            <p className="mt-2 break-words text-[32px] font-extrabold leading-none tracking-tight tabular-nums text-ink">{money(current.agreedAmountMinor, current.currency)}</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 content-start gap-1.5">
+              <label className="text-xs font-bold text-ink-2" htmlFor="payment-method">Payment method</label>
+              <Select value={method || undefined} onValueChange={(value) => setMethodDraft(value as PaymentMethod)}>
+                <SelectTrigger id="payment-method" className="min-w-0"><SelectValue placeholder="Choose a method" /></SelectTrigger>
+                <SelectContent>{methods.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid min-w-0 content-start gap-1.5">
+              <label className="text-xs font-bold text-ink-2" htmlFor="payment-timing">Payment timing</label>
+              <Select value={timing || undefined} onValueChange={(value) => setTimingDraft(value as PaymentTiming)}>
+                <SelectTrigger id="payment-timing" className="min-w-0"><SelectValue placeholder="Choose timing" /></SelectTrigger>
+                <SelectContent>{timings.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          {termsChanged ? (
+            <Alert variant="warn" role="status">Saving changed payment terms clears both parties&apos; confirmations. Both parties will need to confirm the updated agreement.</Alert>
+          ) : null}
+          {update.error ? <ApiError error={update.error} fallback="We could not update the payment agreement." /> : null}
+          {update.isSuccess ? <Alert variant="ok" role="status">Payment terms updated. Both confirmations were refreshed by the server.</Alert> : null}
+          <div className="flex justify-end border-t border-line-2 pt-4">
+            <Button
+              type="button"
+              disabled={!method || !timing || update.isPending || (method === current.paymentMethod && timing === current.paymentTiming)}
+              onClick={() => update.mutate({ paymentMethod: method as PaymentMethod, paymentTiming: timing as PaymentTiming })}
+            >
+              {update.isPending ? 'Saving…' : 'Save payment terms'}
+            </Button>
+          </div>
+        </section>
+        <aside aria-labelledby="payment-confirmations" className="grid min-w-0 content-start gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] lg:sticky lg:top-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="payment-confirmations" className="text-sm font-extrabold text-ink">Confirmations</h2>
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${current.fullyConfirmed ? 'bg-ok-bg text-ok' : 'bg-amber-bg text-amber'}`}>{current.fullyConfirmed ? 'Both confirmed' : 'Waiting'}</span>
+          </div>
+          <dl className="grid gap-3 text-sm">
+            <div className="rounded-[var(--r-sm)] bg-panel p-3"><dt className="text-xs font-bold text-muted">You ({label(role)})</dt><dd className="mt-1 font-semibold text-ink">{confirmedAt ? `Confirmed ${new Date(confirmedAt).toLocaleString()}` : 'Not confirmed'}</dd></div>
+            <div className="rounded-[var(--r-sm)] bg-panel p-3"><dt className="text-xs font-bold text-muted">Other party</dt><dd className="mt-1 font-semibold text-ink">{otherConfirmedAt ? `Confirmed ${new Date(otherConfirmedAt).toLocaleString()}` : 'Not confirmed'}</dd></div>
+          </dl>
+          <p role="status" className="text-xs leading-relaxed text-muted">{current.fullyConfirmed ? 'Both parties confirmed these terms.' : 'Waiting for both parties to confirm the current terms.'}</p>
+          {confirmedAt ? null : (
+            <Button type="button" disabled={!current.paymentMethod || !current.paymentTiming || update.isPending} onClick={() => update.mutate({ confirm: true })}>
+              {update.isPending ? 'Confirming…' : 'Confirm payment agreement'}
+            </Button>
+          )}
+        </aside>
+      </div>
     </main>
   );
 }

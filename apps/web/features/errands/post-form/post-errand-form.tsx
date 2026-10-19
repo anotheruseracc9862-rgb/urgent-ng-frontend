@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { LOCAL_PHONE_ERROR, e164ToLocalPhone, isLocalPhone, localPhoneToE164 } from '@urgent/utils';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useApiMutation } from '@/lib/query/mutations';
 import type { components } from '@urgent/api-client';
@@ -262,6 +262,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   const [baseline, setBaseline] = useState<ErrandForm | null>(() => initialErrand ? fromErrand(initialErrand) : null);
   const [version, setVersion] = useState(initialErrand?.version ?? 0);
   const [validationError, setValidationError] = useState('');
+  const failedPatch = useRef<string | null>(null);
   const create = useApiMutation({
     mutationFn: () => errandsApi.create({ title: form.title.trim(), categoryId: form.categoryId }),
     // A new draft appears in My errands and its counts.
@@ -276,8 +277,12 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
     // Only pages that are open refetch, and this page shows few; the rest are marked stale.
     affects: ['errands'],
     onSuccess: (errand) => {
+      failedPatch.current = null;
       setBaseline(fromErrand(errand));
       setVersion(errand.version);
+    },
+    onError: (_error, patch) => {
+      failedPatch.current = JSON.stringify(patch);
     },
   });
   const saveDraft = save.mutate;
@@ -288,6 +293,8 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
     if (form.timeMode === 'SCHEDULED' && !isScheduledTimeInRange(form.scheduledAt)) return;
     const patch = diffForm(form, baseline, version);
     if (isEmptyPatch(patch)) return;
+    // A failed save is not retried on its own; the person edits again or chooses "Try again".
+    if (failedPatch.current === JSON.stringify(patch)) return;
     const timer = window.setTimeout(() => {
       if (!isSaving) saveDraft(patch);
     }, 800);
@@ -335,6 +342,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
     }
     if (!baseline || dateInvalid) return;
     const patch = diffForm(form, baseline, version);
+    failedPatch.current = null;
     if (!isEmptyPatch(patch)) save.mutate(patch);
   };
 

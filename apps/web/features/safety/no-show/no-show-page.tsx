@@ -5,7 +5,9 @@ import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Skeleton } from '@urgent/ui';
+import { PageHead } from '@/components/shell/page-head';
+import { ArrowLeft } from 'lucide-react';
+import { Alert, Button, Textarea } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
@@ -62,12 +64,12 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
   });
 
   if (assignment.isPending || state.isPending) {
-    return <PageLoading title="Report a no-show" eyebrow="Safety" width="max-w-3xl" />;
+    return <PageLoading title="Report a no-show" eyebrow="Safety" width="max-w-5xl" />;
   }
   if (assignment.error || !assignment.data || state.error || !state.data) {
     const error = assignment.error ?? state.error;
     return (
-      <main className="mx-auto max-w-3xl">
+      <main className="grid min-w-0 content-start gap-4 pb-10">
         <ApiError error={error} fallback="We could not load the no-show report." onRetry={() => { void assignment.refetch(); void state.refetch(); }} />
       </main>
     );
@@ -84,15 +86,16 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
   const earlyTime = current.earliestReportAt ? Date.parse(current.earliestReportAt) > now : false;
 
   return (
-    <main className="mx-auto grid max-w-3xl gap-4">
-      <Link href={`/assignments/${assignmentId}`} className="w-fit text-sm font-bold text-green-800 hover:underline">← Back to assignment</Link>
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">No-show report</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{assignment.data.data.errand.title}</h1>
-      </header>
+    <main className="grid min-w-0 content-start gap-4 pb-10">
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+      <PageHead
+        eyebrow="No-show report"
+        title={<span className="block max-w-[760px] break-words">{assignment.data.data.errand.title}</span>}
+        description="Report someone who did not arrive. The other person gets 15 minutes to respond."
+      />
       <JourneyHere />
       {currentReport ? (
-        <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+        <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] content-start gap-3">
           <h2 className="font-extrabold text-ink">Current report · {currentReport.status.toLowerCase()}</h2>
           {currentReport.note ? <p className="text-sm text-ink-2">{currentReport.note}</p> : null}
           {currentReport.status === 'PENDING' && currentReport.reportedByMe ? (
@@ -100,7 +103,7 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
           ) : null}
           {responseAllowed ? (
             <>
-              <p className="text-sm text-amber-900">You have {remaining(currentReport.responseDueAt, now)} to respond. If you acknowledge the report, it will be confirmed. If you were present, the report will be contested for review.</p>
+              <p className="text-sm font-semibold text-amber">You have {remaining(currentReport.responseDueAt, now)} to respond. If you acknowledge the report, it will be confirmed. If you were present, the report will be contested for review.</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" disabled={respond.isPending} onClick={() => respond.mutate('PRESENT')}>I was present</Button>
                 <Button type="button" variant="ghost" disabled={respond.isPending} onClick={() => respond.mutate('ACKNOWLEDGE')}>Acknowledge no-show</Button>
@@ -114,15 +117,18 @@ export function NoShowPage({ assignmentId }: { assignmentId: string }) {
           {respond.error ? <ApiError error={respond.error} fallback="We could not submit your response." /> : null}
         </section>
       ) : (
-        <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+        <section className="grid min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] content-start gap-3">
           <h2 className="font-extrabold text-ink">Report someone who did not arrive</h2>
           {current.canReport ? (
             <>
               <p className="text-sm text-muted">A report becomes available 30 minutes after the agreed time. The person reported gets 15 minutes to respond.</p>
-              <label className="grid gap-1 text-sm font-bold text-ink">Note (optional)
-                <textarea maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} className="min-h-20 rounded-lg border border-line bg-panel p-3 font-normal" />
-              </label>
-              <Button type="button" className="w-fit" disabled={report.isPending} onClick={() => report.mutate()}>{report.isPending ? 'Reporting…' : 'Report no-show'}</Button>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-bold text-ink-2" htmlFor="no-show-note">Note <span className="font-normal text-muted">(optional)</span></label>
+                <Textarea id="no-show-note" maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
+              </div>
+              <div className="flex justify-end border-t border-line-2 pt-4">
+                <Button type="button" disabled={report.isPending} onClick={() => report.mutate()}>{report.isPending ? 'Reporting…' : 'Report no-show'}</Button>
+              </div>
             </>
           ) : earlyTime ? (
             <Alert variant="warn" role="status">

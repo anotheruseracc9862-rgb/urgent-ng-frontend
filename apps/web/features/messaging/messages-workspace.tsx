@@ -26,7 +26,6 @@ import { avatarTone, counterpartName, errandStatusLabel, initialsOf, money } fro
 const FILTERS: Array<{ value: ConversationFilter; label: string }> = [
   { value: 'ALL', label: 'All' },
   { value: 'ACTIVE', label: 'Active' },
-  { value: 'OFFERS', label: 'Offers' },
   { value: 'CLOSED', label: 'Closed' },
 ];
 

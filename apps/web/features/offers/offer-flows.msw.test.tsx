@@ -61,9 +61,10 @@ describe('Phase 4 offer and assignment flows', () => {
     );
 
     renderWithQuery(<SubmitOfferPage errandId={errandId} />);
-    await user.type(await screen.findByLabelText(/Your price \(NGN\)/), '5500');
-    await user.clear(screen.getByLabelText(/Estimated time \(minutes\)/));
-    await user.type(screen.getByLabelText(/Estimated time \(minutes\)/), '30');
+    const price = await screen.findByLabelText(/Your price/);
+    await user.type(price, '5500');
+    expect(price).toHaveValue('5,500');
+    await user.click(screen.getByRole('button', { name: '30 min' }));
     await user.type(screen.getByLabelText(/Message/), 'I am nearby.');
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Send offer' }));
@@ -142,8 +143,8 @@ describe('Phase 4 offer and assignment flows', () => {
     renderWithQuery(<OfferNegotiationPage offerId="offer-negotiation-1" />);
     expect(await screen.findByText('It is your turn to respond.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Counter' }));
-    await user.clear(screen.getByLabelText('Amount (NGN)'));
-    await user.type(screen.getByLabelText('Amount (NGN)'), '5500');
+    await user.clear(screen.getByLabelText('Amount'));
+    await user.type(screen.getByLabelText('Amount'), '5500');
     await user.type(screen.getByLabelText('Message (optional)'), 'Can complete today.');
     await user.click(screen.getByRole('button', { name: 'Send counter' }));
 
@@ -197,7 +198,7 @@ describe('Phase 4 offer and assignment flows', () => {
 
     expect(await screen.findByText(/refreshed the latest terms and negotiation turn/)).toBeInTheDocument();
     expect(screen.getByText(/₦6,000/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Amount (NGN)')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
   });
 
   it.each([
@@ -224,7 +225,8 @@ describe('Phase 4 offer and assignment flows', () => {
     expect(actions.queryAllByRole('button').map((button) => button.textContent).sort()).toEqual([...buttons].sort());
     expect(actions.getByText('₦3,750')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: runner ? 'My offers' : 'Back to errand' })).toHaveAttribute('href', runner ? '/offers' : '/errands/errand-states');
-    expect(screen.getByRole('link', { name: 'Open chat' })).toHaveAttribute('href', '/messages/chat-states');
+    expect(screen.queryByRole('link', { name: 'Open chat' })).toBeNull();
+    expect(screen.getByText(/Chat opens once the runner accepts the errand/)).toBeInTheDocument();
     expect(screen.getByText('Keep the parcel upright.')).toBeInTheDocument();
     if (status === 'SELECTED') {
       expect(actions.getByRole('link', { name: 'Open assignment' })).toHaveAttribute('href', '/assignments/assignment-states');
