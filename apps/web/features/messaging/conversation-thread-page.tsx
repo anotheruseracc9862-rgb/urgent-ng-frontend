@@ -201,6 +201,11 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
         </div>
       ) : (
         <form onSubmit={submit} className="grid gap-3 border-t border-line p-3.5">
+          {current.chatClosesAt ? (
+            <p role="status" className="rounded-[var(--r-sm)] bg-panel px-3 py-2.5 text-xs leading-relaxed text-muted">
+              This errand is complete. Chat closes on <time dateTime={current.chatClosesAt} className="font-bold text-ink-2">{new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeZone: 'Africa/Lagos' }).format(new Date(current.chatClosesAt))}</time>.
+            </p>
+          ) : null}
           {current.assignmentId ? (
             <PaymentTermsStrip assignmentId={current.assignmentId} role={current.counterpart.role === 'RUNNER' ? 'REQUESTER' : 'RUNNER'} />
           ) : null}

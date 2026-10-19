@@ -121,7 +121,9 @@ it('submits a contextual conduct report and shows the server completion hold', a
   server.use(http.post('*/api/v1/reports', async ({ request }) => { body = await request.json(); return envelope(report); }), http.get('*/api/v1/reports/:id', () => envelope(report)), http.get('*/api/v1/reports', () => envelope([])));
   mount(<ReportPage targetType="USER" targetId={id} assignmentId={other} />);
   await user.type(screen.getByLabelText(/Report details/), 'Unsafe handling');
-  await user.selectOptions(screen.getByLabelText('Reason'), 'UNSAFE_BEHAVIOR');
+  screen.getByRole('combobox', { name: 'Reason' }).focus();
+  await user.keyboard('{Enter}');
+  await user.click(await screen.findByRole('option', { name: 'Unsafe Behavior' }));
   await user.click(screen.getByRole('button', { name: 'Send report' }));
   expect(await screen.findByText('Automatic completion is paused while this report is open.')).toBeInTheDocument();
   expect(body).toEqual({ targetType: 'USER', targetId: id, assignmentId: other, type: 'UNSAFE_BEHAVIOR', description: 'Unsafe handling' });

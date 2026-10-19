@@ -84,7 +84,7 @@ function ConversationList({ activeId }: { activeId?: string }) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {conversations.isPending ? (
           <div className="grid gap-2 p-2" aria-label="Loading conversations">
             <Skeleton className="h-[72px]" /><Skeleton className="h-[72px]" /><Skeleton className="h-[72px]" />
@@ -104,13 +104,13 @@ function ConversationList({ activeId }: { activeId?: string }) {
             {!query ? <Link href="/marketplace" className="mt-1 inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-xs font-bold text-white">Explore errands</Link> : null}
           </div>
         ) : (
-          <ul className="grid gap-0.5">
+          <ul className="grid min-w-0 grid-cols-1 gap-0.5">
             {items.map((conversation) => (
-              <li key={conversation.id}>
+              <li key={conversation.id} className="min-w-0">
                 <Link
                   href={`/messages/${encodeURIComponent(conversation.id)}`}
                   aria-current={conversation.id === activeId ? 'page' : undefined}
-                  className={`flex gap-3 rounded-[var(--r)] p-3 text-left transition-colors hover:bg-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-600 ${conversation.id === activeId ? 'bg-tint' : ''}`}
+                  className={`flex min-w-0 gap-3 rounded-[var(--r)] p-3 text-left transition-colors hover:bg-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-600 ${conversation.id === activeId ? 'bg-tint' : ''}`}
                 >
                   <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-full text-[13px] font-extrabold ${avatarTone(conversation.id)}`}>
                     {initialsOf(conversation.counterpart.firstName, conversation.counterpart.lastName)}

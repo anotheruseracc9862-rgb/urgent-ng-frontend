@@ -6665,6 +6665,11 @@ export interface components {
             canSend: boolean;
             /** @enum {string|null} */
             readOnlyReason: "BLOCKED" | "ERRAND_ENDED" | "NO_ACTIVE_OFFER" | "NOT_ASSIGNED" | "COMPLETION_WINDOW_ENDED" | null;
+            /**
+             * Format: date-time
+             * @description When chat closes, once the errand is completed. Null before that.
+             */
+            chatClosesAt: string | null;
             /** Format: date-time */
             createdAt: string;
         };
