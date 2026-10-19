@@ -11,6 +11,7 @@ import { MediaUpload } from '@/components/media-upload/media-upload';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi, type ExecutionProblem } from '@/features/offers/api';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 type ProblemType = components['schemas']['ReportProblemDto']['type'];
 type DelayReason = components['schemas']['DelayNoticeDto']['reason'];
@@ -151,6 +152,7 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
         <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
         <p className="mt-2 text-sm text-muted">Report problems as they happen. The other party can see the report and its resolution.</p>
       </header>
+      <JourneyHere />
 
       <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
         <h2 className="font-extrabold text-ink">Reported problems</h2>

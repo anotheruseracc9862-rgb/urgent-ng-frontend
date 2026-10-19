@@ -11,6 +11,7 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
 import { cancellationGuidance } from './cancellation-guidance';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 type CancelReason = components['schemas']['CancelAssignmentDto']['reason'];
 const requesterReasons: CancelReason[] = ['REQUESTER_CANCELLED', 'DUPLICATE_ERRAND', 'SAFETY_CONCERN', 'NO_RUNNER_AVAILABLE', 'OTHER'];
@@ -67,6 +68,7 @@ export function AssignmentCancellationPage({ assignmentId }: { assignmentId: str
         <p className="text-xs font-extrabold uppercase tracking-wide text-red-800">Cancel assignment</p>
         <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
       </header>
+      <JourneyHere />
       <Alert variant={guidance.canCancel ? 'warn' : 'info'} role="status">{guidance.message}</Alert>
       {completed ? (
         <Alert variant="ok" role="status">The assignment was cancelled.</Alert>

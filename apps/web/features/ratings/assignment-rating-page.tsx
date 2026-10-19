@@ -11,6 +11,7 @@ import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { ratingKeys, ratingsApi, type Rating, type Scores, type SubmitRating } from './api';
 import { dimensions, panel, RatingContent, RatingError, RatingsLoading, reasonText, ReportRating } from './rating-ui';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 function beforeDeadline(deadline: string | null, now: number) {
   return deadline === null || Date.parse(deadline) > now;
@@ -48,6 +49,7 @@ export function AssignmentRatingPage({ assignmentId }: { assignmentId: string })
     <header><p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Reputation</p>
       <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Rate your errand</h1>
       <p className="mt-2 text-sm text-muted">Keep it fair and about the errand. Your review stays private until both sides rate or the rating window closes.</p></header>
+    <JourneyHere />
     <Alert variant="info" role="status">
       {mine?.revealed || theirs ? 'Ratings have been revealed.' : data.counterpartRated ? 'The other side has rated. Their rating stays hidden until the reveal.' : 'Waiting for the other side. Ratings stay hidden until both sides rate or the window closes.'}
       {data.windowEndsAt ? <p className="mt-1 text-xs">Rating window {beforeDeadline(data.windowEndsAt, now) ? 'closes' : 'closed'}: {formatDate(data.windowEndsAt)} (Lagos time). {Date.parse(data.windowEndsAt) - now > 0 && Date.parse(data.windowEndsAt) - now < 86_400_000 ? 'Window closing soon.' : null}</p> : null}

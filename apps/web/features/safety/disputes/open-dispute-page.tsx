@@ -13,6 +13,7 @@ import { refreshCaseViews, safetyApi, safetyKeys, type EvidenceItem, type OpenDi
 import { caseInput, caseLabel, caseLabelText, casePanel, CaseError } from '../case-ui';
 import { EvidenceEditor } from '../evidence-editor';
 import { DisputeDetailPage } from './dispute-detail-page';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 export function OpenDisputePage({ assignmentId }: { assignmentId: string }) {
   const client = useQueryClient();
@@ -47,6 +48,7 @@ export function OpenDisputePage({ assignmentId }: { assignmentId: string }) {
   return <main className="mx-auto grid max-w-4xl gap-5">
     <Link href={`/assignments/${assignmentId}`} className="text-sm font-bold text-green-800">← Back to assignment</Link>
     <header><p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Safety & support</p><h1 className="mt-1 text-3xl font-extrabold">Open a dispute</h1><p className="mt-2 text-sm text-muted">{current.errand.title}. Tell us what went wrong. Payments stay between you two.</p></header>
+      <JourneyHere />
     {mutation.error ? <CaseError error={mutation.error} /> : null}
     {existing ? <Alert role="status">A dispute is already open. <Link className="font-bold underline" href={`/disputes/${encodeURIComponent(existing)}`}>View existing dispute</Link></Alert> : null}
     <div className="grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_18rem]">

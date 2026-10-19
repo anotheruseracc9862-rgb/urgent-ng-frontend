@@ -22,7 +22,7 @@ import { useHydrated } from '@/lib/use-hydrated';
 import { useModeSwitch } from './use-mode-switch';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
-import { titleForPath, type ShellMode } from './nav-items';
+import { assignmentBreadcrumbs, titleForPath, type ShellMode } from './nav-items';
 
 const MODES: { value: ShellMode; label: string }[] = [
   { value: 'REQUESTER', label: 'Requester' },
@@ -55,7 +55,8 @@ export function Topbar({ mode }: { mode: ShellMode }) {
     queryFn: () => api<components['schemas']['NotificationDto'][]>('/notifications', { query: { limit: 3 } }),
     staleTime: 30_000,
   });
-  const crumb = titleForPath(pathname);
+  const assignmentTrail = assignmentBreadcrumbs(pathname, mode);
+  const crumb = assignmentTrail?.current ?? titleForPath(pathname);
   const isSettingsSubpage = pathname.startsWith('/settings/');
   const isProfileSubpage = pathname.startsWith('/profile/');
   const isMarketplaceDetail = pathname.startsWith('/marketplace/') && crumb === 'Errand details';
@@ -75,6 +76,12 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-2 truncate text-[12.5px] font-semibold text-muted sm:flex">
           <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
           <span aria-hidden="true">›</span>
+          {assignmentTrail ? assignmentTrail.trail.map((step) => (
+            <React.Fragment key={step.href}>
+              <Link href={step.href} className="hover:text-ink hover:underline">{step.label}</Link>
+              <span aria-hidden="true">›</span>
+            </React.Fragment>
+          )) : null}
           {isSettingsSubpage || isProfileSubpage || isMarketplaceDetail || isOfferDetail ? <>
             <Link href={isSettingsSubpage ? '/settings' : isMarketplaceDetail ? '/marketplace' : isOfferDetail ? mode === 'RUNNER' ? '/offers' : '/errands' : '/profile'} className="shrink-0 hover:text-ink">
               {isSettingsSubpage ? 'Settings' : isMarketplaceDetail ? 'Find errands' : isOfferDetail ? mode === 'RUNNER' ? 'My offers' : 'My errands' : 'Profile & account'}
@@ -186,6 +193,12 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 truncate px-3 text-xs font-semibold text-muted sm:hidden">
           <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
           <span aria-hidden="true">›</span>
+          {assignmentTrail ? assignmentTrail.trail.map((step) => (
+            <React.Fragment key={step.href}>
+              <Link href={step.href} className="shrink-0 hover:text-ink">{step.label}</Link>
+              <span aria-hidden="true">›</span>
+            </React.Fragment>
+          )) : null}
           {isSettingsSubpage || isProfileSubpage || isMarketplaceDetail || isOfferDetail ? <>
             <Link href={isSettingsSubpage ? '/settings' : isMarketplaceDetail ? '/marketplace' : isOfferDetail ? mode === 'RUNNER' ? '/offers' : '/errands' : '/profile'} className="shrink-0 hover:text-ink">
               {isSettingsSubpage ? 'Settings' : isMarketplaceDetail ? 'Find errands' : isOfferDetail ? mode === 'RUNNER' ? 'My offers' : 'My errands' : 'Profile & account'}

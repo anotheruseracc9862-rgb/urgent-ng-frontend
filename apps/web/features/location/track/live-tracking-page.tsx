@@ -10,6 +10,7 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
 import { RoundedLiveLocationMap } from './rounded-live-location-map';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 function freshnessCopy(freshness: string) {
   switch (freshness) {
@@ -75,6 +76,7 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
         <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
         <p className="mt-2 text-sm text-muted">This map uses the rounded location shared by the runner. It does not show an exact address.</p>
       </header>
+      <JourneyHere />
       <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
         <div>
           <h2 className="font-extrabold text-ink">Runner location</h2>

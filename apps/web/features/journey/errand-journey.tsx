@@ -27,10 +27,7 @@ export function ErrandJourney({ errand }: { errand: Pick<Errand, 'id' | 'status'
     role: 'REQUESTER',
     errandStatus: errand.status,
     assignment: assignment ? { status: assignment.status } : null,
-    payment: payment.data
-      ? { confirmedByRequester: Boolean(payment.data.confirmedByRequesterAt), confirmedByRunner: Boolean(payment.data.confirmedByRunnerAt), fullyConfirmed: payment.data.fullyConfirmed }
-      : null,
-    ids: { errandId: errand.id, assignmentId: assignment?.id },
+    payment: payment.data ? { fullyConfirmed: payment.data.fullyConfirmed } : null,
   });
-  return <JourneyPanel view={view} otherRole="runner" className="mb-0" />;
+  return <JourneyPanel view={view} />;
 }

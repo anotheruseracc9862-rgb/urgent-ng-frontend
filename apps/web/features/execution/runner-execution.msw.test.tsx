@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { SessionProvider } from '@/lib/auth/client';
 import type { Me } from '@/lib/api/types';
 import { listen, server } from '@/test/msw/server';
@@ -91,7 +91,10 @@ function renderPage(withLocationConsent = false) {
   return (status: string) => { errandStatus = status; };
 }
 
-beforeAll(() => listen());
+beforeAll(() => {
+  listen();
+  window.scrollTo = vi.fn();
+});
 afterEach(() => {
   cleanup();
   server.resetHandlers();
@@ -116,11 +119,14 @@ describe('runner execution steps', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm pickup' }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm pickup' }));
     expect(await screen.findByRole('button', { name: 'Confirm delivery' })).toBeInTheDocument();
+    expect(screen.getByText(/Pickup recorded\. Next: take it to the drop-off/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Step 3 of 3 · Record delivery' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm pickup' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Confirm delivery' }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm delivery' }));
-    expect(await screen.findByText('No further runner step is available')).toBeInTheDocument();
+    expect(await screen.findByText('Delivery recorded', { selector: 'h2' })).toBeInTheDocument();
+    expect(screen.getByText(/The requester now confirms it, or it completes by itself after 24 hours/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm delivery' })).not.toBeInTheDocument();
   });
 

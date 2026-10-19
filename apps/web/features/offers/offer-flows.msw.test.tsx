@@ -224,7 +224,7 @@ describe('Phase 4 offer and assignment flows', () => {
     expect(actions.queryAllByRole('button').map((button) => button.textContent).sort()).toEqual([...buttons].sort());
     expect(actions.getByText('₦3,750')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: runner ? 'My offers' : 'Back to errand' })).toHaveAttribute('href', runner ? '/offers' : '/errands/errand-states');
-    expect(screen.getByRole('link', { name: 'Open chat' })).toHaveAttribute('href', '/conversations/chat-states');
+    expect(screen.getByRole('link', { name: 'Open chat' })).toHaveAttribute('href', '/messages/chat-states');
     expect(screen.getByText('Keep the parcel upright.')).toBeInTheDocument();
     if (status === 'SELECTED') {
       expect(actions.getByRole('link', { name: 'Open assignment' })).toHaveAttribute('href', '/assignments/assignment-states');

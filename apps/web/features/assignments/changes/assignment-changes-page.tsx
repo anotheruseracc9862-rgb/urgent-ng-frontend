@@ -10,6 +10,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi, type ChangeRequest } from '@/features/offers/api';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 type ChangeType = components['schemas']['CreateChangeRequestDto']['type'];
 
@@ -143,6 +144,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
         <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{current.errand.title}</h1>
         {payment.data ? <p className="mt-2 text-sm text-muted">Agreed runner fee: <strong className="text-ink">{money(payment.data.agreedAmountMinor, payment.data.currency)}</strong></p> : null}
       </header>
+      <JourneyHere />
       {payment.error ? <ApiError error={payment.error} fallback="We could not load the current payment agreement." onRetry={() => void payment.refetch()} /> : null}
       <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
         <h2 className="font-extrabold text-ink">Request history</h2>

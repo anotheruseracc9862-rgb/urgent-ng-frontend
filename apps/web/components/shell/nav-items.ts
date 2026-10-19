@@ -121,6 +121,43 @@ export const ROUTE_TITLES: Readonly<Record<string, string>> = {
   '/assignments': 'Active task',
 };
 
+const ASSIGNMENT_SCREENS: Readonly<Record<string, string>> = {
+  run: 'Run errand',
+  payment: 'Payment terms',
+  changes: 'Change requests',
+  confirm: 'Confirm delivery',
+  cancel: 'Cancel',
+  dispute: 'Open a dispute',
+  'no-show': 'No-show report',
+  problems: 'Problems and delays',
+  rating: 'Rating',
+  track: 'Live tracking',
+};
+
+export interface BreadcrumbTrail {
+  /** The places above this one, nearest last. Each is a link. */
+  trail: Array<{ label: string; href: string }>;
+  /** The page itself. */
+  current: string;
+}
+
+/**
+ * The header trail for `/assignments/:id` and the screens under it. The first link is where the
+ * person came from: a runner's list of tasks, or a requester's errands. Returns null for any other
+ * path, which keeps the simple one-level crumb.
+ */
+export function assignmentBreadcrumbs(pathname: string, mode: ShellMode): BreadcrumbTrail | null {
+  const match = /^\/assignments\/([^/]+)(?:\/([^/]+))?$/.exec(pathname);
+  if (!match) return null;
+  const [, id, screen] = match;
+  const first = mode === 'RUNNER' ? { label: 'Active tasks', href: '/assignments' } : { label: 'My errands', href: '/errands' };
+  if (!screen) return { trail: [first], current: 'Assignment' };
+  return {
+    trail: [first, { label: 'Assignment', href: `/assignments/${id}` }],
+    current: ASSIGNMENT_SCREENS[screen] ?? 'Details',
+  };
+}
+
 export function itemsFor(mode: ShellMode): NavItem[] {
   return NAV_ITEMS.filter((item) => !item.mode || item.mode === mode);
 }

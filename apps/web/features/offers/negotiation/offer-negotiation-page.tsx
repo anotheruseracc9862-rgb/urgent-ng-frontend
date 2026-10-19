@@ -12,6 +12,7 @@ import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi, type OfferNegotiation, type OfferTerms } from '../api';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 type Action = 'edit' | 'counter' | 'accept' | 'reject' | 'withdraw' | 'reconfirm';
 
@@ -153,8 +154,9 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
         eyebrow={active ? `Offer negotiation · ${offer.roundsUsed === 0 ? 'No counters yet' : `Round ${offer.roundsUsed} of ${offer.roundsLimit}`}` : 'Offer negotiation'}
         title={<span className="block max-w-[760px] break-words">{offer.errandTitle}</span>}
         description="Agree on a price and time. Both sides see the same history."
-        actions={offer.conversationId ? <Button asChild variant="ghost" size="sm"><Link href={`/conversations/${offer.conversationId}`}><MessageCircle aria-hidden="true" />Open chat</Link></Button> : undefined}
+        actions={offer.conversationId ? <Button asChild variant="ghost" size="sm"><Link href={`/messages/${offer.conversationId}`}><MessageCircle aria-hidden="true" />Open chat</Link></Button> : undefined}
       />
+      <JourneyHere />
 
       {active && !offer.needsReconfirmation && offer.awaitingParty !== 'NONE' ? (
         <Alert variant={myTurn ? 'info' : 'warn'} role="status">

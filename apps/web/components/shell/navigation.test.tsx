@@ -7,7 +7,7 @@ import type { Me } from '@/lib/api/types';
 import { listen, server } from '@/test/msw/server';
 import { BottomNav } from './bottom-nav';
 import { Sidebar } from './sidebar';
-import { accountMenuFor, hrefFor, isItemActive, itemsFor, primaryItemsFor, titleForPath, NAV_ITEMS } from './nav-items';
+import { accountMenuFor, assignmentBreadcrumbs, hrefFor, isItemActive, itemsFor, primaryItemsFor, titleForPath, NAV_ITEMS } from './nav-items';
 
 const navigation = vi.hoisted(() => ({ pathname: '/dashboard', search: '' }));
 vi.mock('next/navigation', () => ({
@@ -147,5 +147,36 @@ describe('desktop rail', () => {
     expect(await within(sidebar).findByText('You are offline')).toBeInTheDocument();
     fireEvent.click(within(sidebar).getByRole('switch'));
     expect(await within(sidebar).findByText('You are online')).toBeInTheDocument();
+  });
+});
+
+describe('assignmentBreadcrumbs', () => {
+  const id = '515cf6e5-09e7-560c-b89a-3dfee04a9368';
+
+  it('runner on the assignment page: Active tasks, then the page', () => {
+    expect(assignmentBreadcrumbs(`/assignments/${id}`, 'RUNNER')).toEqual({
+      trail: [{ label: 'Active tasks', href: '/assignments' }],
+      current: 'Assignment',
+    });
+  });
+
+  it('requester gets their own parent, never the runner-only Active tasks', () => {
+    expect(assignmentBreadcrumbs(`/assignments/${id}`, 'REQUESTER')?.trail).toEqual([{ label: 'My errands', href: '/errands' }]);
+  });
+
+  it('a screen under the assignment links back to the assignment', () => {
+    expect(assignmentBreadcrumbs(`/assignments/${id}/run`, 'RUNNER')).toEqual({
+      trail: [{ label: 'Active tasks', href: '/assignments' }, { label: 'Assignment', href: `/assignments/${id}` }],
+      current: 'Run errand',
+    });
+    expect(assignmentBreadcrumbs(`/assignments/${id}/payment`, 'REQUESTER')?.current).toBe('Payment terms');
+    expect(assignmentBreadcrumbs(`/assignments/${id}/no-show`, 'RUNNER')?.current).toBe('No-show report');
+    expect(assignmentBreadcrumbs(`/assignments/${id}/something-new`, 'RUNNER')?.current).toBe('Details');
+  });
+
+  it('is null for every other path, including the list itself', () => {
+    expect(assignmentBreadcrumbs('/assignments', 'RUNNER')).toBeNull();
+    expect(assignmentBreadcrumbs('/errands/abc', 'RUNNER')).toBeNull();
+    expect(assignmentBreadcrumbs(`/assignments/${id}/run/extra`, 'RUNNER')).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ import { formatDate } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 function countdown(deadline: string, now: number) {
   const seconds = Math.max(0, Math.floor((Date.parse(deadline) - now) / 1000));
@@ -68,6 +69,7 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
         <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Delivery confirmation</p>
         <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{errand.title}</h1>
       </header>
+      <JourneyHere />
       {errand.status === 'DELIVERED' ? (
         <section className="grid gap-2 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
           <h2 className="font-extrabold text-ink">Delivery status</h2>

@@ -146,11 +146,11 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
   };
 
   if (consent.isLoading || live.isPending) {
-    return <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4"><Skeleton className="h-5 w-44" /><Skeleton className="h-10 w-full" /></section>;
+    return <section className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]"><Skeleton className="h-5 w-44" /><Skeleton className="h-10 w-full" /></section>;
   }
 
   return (
-    <section className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)]">
+    <section className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
       <div>
         <h2 className="font-extrabold text-ink">Live location</h2>
         <p className="mt-1 text-sm text-muted">

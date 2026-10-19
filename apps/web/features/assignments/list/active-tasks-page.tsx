@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { BriefcaseBusiness, ChevronRight, Clock3, MapPin } from 'lucide-react';
+import { BriefcaseBusiness, MessageCircle } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
-import { formatMoney } from '@urgent/utils';
 import { PageHead } from '@/components/shell/page-head';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { assignmentQueries, type RunnerTask } from '../queries';
+import { ExecutionProgress, RouteBlock, stageBadge } from '../execution-progress';
 
 
 function useAssignments(status: 'ACTIVE' | 'PENDING_ACCEPTANCE', userId: string) {
@@ -17,37 +17,55 @@ function useAssignments(status: 'ACTIVE' | 'PENDING_ACCEPTANCE', userId: string)
   return useQuery({ ...assignmentQueries.runnerTasks(userId, status), refetchInterval: polling });
 }
 
-function TaskRow({ assignment, respond }: { assignment: RunnerTask; respond?: boolean }) {
+const formatMoney = (minor: number) =>
+  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(minor / 100);
+const chip = 'inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-xs font-extrabold text-ink-2 hover:bg-tint-2';
+const lagosTime = (iso: string) =>
+  new Intl.DateTimeFormat('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Africa/Lagos' }).format(new Date(iso));
+
+export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respond?: boolean }) {
+  const id = encodeURIComponent(assignment.id);
+  const badge = stageBadge(assignment.errandStatus, Boolean(respond));
   return (
-    <li>
-      <Link
-        href={`/assignments/${encodeURIComponent(assignment.id)}`}
-        className="group block rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] transition-colors hover:bg-tint motion-reduce:transition-none sm:p-[22px]"
-      >
-        <span className="flex flex-wrap items-start justify-between gap-3">
-          <span className="flex min-w-0 items-start gap-3">
-            <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-[13px] ${respond ? 'bg-blue-bg text-blue' : 'bg-tint-2 text-green-900'}`}>
-              {respond ? <Clock3 className="size-[18px]" /> : <BriefcaseBusiness className="size-[18px]" />}
-            </span>
-            <span className="min-w-0">
-              <strong className="block break-words text-sm font-extrabold leading-snug text-ink">{assignment.errandTitle}</strong>
-              <span className="mt-1 block text-[11px] font-extrabold uppercase tracking-wide text-muted">
-                {respond ? 'Waiting for your answer' : assignment.errandStatus.replaceAll('_', ' ')}
-              </span>
-            </span>
-          </span>
-          <span className="rounded-full bg-panel px-3 py-1.5 text-xs font-extrabold text-ink">{formatMoney(assignment.agreedAmountMinor)}</span>
+    <li className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${badge.className}`}>
+          <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />{badge.label}
         </span>
-        <span className="mt-4 flex items-center gap-2 border-t border-line-2 pt-3 text-xs text-muted">
-          <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">
-            {assignment.pickupArea ?? 'Pickup area not shared'}{assignment.destinationArea ? ` → ${assignment.destinationArea}` : ''}
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1 font-bold text-green-800 group-hover:underline">
-            {respond ? 'Respond' : 'Open task'} <ChevronRight aria-hidden="true" className="size-3.5" />
-          </span>
-        </span>
-      </Link>
+        <span className="text-xl font-extrabold tabular-nums tracking-tight text-ink">{formatMoney(assignment.agreedAmountMinor)}</span>
+      </div>
+      <h3 className="mt-3 break-words text-lg font-extrabold leading-snug tracking-tight text-ink">
+        <Link href={`/assignments/${id}`} className="hover:underline">{assignment.errandTitle}</Link>
+      </h3>
+      <p className="mt-1 text-sm text-muted">
+        Requester: {assignment.requesterFirstName} · Agreed {formatMoney(assignment.agreedAmountMinor)} · paid directly
+      </p>
+      {respond ? null : <ExecutionProgress errandStatus={assignment.errandStatus} className="mt-4" />}
+      <div className="mt-4"><RouteBlock from={assignment.pickupArea} to={assignment.destinationArea} /></div>
+      {respond ? <p className="mt-3 text-xs font-bold text-amber">Accept before {lagosTime(assignment.acceptanceDeadline)} (Lagos time) or it goes back to the requester.</p> : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {respond ? (
+          <Link href={`/assignments/${id}`} className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-white">Respond</Link>
+        ) : (
+          <>
+            <Link href={`/assignments/${id}/run`} className="inline-flex min-h-11 items-center rounded-full bg-ink px-5 text-sm font-extrabold text-white">Update progress</Link>
+            <Link href={`/assignments/${id}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-extrabold text-ink hover:bg-panel">Open task</Link>
+          </>
+        )}
+        {assignment.conversationId ? (
+          <Link href={`/messages/${encodeURIComponent(assignment.conversationId)}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-5 text-sm font-extrabold text-ink hover:bg-panel">
+            <MessageCircle aria-hidden="true" className="size-4" />Message
+          </Link>
+        ) : null}
+      </div>
+      {respond ? null : (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-line-2 pt-4">
+          <Link href={`/assignments/${id}/payment`} className={chip}>Payment terms</Link>
+          <Link href={`/assignments/${id}/changes`} className={chip}>Change request</Link>
+          <Link href={`/assignments/${id}/dispute`} className={chip}>Open a dispute</Link>
+          <Link href={`/assignments/${id}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-xs font-extrabold text-red hover:opacity-80">Cancel</Link>
+        </div>
+      )}
     </li>
   );
 }
@@ -66,8 +84,8 @@ export function ActiveTasksPage() {
     <div className="grid min-w-0 content-start gap-4 pb-10">
       <PageHead
         eyebrow="Runner"
-        title="Active task"
-        description="Keep the requester updated as each task moves along."
+        title="Your active tasks"
+        description="A shared view of the agreed errand, its milestones and safety information."
       />
 
       {error ? (

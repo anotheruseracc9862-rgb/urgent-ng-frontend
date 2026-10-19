@@ -10,6 +10,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
+import { JourneyHere } from '@/features/journey/journey-context';
 
 type PaymentMethod = NonNullable<components['schemas']['PaymentAgreementDto']['paymentMethod']>;
 type PaymentTiming = NonNullable<components['schemas']['PaymentAgreementDto']['paymentTiming']>;
@@ -75,6 +76,7 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
         <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Payment agreement</p>
         <h1 className="mt-1 text-2xl font-extrabold text-ink sm:text-3xl">{assignment.data.data.errand.title}</h1>
       </header>
+      <JourneyHere />
       <Alert variant="warn" role="note">
         <p>Urgent.ng never holds or transfers this money. The payment is arranged directly between the requester and runner.</p>
       </Alert>

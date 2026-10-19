@@ -117,7 +117,7 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
       {decline.error && !isApiError(decline.error) ? <Alert variant="danger" role="alert">{decline.error.message}</Alert> : null}
 
       {pending && !expired ? (
-        <section className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-tint p-5 shadow-[var(--shadow)]">
+        <section className="grid gap-4 rounded-[var(--r-lg)] bg-tint p-4 shadow-[var(--shadow)] sm:p-[22px]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-extrabold uppercase tracking-wide text-green-900">Selected at {money(assignment.agreedAmountMinor)}</span>
             <span className="rounded-full bg-amber-bg px-3 py-1 text-[11px] font-extrabold text-amber">Awaiting acceptance</span>

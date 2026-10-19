@@ -93,6 +93,25 @@ describe('business topbar', () => {
     }
   });
 
+  it('shows the assignment trail on desktop and mobile, with a link back to the assignment', () => {
+    navigation.pathname = '/assignments/515cf6e5-09e7-560c-b89a-3dfee04a9368/run';
+    renderTopbar('RUNNER');
+    for (const crumb of screen.getAllByRole('navigation', { name: 'Breadcrumb' })) {
+      expect(crumb).toHaveTextContent(/Runner\s*›\s*Active tasks\s*›\s*Assignment\s*›\s*Run errand/);
+      expect(within(crumb).getByRole('link', { name: 'Assignment' })).toHaveAttribute('href', '/assignments/515cf6e5-09e7-560c-b89a-3dfee04a9368');
+      expect(within(crumb).getByRole('link', { name: 'Active tasks' })).toHaveAttribute('href', '/assignments');
+    }
+  });
+
+  it('a requester on an assignment sees My errands, not Active tasks', () => {
+    navigation.pathname = '/assignments/515cf6e5-09e7-560c-b89a-3dfee04a9368';
+    renderTopbar('REQUESTER');
+    for (const crumb of screen.getAllByRole('navigation', { name: 'Breadcrumb' })) {
+      expect(crumb).toHaveTextContent(/Requester\s*›\s*My errands\s*›\s*Assignment/);
+      expect(crumb).not.toHaveTextContent('Active tasks');
+    }
+  });
+
   it('shows the marketplace detail hierarchy without exposing the errand id on desktop and mobile', () => {
     navigation.pathname = '/marketplace/c82687f7-edc3-59d6-934e-3aea6684e1d7';
     renderTopbar('RUNNER');
