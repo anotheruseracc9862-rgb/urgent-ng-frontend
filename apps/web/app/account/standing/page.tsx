@@ -26,7 +26,7 @@ const COPY = {
 export default async function StandingPage() {
   const me = await getSession();
   // The access cookie was present but the API refused it: let the browser try one refresh and
-  // clear the dead cookies. Sending the user straight to /login loops, because middleware sees a
+  // clear the dead cookies. Sending the user straight to /login loops, because proxy sees a
   // cookie that has not expired and bounces /login back to the app.
   if (!me) redirect('/session?redirect=%2Faccount%2Fstanding');
   if (me.status === 'ACTIVE') redirect('/dashboard');

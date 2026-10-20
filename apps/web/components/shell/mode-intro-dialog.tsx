@@ -79,7 +79,7 @@ export function ModeIntroDialog({ mode, open, onOpenChange, onConfirm }: {
               <PackageCheck className="size-7" />
             </div>
           )}
-          <div className="min-w-0 flex-1 pr-24">
+          <div className="min-w-0 flex-1 pr-28">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-green-800">
               <Zap className="size-3" aria-hidden="true" />
               {copy.eyebrow}
@@ -91,12 +91,12 @@ export function ModeIntroDialog({ mode, open, onOpenChange, onConfirm }: {
           </div>
           {runner ? (
             <Image
-              src="/assets/mascot-full.png"
+              src="/assets/mascot-sprint.png"
               alt=""
-              width={96}
+              width={132}
               height={112}
               priority
-              className="mascot-dash absolute bottom-0 right-4 h-28 w-auto drop-shadow-md"
+              className="mascot-dash absolute bottom-0 right-3 h-24 w-auto drop-shadow-md"
             />
           ) : (
             // Same mascot, framed from the chest up with the raised fist: a greeting, not a sprint.

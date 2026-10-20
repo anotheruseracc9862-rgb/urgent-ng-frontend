@@ -149,7 +149,7 @@ export function MarketplaceFeedPage() {
       <main className="grid min-w-0 content-start gap-4 pb-10">
         <PageHead eyebrow="Marketplace" title="Find errands near you" />
         <section aria-labelledby="marketplace-verification-title" className="overflow-hidden rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)]">
-          <div className="grid items-center gap-6 bg-gradient-to-br from-tint to-surface p-6 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-8 lg:p-10">
+          <div className="grid items-center gap-6 bg-gradient-to-br from-tint to-surface p-6 sm:grid-cols-[minmax(0,1fr)_232px] sm:p-8 lg:p-10">
             <div className="min-w-0">
               <span className="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-green-800">
                 <ShieldCheck aria-hidden="true" className="size-4" />
@@ -166,11 +166,11 @@ export function MarketplaceFeedPage() {
               </Button>
             </div>
             <Image
-              src="/assets/mascot-full.png"
+              src="/assets/mascot-sprint.png"
               alt=""
-              width={180}
-              height={190}
-              className="row-start-1 mx-auto h-36 w-auto sm:col-start-2 sm:row-start-1 sm:h-48"
+              width={232}
+              height={197}
+              className="row-start-1 mx-auto h-auto w-44 sm:col-start-2 sm:row-start-1 sm:w-56"
             />
           </div>
         </section>

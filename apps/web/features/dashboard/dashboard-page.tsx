@@ -541,7 +541,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
       </section>
 
       {(verificationRequired || verificationPending || runnerSetupRequired) && (
-        <section aria-labelledby="runner-setup-title" className="grid grid-cols-[minmax(0,1fr)_64px] items-center gap-4 overflow-hidden rounded-[var(--r-lg)] bg-gradient-to-br from-tint to-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_100px] sm:gap-6 sm:p-5">
+        <section aria-labelledby="runner-setup-title" className="grid grid-cols-[minmax(0,1fr)_84px] items-center gap-4 overflow-hidden rounded-[var(--r-lg)] bg-gradient-to-br from-tint to-surface p-4 shadow-[var(--shadow)] sm:grid-cols-[minmax(0,1fr)_120px] sm:gap-6 sm:p-5">
           <div className="min-w-0">
             <h2 id="runner-setup-title" className="text-lg font-extrabold tracking-tight text-ink">
               {verificationPending && !verificationRequired ? 'Your verification is in progress' : 'Your next errand starts here'}
@@ -565,7 +565,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
               )}
             </div>
           </div>
-          <Image src="/assets/mascot-full.png" alt="" width={100} height={106} className="h-auto w-full" />
+          <Image src="/assets/mascot-sprint.png" alt="" width={120} height={102} className="h-auto w-full" />
         </section>
       )}
       {accountBlockers.length > 0 && (

@@ -43,7 +43,7 @@ function hasAccessCookie(request: NextRequest): boolean {
   return isAccessTokenValid(request.cookies.get(ACCESS_COOKIE)?.value);
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const signedIn = hasAccessCookie(request);
 

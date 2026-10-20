@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
-import { isAccessTokenValid, middleware } from './middleware';
+import { isAccessTokenValid, proxy } from './proxy';
 
 function tokenWithExpiry(exp: number): string {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -19,19 +19,19 @@ describe('isAccessTokenValid()', () => {
   });
 });
 
-describe('middleware()', () => {
+describe('proxy()', () => {
   it.each(['/safety', '/report', '/reports/case-id', '/disputes/case-id'])('protects the safety route %s', (path) => {
-    const response = middleware(new NextRequest(`https://app.test${path}`));
+    const response = proxy(new NextRequest(`https://app.test${path}`));
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toContain('/session?redirect=');
   });
 
   it('keeps trusted-contact links public', () => {
-    expect(middleware(new NextRequest('https://app.test/shared/secret')).status).toBe(200);
+    expect(proxy(new NextRequest('https://app.test/shared/secret')).status).toBe(200);
   });
 
   it('sends unauthenticated protected visits through the browser refresh route', () => {
-    const response = middleware(new NextRequest('https://app.test/errands?tab=active'));
+    const response = proxy(new NextRequest('https://app.test/errands?tab=active'));
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       'https://app.test/session?redirect=%2Ferrands%3Ftab%3Dactive',
@@ -43,16 +43,16 @@ describe('middleware()', () => {
     const request = new NextRequest('https://app.test/login?redirect=%2F%5Cevil.example', {
       headers: { cookie: `ung_at=${token}` },
     });
-    const response = middleware(request);
+    const response = proxy(request);
     expect(response.headers.get('location')).toBe('https://app.test/dashboard');
   });
 
   it('bounces a signed-in visitor off /login, except after a session was found dead', () => {
     const token = tokenWithExpiry(Math.floor(Date.now() / 1000) + 600);
     const request = (path: string) => new NextRequest(`https://app.test${path}`, { headers: { cookie: `ung_at=${token}` } });
-    expect(middleware(request('/login')).status).toBe(307);
+    expect(proxy(request('/login')).status).toBe(307);
     // The API rejected this cookie (for example after a database reset): do not loop back to the app.
-    expect(middleware(request('/login?reason=session-expired&redirect=%2Fdashboard')).status).toBe(200);
-    expect(middleware(request('/login?reason=session-check-failed')).status).toBe(200);
+    expect(proxy(request('/login?reason=session-expired&redirect=%2Fdashboard')).status).toBe(200);
+    expect(proxy(request('/login?reason=session-check-failed')).status).toBe(200);
   });
 });
