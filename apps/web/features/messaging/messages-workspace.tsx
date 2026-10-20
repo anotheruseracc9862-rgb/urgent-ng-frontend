@@ -165,7 +165,7 @@ function ConversationDetails({ conversation }: { conversation: Conversation }) {
   const action = 'flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
 
   return (
-    <div className="overflow-y-auto p-5">
+    <div className="overflow-y-auto overflow-x-hidden p-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[.12em] text-green">Errand</p>
       <h2 className="text-base font-extrabold leading-snug text-ink">{conversation.errandTitle}</h2>
 

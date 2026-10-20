@@ -69,6 +69,8 @@ export function NotificationPreferencesForm({
   initialQuietHours: QuietHours;
 }) {
   const [preferences, setPreferences] = useState(initialPreferences);
+  // What the server last confirmed. Saving is only offered when something differs from it.
+  const [savedPreferences, setSavedPreferences] = useState(initialPreferences);
   const [quietHours, setQuietHours] = useState(initialQuietHours);
   const [useCustomQuietHours, setUseCustomQuietHours] = useState(!initialQuietHours.isDefault);
   const [quietStart, setQuietStart] = useState(initialQuietHours.start);
@@ -76,6 +78,14 @@ export function NotificationPreferencesForm({
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessageState] = useState('');
   const [saved, setSaved] = useState(false);
+
+  const preferencesChanged = preferences.some((entry) => {
+    const before = savedPreferences.find((item) => item.category === entry.category && item.channel === entry.channel);
+    return before?.enabled !== entry.enabled;
+  });
+  const quietHoursChanged = useCustomQuietHours === quietHours.isDefault
+    || (useCustomQuietHours && (quietStart !== quietHours.start || quietEnd !== quietHours.end));
+  const hasChanges = preferencesChanged || quietHoursChanged;
 
   function updatePreference(
     category: NotificationCategory,
@@ -118,6 +128,7 @@ export function NotificationPreferencesForm({
       ]);
 
       setPreferences(updatedPreferences);
+      setSavedPreferences(updatedPreferences);
       setQuietHours(updatedQuietHours);
       setQuietStart(updatedQuietHours.start);
       setQuietEnd(updatedQuietHours.end);
@@ -293,7 +304,7 @@ export function NotificationPreferencesForm({
         </section>
         <Button
           className="min-h-[52px] w-full shadow-none hover:translate-y-0 hover:shadow-none motion-reduce:transform-none motion-reduce:transition-none"
-          disabled={isSaving}
+          disabled={isSaving || !hasChanges}
           type="submit"
         >
           {isSaving ? 'Saving…' : 'Save settings'}

@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Image
             src="/assets/logo.png"
             alt="Urgent.ng"
-            width={140}
+            width={114}
             height={34}
             priority
             className="h-[34px] w-auto brightness-0 invert"
@@ -44,7 +44,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main className="grid min-h-[calc(100dvh-1.25rem)] place-items-center rounded-[var(--r-xl)] bg-surface lg:min-h-[calc(100dvh-2rem)] p-5 shadow-[var(--shadow)] sm:p-7">
         <div className="grid w-full max-w-[440px] gap-5">
           <Link href="/" className="w-fit lg:hidden">
-            <Image src="/assets/logo.png" alt="Urgent.ng" width={120} height={30} className="h-8 w-auto" />
+            <Image src="/assets/logo.png" alt="Urgent.ng" width={107} height={32} className="h-8 w-auto" />
           </Link>
           {children}
         </div>

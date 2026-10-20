@@ -91,6 +91,35 @@ describe('NotificationPreferencesForm', () => {
     });
   });
 
+  it('offers Save only while something differs from what was last saved', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api)
+      .mockResolvedValueOnce([preferences[0], preferences[1], { ...preferences[2], enabled: false }])
+      .mockResolvedValueOnce(quietHours);
+    renderForm();
+    const save = screen.getByRole('button', { name: 'Save settings' });
+    const nearby = screen.getByRole('checkbox', { name: 'Push notifications for Nearby errands' });
+
+    expect(save).toBeDisabled();
+
+    await user.click(nearby);
+    expect(save).toBeEnabled();
+
+    // Putting it back is no change at all.
+    await user.click(nearby);
+    expect(save).toBeDisabled();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Use custom quiet hours' }));
+    expect(save).toBeEnabled();
+    await user.click(screen.getByRole('checkbox', { name: 'Use custom quiet hours' }));
+    expect(save).toBeDisabled();
+
+    await user.click(nearby);
+    await user.click(save);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Notification settings saved.'));
+    expect(save).toBeDisabled();
+  });
+
   it('prevents identical quiet-hour start and end values', async () => {
     const user = userEvent.setup();
     renderForm();

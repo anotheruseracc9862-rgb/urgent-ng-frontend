@@ -154,7 +154,7 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
         <span className="shrink-0 rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold">{status}</span>
       </div>
 
-      <div aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-panel p-5">
+      <div aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden bg-panel p-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {messages.error ? (
           <Alert variant="danger" role="alert">
             <p>We could not load the messages.</p>

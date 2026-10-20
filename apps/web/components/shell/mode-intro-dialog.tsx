@@ -93,8 +93,8 @@ export function ModeIntroDialog({ mode, open, onOpenChange, onConfirm }: {
             <Image
               src="/assets/mascot.png"
               alt=""
-              width={112}
-              height={118}
+              width={96}
+              height={112}
               priority
               className="mascot-dash absolute bottom-0 right-4 h-28 w-auto drop-shadow-md"
             />

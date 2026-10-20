@@ -69,7 +69,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
       {modeDialog}
       <header className="flex min-w-0 items-center gap-2 rounded-full bg-surface p-1.5 pl-2 shadow-[var(--shadow)] sm:gap-3 sm:p-2 sm:pl-3 lg:pl-[18px]">
       <Link href="/dashboard" className="shrink-0 lg:hidden">
-        <Image src="/assets/logo.png" alt="Urgent.ng" width={80} height={20} className="h-5 w-auto sm:h-6" />
+        <Image src="/assets/logo.png" alt="Urgent.ng" width={67} height={20} className="h-5 w-auto sm:h-6" />
       </Link>
 
       {crumb ? (

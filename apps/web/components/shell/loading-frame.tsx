@@ -15,7 +15,7 @@ export function LoadingFrame({ inShell = false }: { inShell?: boolean }) {
       <Image
         src="/assets/mascot.png"
         alt=""
-        width={112}
+        width={96}
         height={112}
         priority
         className="h-28 w-auto motion-safe:animate-[mascot-pulse_1.4s_ease-in-out_infinite]"

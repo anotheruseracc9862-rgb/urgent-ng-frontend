@@ -88,7 +88,7 @@ export function PublicHeader() {
           <Image
             src="/assets/logo.png"
             alt="Urgent.ng"
-            width={140}
+            width={114}
             height={34}
             priority
             className="h-[30px] w-auto lg:h-[34px]"

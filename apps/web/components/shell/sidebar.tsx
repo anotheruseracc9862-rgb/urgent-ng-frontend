@@ -140,7 +140,7 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
       className="sticky top-4 hidden h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[var(--r-xl)] bg-surface p-[18px_14px_14px] shadow-[var(--shadow)] lg:flex"
     >
       <Link href="/" aria-label="Urgent.ng home" className="px-2 pb-[18px]">
-        <Image src="/assets/logo.png" alt="Urgent.ng" width={130} height={32} className="h-8 w-auto" priority />
+        <Image src="/assets/logo.png" alt="Urgent.ng" width={107} height={32} className="h-8 w-auto" priority />
       </Link>
 
       <Link
