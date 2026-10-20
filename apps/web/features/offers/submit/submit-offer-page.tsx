@@ -133,9 +133,18 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
           </div>
           <div className="min-w-0 rounded-[var(--r-lg)] bg-ink p-4 text-white sm:p-[22px] shadow-[var(--shadow)]">
             <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-extrabold text-lime">Runner Pro</span>
-            <h2 className="mt-4 text-2xl font-extrabold">No daily offer cap</h2>
-            <p className="mt-2 text-sm text-white/75">Runner Pro removes the daily limit for new offers.</p>
-            <Button asChild className="mt-5"><Link href="/pricing">View Runner Pro</Link></Button>
+            {currentLimit.isPro ? (
+              <>
+                <h2 className="mt-4 text-2xl font-extrabold">Daily fair-use limit reached</h2>
+                <p className="mt-2 text-sm text-white/75">Your Runner Pro allowance for today is used up. It resets {resetLabel(currentLimit.resetsAt)} (Lagos time).</p>
+              </>
+            ) : (
+              <>
+                <h2 className="mt-4 text-2xl font-extrabold">Need more offers a day?</h2>
+                <p className="mt-2 text-sm text-white/75">Runner Pro gives you a much higher daily limit for new offers.</p>
+                <Button asChild className="mt-5"><Link href="/pricing">View Runner Pro</Link></Button>
+              </>
+            )}
           </div>
         </section>
       ) : (

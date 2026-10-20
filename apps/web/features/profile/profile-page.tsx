@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { accountMenuFor, type ShellMode } from '@/components/shell/nav-items';
 import * as React from 'react';
 import Image from 'next/image';
-import { Camera, Check, ChevronRight, MapPin, Settings, ShieldCheck, Star } from 'lucide-react';
+import { Camera, Check, ChevronRight, MapPin, Settings, ShieldCheck, Star, Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
@@ -186,7 +186,11 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
   };
 
   const menuItems = accountMenuFor(mode);
-  const roleLinks = menuItems.filter((item) => item.mode);
+  // The desktop rail already has My offers; phones only get five bottom-nav slots, so list it here too.
+  const roleLinks = [
+    ...(mode === 'RUNNER' ? [{ href: '/offers', label: 'My offers', icon: Tag, mobileOnly: true }] : []),
+    ...menuItems.filter((item) => item.mode).map((item) => ({ ...item, mobileOnly: false })),
+  ];
   const sharedLinks = [
     { href: '/settings', label: 'Settings', icon: Settings },
     ...menuItems.filter(
@@ -458,11 +462,11 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
                     />
                   </Link>
                 )}
-                {roleLinks.map(({ href, label, icon: Icon }) => (
+                {roleLinks.map(({ href, label, icon: Icon, mobileOnly }) => (
                   <Link
                     key={href}
                     href={href}
-                    className="group flex min-h-11 items-center gap-3 rounded-xl bg-[#26323f] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#344154] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime motion-reduce:transition-none"
+                    className={`${mobileOnly ? 'lg:hidden ' : ''}group flex min-h-11 items-center gap-3 rounded-xl bg-[#26323f] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#344154] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime motion-reduce:transition-none`}
                   >
                     <Icon aria-hidden="true" className="size-[18px] shrink-0 text-lime" />
                     <span className="min-w-0 flex-1">{label}</span>

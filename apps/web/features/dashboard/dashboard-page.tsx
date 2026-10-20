@@ -509,9 +509,9 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
         <Stat
           icon={Zap}
           tone="blue"
-          value={offerLimit.data ? (offerLimit.data.isPro ? '∞' : offerLimit.data.remaining) : '—'}
-          suffix={offerLimit.data && !offerLimit.data.isPro ? `/ ${offerLimit.data.limit}` : undefined}
-          label="Free offers left today"
+          value={offerLimit.data ? offerLimit.data.remaining : '—'}
+          suffix={offerLimit.data ? `/ ${offerLimit.data.limit}` : undefined}
+          label={offerLimit.data?.isPro ? 'Offers left today' : 'Free offers left today'}
           action={offerLimit.data && !offerLimit.data.isPro ? { href: '/pro', label: 'Go Pro' } : undefined}
         />
         <Stat icon={Star} value={performance.data?.rating.average ?? '—'} label={`Rating · ${performance.data?.completedErrands ?? 0} errands`} href="/ratings" tone="violet" />
@@ -664,18 +664,14 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
             </CardHeader>
             {offerLimit.isPending ? <Skeleton className="h-20 rounded-xl" /> : offerLimit.error ? <LoadError onRetry={() => void offerLimit.refetch()} /> : offerLimit.data ? (
               <>
-                {offerLimit.data.isPro ? (
-                  <p className="py-4 text-center text-sm font-semibold text-ink">Unlimited offers. {offerLimit.data.used} sent today.</p>
-                ) : (
-                  <Gauge value={offerLimit.data.limit > 0 ? offerLimit.data.used / offerLimit.data.limit * 100 : 0} label={`${offerLimit.data.used} / ${offerLimit.data.limit} offers used today`} />
-                )}
+                <Gauge value={offerLimit.data.limit > 0 ? offerLimit.data.used / offerLimit.data.limit * 100 : 0} label={`${offerLimit.data.used} / ${offerLimit.data.limit} offers used today`} />
                 {!offerLimit.data.isPro && (
                   <>
                     <Link href="/pro" className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-[13.5px] font-bold text-white hover:bg-[#0f1822]">
                       <Zap aria-hidden="true" className="size-4 text-lime" />
                       {proProduct ? `Runner Pro · ${money(proProduct.priceMinor)}${proProduct.periodDays ? ` / ${proProduct.periodDays} days` : ''}` : 'Explore Runner Pro'}
                     </Link>
-                    <p className="mt-2 text-center text-xs text-muted">Unlimited offers and early access to new errands.</p>
+                    <p className="mt-2 text-center text-xs text-muted">A much higher daily offer limit and early access to new errands.</p>
                   </>
                 )}
               </>

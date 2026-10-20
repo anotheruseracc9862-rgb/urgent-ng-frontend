@@ -91,7 +91,7 @@ describe('Phase 4 offer and assignment flows', () => {
 
     expect(await screen.findByText('10 / 10')).toBeInTheDocument();
     expect(screen.getByText(/Resets .* \(Lagos time\)/)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'No daily offer cap' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Need more offers a day?' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send offer' })).not.toBeInTheDocument();
   });
 

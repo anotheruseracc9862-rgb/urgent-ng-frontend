@@ -84,6 +84,8 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
     void client.invalidateQueries({ queryKey: queryKeys.billing.orders() });
     if (status === 'PAID') {
       void client.invalidateQueries({ queryKey: queryKeys.billing.subscription() });
+      // Runner Pro changes the offer allowance, eligibility and badges straight away.
+      void client.invalidateQueries({ queryKey: queryKeys.runner.all() });
       void client.invalidateQueries({ queryKey: ['verification'] });
       void client.invalidateQueries({ queryKey: queryKeys.errands.all() });
       void client.invalidateQueries({ queryKey: queryKeys.marketplace.all() });

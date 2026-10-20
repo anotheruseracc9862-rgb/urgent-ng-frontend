@@ -21,7 +21,7 @@ const FAQS: { c: (typeof CATEGORIES)[number]; q: string; a: string }[] = [
   { c: 'Account', q: 'How do I change my notification settings?', a: 'Open Notification settings from your account menu. You can choose categories, quiet hours and devices. Safety and account notices are always on.' },
   { c: 'Account', q: 'How do I close my account?', a: 'Open Profile & account, then Deactivate or delete. Deactivation is reversible. Deletion starts a 14-day grace period. You must finish or cancel active errands first.' },
   { c: 'Runners', q: 'Why do I need to verify my identity?', a: 'Verification builds trust and is required before you can send offers. You submit your details, an ID and a selfie. Most reviews finish in 2 to 4 hours.' },
-  { c: 'Runners', q: 'How many offers can I send?', a: 'Free runners can send 10 new offers a day. Editing an offer or answering a counter-offer does not use another. Runner Pro removes the limit.' },
+  { c: 'Runners', q: 'How many offers can I send?', a: 'Free runners have a daily limit on new offers. Your remaining offers show on your dashboard and on My offers. Editing an offer or answering a counter-offer does not use another. Runner Pro gives you a much higher daily limit.' },
 ];
 
 export function HelpCenter() {
