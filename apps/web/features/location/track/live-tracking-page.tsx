@@ -4,6 +4,7 @@ import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { ArrowLeft } from 'lucide-react';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -11,8 +12,13 @@ import { MapProvider } from '@/components/map/MapProvider';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
-import { RoundedLiveLocationMap } from './rounded-live-location-map';
 import { JourneyHere } from '@/features/journey/journey-context';
+
+// The map code loads only when there is a pin to show.
+const RoundedLiveLocationMap = dynamic(
+  () => import('@/features/location/track/rounded-live-location-map').then((module) => module.RoundedLiveLocationMap),
+  { ssr: false, loading: () => <Skeleton className="h-64 rounded-[var(--r)]" aria-label="Loading map" /> },
+);
 
 function freshnessCopy(freshness: string) {
   switch (freshness) {

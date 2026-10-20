@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@urgent/ui';
+import { Button, Skeleton } from '@urgent/ui';
 import { MapProvider } from '@/components/map/MapProvider';
-import { RoundedLiveLocationMap } from '@/features/location/track/rounded-live-location-map';
 import { dateText, errorText, getShared, raiseConcern, shareKeys, unavailable } from './api';
+
+// The map code loads only when there is a pin to show.
+const RoundedLiveLocationMap = dynamic(
+  () => import('@/features/location/track/rounded-live-location-map').then((module) => module.RoundedLiveLocationMap),
+  { ssr: false, loading: () => <Skeleton className="h-64 rounded-[var(--r)]" aria-label="Loading map" /> },
+);
 
 const panel = 'space-y-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)] sm:p-6';
 const labels: Record<string, string> = { ACCEPTED: 'Runner accepted', IN_PROGRESS: 'On the way to pickup', PICKED_UP: 'On the way to drop-off', DELIVERED: 'Delivered', COMPLETED: 'Completed', CANCELLED: 'Cancelled', DISPUTED: 'Disputed — under review' };
