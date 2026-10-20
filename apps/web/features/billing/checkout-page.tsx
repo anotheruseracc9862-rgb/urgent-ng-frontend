@@ -99,7 +99,6 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
       <div className="mx-auto grid max-w-xl gap-3">
         <Alert variant="danger" role="alert">
           <p>{notFound ? 'We could not find this order.' : 'We could not load this order.'}</p>
-          {isApiError(checked.error) && checked.error.requestId ? <p className="mt-1 text-xs">Request ID: {checked.error.requestId}</p> : null}
           {!notFound ? <Button type="button" variant="ghost" size="sm" onClick={() => void checked.refetch()}>Try again</Button> : null}
         </Alert>
         <Link href="/profile/orders" className="text-sm font-bold text-green-800 underline">See your orders</Link>

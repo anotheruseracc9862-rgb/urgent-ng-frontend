@@ -192,13 +192,11 @@ export function RunnerLocationSharing({ assignmentId }: { assignmentId: string }
       {sharingMutation.error && !locationError ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(sharingMutation.error) ? sharingMutation.error.message : 'We could not change location sharing.'}</p>
-          {isApiError(sharingMutation.error) && sharingMutation.error.requestId ? <p className="mt-1 text-xs">Request ID: {sharingMutation.error.requestId}</p> : null}
         </Alert>
       ) : null}
       {live.error ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(live.error) ? live.error.message : 'We could not load the location-sharing state.'}</p>
-          {isApiError(live.error) && live.error.requestId ? <p className="mt-1 text-xs">Request ID: {live.error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => void live.refetch()}>Try again</Button>
         </Alert>
       ) : null}

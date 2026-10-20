@@ -23,7 +23,6 @@ export function CaseError({ error, retry }: { error: unknown; retry?: () => void
     : 'We could not complete this request. Please try again.';
   return <Alert variant="danger" role="alert"><p>{message}</p>
     {known && typeof error.details.field === 'string' ? <p className="mt-1 text-xs">Check: {error.details.field}</p> : null}
-    {known && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
     {retry ? <Button type="button" size="sm" variant="ghost" onClick={retry}>Try again</Button> : null}
   </Alert>;
 }

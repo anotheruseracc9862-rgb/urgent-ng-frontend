@@ -26,7 +26,8 @@ export default async function BusinessLayout({ children }: { children: React.Rea
     <PersistedCache userId={me.id}>
     <SessionProvider me={me}>
       <RealtimeProvider userId={me.id}>
-        <div className="grid min-h-screen gap-4 p-3 sm:p-4 lg:grid-cols-[276px_minmax(0,1fr)]">
+        {/* Horizontal overflow can enlarge the mobile layout viewport and clip the fixed bottom nav. */}
+        <div className="grid min-h-screen gap-4 overflow-x-clip p-3 sm:p-4 lg:grid-cols-[276px_minmax(0,1fr)] lg:overflow-x-visible">
           <Sidebar mode={mode} name={me.name} />
           <div className="flex min-w-0 flex-col gap-4">
             <Topbar mode={mode} />

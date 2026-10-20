@@ -71,7 +71,6 @@ export function ConversationListPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p>{forbidden ? 'You do not have permission to view messages.' : 'We could not load your conversations.'}</p>
-              {isApiError(conversations.error) && conversations.error.requestId ? <p className="mt-1 text-xs">Request ID: {conversations.error.requestId}</p> : null}
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={() => void conversations.refetch()}>Try again</Button>
           </div>

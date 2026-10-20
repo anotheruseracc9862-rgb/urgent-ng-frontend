@@ -24,7 +24,7 @@ describe("component gallery", () => {
     expect(screen.getByRole("button", { name: "Saving" })).toBeDisabled();
     expect(screen.getByRole("switch", { name: "Enable notifications" })).toBeInTheDocument();
     expect(screen.getByRole("table")).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("Request ID: demo-request-123");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Request ID");
   }, 10_000);
 
   it("connects toast actions to the app-level Sonner integration", async () => {

@@ -108,7 +108,7 @@ describe('runner marketplace phase', () => {
     renderWithClient(<MarketplaceFeedPage />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
-    expect(screen.getByText('Request ID: req-msw')).toBeInTheDocument();
+    expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Continue verification' })).not.toBeInTheDocument();
     failed = false;
     await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }));

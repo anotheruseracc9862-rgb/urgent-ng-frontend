@@ -210,7 +210,6 @@ function fieldError(error: unknown): string {
   if (error.code === 'VALIDATION_ERROR' && typeof error.details.field === 'string') {
     return `${error.details.field}: ${error.message}`;
   }
-  if (error.requestId) return `We could not save the draft. Request ID: ${error.requestId}`;
   return error.message;
 }
 
@@ -236,10 +235,10 @@ export function PostErrandForm({ errandId }: { errandId?: string }) {
     return <PageLoading title="Post an errand" eyebrow="Requester" />;
   }
   if (errandId && existing.error) {
-    return <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{fieldError(existing.error)}</p>{isApiError(existing.error) && existing.error.requestId ? <p className="text-xs">Request ID: {existing.error.requestId}</p> : null}<div className="flex flex-wrap gap-3"><Button type="button" variant="ghost" onClick={() => void existing.refetch()}>Try again</Button><Link href="/errands" className="inline-flex items-center font-bold underline">Back to my errands</Link></div></div></Alert>;
+    return <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{fieldError(existing.error)}</p><div className="flex flex-wrap gap-3"><Button type="button" variant="ghost" onClick={() => void existing.refetch()}>Try again</Button><Link href="/errands" className="inline-flex items-center font-bold underline">Back to my errands</Link></div></div></Alert>;
   }
   if (categories.error) {
-    return <Alert variant="danger" role="alert"><div className="grid gap-2"><p>We could not load errand categories.</p>{isApiError(categories.error) && categories.error.requestId ? <p className="text-xs">Request ID: {categories.error.requestId}</p> : null}<Button type="button" variant="ghost" onClick={() => void categories.refetch()}>Try again</Button></div></Alert>;
+    return <Alert variant="danger" role="alert"><div className="grid gap-2"><p>We could not load errand categories.</p><Button type="button" variant="ghost" onClick={() => void categories.refetch()}>Try again</Button></div></Alert>;
   }
 
   return (
@@ -363,7 +362,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
         title={errandId ? 'Edit errand' : 'Post an errand'}
         description="Share the essentials. You review runner offers before agreeing a price."
       />
-      {saveMessage ? <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{saveMessage}</p>{isApiError(saveError) && saveError.requestId ? <p className="text-xs">Request ID: {saveError.requestId}</p> : null}<Button type="button" variant="ghost" onClick={retrySave} disabled={create.isPending || save.isPending || dateInvalid}>Try again</Button></div></Alert> : null}
+      {saveMessage ? <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{saveMessage}</p><Button type="button" variant="ghost" onClick={retrySave} disabled={create.isPending || save.isPending || dateInvalid}>Try again</Button></div></Alert> : null}
       {validationError ? <Alert variant="danger" role="alert">{validationError}</Alert> : null}
       {warnsAboutOffers ? <Alert variant="warn" role="status">Changing the category, timing, size, value or location asks existing runners to reconfirm their offers before you can select one.</Alert> : null}
       <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">

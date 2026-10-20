@@ -24,7 +24,7 @@ import type { components } from '@urgent/api-client';
 import { Alert, Button, Card, CardDescription, CardHeader, CardTitle, Skeleton } from '@urgent/ui';
 import { formatRelativeTime } from '@urgent/utils';
 import { useSession } from '@/lib/auth/client';
-import { api, isApiError } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import type { ShellMode } from '@/components/shell/nav-items';
 import { PageHead } from '@/components/shell/page-head';
 import { Stat } from '@/components/shell/stat-card';
@@ -46,14 +46,13 @@ type MetricTone = 'green' | 'amber' | 'blue' | 'violet' | 'red';
 const money = (minor: number | null) =>
   minor === null ? 'No budget' : new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(minor / 100);
 
-function LoadError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+function LoadError({ onRetry }: { onRetry: () => void }) {
   return (
     <Alert variant="danger" role="alert">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span>We could not load this dashboard section.</span>
         <Button type="button" variant="ghost" size="sm" onClick={onRetry}>Retry</Button>
       </div>
-      {isApiError(error) && error.requestId && <p className="mt-1 text-xs">Request ID: {error.requestId}</p>}
     </Alert>
   );
 }
@@ -224,7 +223,7 @@ export function DashboardPage({ mode, firstName, greeting = 'Hello' }: { mode: S
         )}
       />
 
-      {summary.error && !summary.data ? <LoadError error={summary.error} onRetry={() => void summary.refetch()} /> : null}
+      {summary.error && !summary.data ? <LoadError onRetry={() => void summary.refetch()} /> : null}
 
       {/* The stat cards, headings and layout are always there; numbers show a dash until they arrive. */}
       {mode === 'RUNNER'
@@ -337,7 +336,7 @@ function RequesterDashboard({ summary }: { summary: Summary | undefined }) {
               <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel" href="/errands">View all <ChevronRight aria-hidden="true" className="size-3.5" /></Link>
             </CardHeader>
             {openErrands.isPending || activeErrands.isPending ? <Skeleton className="h-36 rounded-xl" /> : openErrands.error ? (
-              <LoadError error={openErrands.error} onRetry={() => void openErrands.refetch()} />
+              <LoadError onRetry={() => void openErrands.refetch()} />
             ) : errands.length ? (
               <div>
                 {errands.map((errand) => {
@@ -487,7 +486,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
   return (
     <>
       {pendingAssignments.isPending ? <Skeleton className="h-16 rounded-[var(--r)]" /> : pendingAssignments.error ? (
-        <LoadError error={pendingAssignments.error} onRetry={() => void pendingAssignments.refetch()} />
+        <LoadError onRetry={() => void pendingAssignments.refetch()} />
       ) : pendingAssignments.data?.[0] ? (
         <Link
           href={`/assignments/${pendingAssignments.data[0].id}`}
@@ -557,7 +556,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
           </div>
         </Alert>
       )}
-      {eligibility.error && <LoadError error={eligibility.error} onRetry={() => void eligibility.refetch()} />}
+      {eligibility.error && <LoadError onRetry={() => void eligibility.refetch()} />}
 
       {/* The rail has this switch on desktop; phones have no rail, so it lives here too. */}
       {profile.data && (
@@ -580,9 +579,9 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
         </Card>
       )}
       {profile.error && !eligibility.data?.reasons.includes('NO_RUNNER_PROFILE') && (
-        <LoadError error={profile.error} onRetry={() => void profile.refetch()} />
+        <LoadError onRetry={() => void profile.refetch()} />
       )}
-      {availabilityError && <LoadError error={availabilityError} onRetry={() => availability.variables && availability.mutate(availability.variables)} />}
+      {availabilityError && <LoadError onRetry={() => availability.variables && availability.mutate(availability.variables)} />}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,1fr)]">
         <div className="grid content-start gap-4">
@@ -592,7 +591,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
               <Link href="/assignments" className="text-xs font-bold text-green-700 hover:underline">Open all</Link>
             </CardHeader>
             {assignments.isPending ? <Skeleton className="h-32 rounded-xl" /> : assignments.error ? (
-              <LoadError error={assignments.error} onRetry={() => void assignments.refetch()} />
+              <LoadError onRetry={() => void assignments.refetch()} />
             ) : assignments.data?.length ? (
               <div className="grid gap-4">
                 {assignments.data.slice(0, 3).map((assignment) => {
@@ -631,10 +630,10 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
               <Link href="/marketplace" className="text-xs font-bold text-green-700 hover:underline">{nearby.total !== null ? `See all ${nearby.total}` : 'See all'}</Link>
             </CardHeader>
             {eligibility.isLoading || feed.isLoading ? <Skeleton className="h-36 rounded-xl" /> : eligibility.error ? (
-              <LoadError error={eligibility.error} onRetry={() => void eligibility.refetch()} />
+              <LoadError onRetry={() => void eligibility.refetch()} />
             ) : !eligibility.data?.canBrowseFeed ? (
               <SectionEmpty href="/verification" action="Check eligibility">Complete your runner setup to browse the marketplace.</SectionEmpty>
-            ) : feed.error ? <LoadError error={feed.error} onRetry={() => void feed.refetch()} /> : feed.data?.length ? (
+            ) : feed.error ? <LoadError onRetry={() => void feed.refetch()} /> : feed.data?.length ? (
               <div>
                 {feed.data.slice(0, 5).map((errand) => (
                   <Link key={errand.id} href={`/marketplace/${errand.id}`} className={ROW}>
@@ -663,7 +662,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
               <div><CardTitle>Offer allowance</CardTitle><CardDescription>Resets at midnight, Lagos time</CardDescription></div>
               <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{offerLimit.data?.isPro ? 'Runner Pro' : 'Free plan'}</span>
             </CardHeader>
-            {offerLimit.isPending ? <Skeleton className="h-20 rounded-xl" /> : offerLimit.error ? <LoadError error={offerLimit.error} onRetry={() => void offerLimit.refetch()} /> : offerLimit.data ? (
+            {offerLimit.isPending ? <Skeleton className="h-20 rounded-xl" /> : offerLimit.error ? <LoadError onRetry={() => void offerLimit.refetch()} /> : offerLimit.data ? (
               <>
                 {offerLimit.data.isPro ? (
                   <p className="py-4 text-center text-sm font-semibold text-ink">Unlimited offers. {offerLimit.data.used} sent today.</p>
@@ -708,7 +707,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
           <Card>
             <CardHeader><CardTitle>Reputation</CardTitle><Link href="/runner/history" className="text-xs font-bold text-green-700 hover:underline">Job history</Link></CardHeader>
             {performance.isPending ? <Skeleton className="h-20 rounded-xl" /> : performance.error ? (
-              <LoadError error={performance.error} onRetry={() => void performance.refetch()} />
+              <LoadError onRetry={() => void performance.refetch()} />
             ) : (
               <>
                 <div className="flex items-center gap-[18px]">

@@ -8,7 +8,6 @@ import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, Select
 import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, FileText, History, List, Map, MapPin, Package, Search, Settings2, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
 import { PageHead } from '@/components/shell/page-head';
 import { runnerApi } from '@/features/runner/api';
-import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 
 export const categoryIcons: Record<string, typeof Package> = { delivery: Package, pickup: MapPin, shopping_purchase: ShoppingBag, document: FileText };
@@ -137,7 +136,6 @@ export function MarketplaceControls({ count, pending, updating, hasMore = false 
       </form>
       {categoryOptions.error && <Alert variant="danger" role="alert">
         <p>We could not load errand categories.</p>
-        {isApiError(categoryOptions.error) && categoryOptions.error.requestId && <p className="mt-1 text-xs">Request ID: {categoryOptions.error.requestId}</p>}
         <Button type="button" variant="ghost" className="mt-2" onClick={() => void categoryOptions.refetch()}>Try again</Button>
       </Alert>}
       <div className="flex flex-wrap items-center justify-between gap-3 px-1.5">

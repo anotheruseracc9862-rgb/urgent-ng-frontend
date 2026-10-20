@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Input } from "@urgent/ui";
 import { adminApi, adminErrorMessage } from "../../lib/api/client";
+import { PasswordInput } from "./password-input";
 import { AuthPanel } from "./auth-panel";
 
 export function AcceptInviteForm() {
@@ -40,8 +40,8 @@ export function AcceptInviteForm() {
   return <AuthPanel title={done ? "Your account is ready" : "Accept your invitation"}>
     {done ? <div className="stack"><p className="notice">Password set. Sign in to set up your authenticator and finish securing your account.</p><Link className="button primary" href="/login">Continue to sign in</Link></div> : !ready ? <p role="status">Reading invitation…</p> : !token ? <p className="error" role="alert">This invitation has no token. Ask your administrator for a new invitation.</p> : <form className="stack" onSubmit={submit} aria-busy={busy}>
       <p className="muted">Choose a password with at least 12 characters. Authenticator setup follows at sign-in.</p>
-      <label className="field">New password<Input name="password" type="password" autoComplete="new-password" minLength={12} required disabled={busy} /></label>
-      <label className="field">Confirm password<Input name="confirm" type="password" autoComplete="new-password" minLength={12} required disabled={busy} /></label>
+      <label className="field">New password<PasswordInput name="password" autoComplete="new-password" minLength={12} required disabled={busy} /></label>
+      <label className="field">Confirm password<PasswordInput name="confirm" autoComplete="new-password" minLength={12} required disabled={busy} /></label>
       {error && <p className="error" role="alert">{error}</p>}
       <button className="button primary" disabled={busy}>{busy ? "Setting password…" : "Accept invitation"}</button>
     </form>}

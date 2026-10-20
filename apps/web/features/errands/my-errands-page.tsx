@@ -345,7 +345,6 @@ export function MyErrandsPage() {
       <Alert variant="danger" role="alert">
         <div className="grid gap-2">
           <p>{isApiError(errands.error) && errands.error.status === 403 ? 'Your account cannot access these errands right now.' : 'We could not load your errands.'}</p>
-          {isApiError(errands.error) && errands.error.requestId ? <p className="text-xs">Request ID: {errands.error.requestId}</p> : null}
           <Button type="button" variant="ghost" onClick={() => void errands.refetch()}>Try again</Button>
         </div>
       </Alert>
@@ -372,7 +371,6 @@ export function MyErrandsPage() {
             <span>We could not load the errand overview; your list is still available.</span>
             <Button type="button" variant="ghost" onClick={() => void summary.refetch()}>Retry summary</Button>
           </div>
-          {isApiError(summary.error) && summary.error.requestId ? <p className="mt-1 text-xs">Request ID: {summary.error.requestId}</p> : null}
         </Alert>
       ) : null}
 
@@ -419,7 +417,7 @@ export function MyErrandsPage() {
 
       {errands.error && items.length ? (
         <Alert variant="danger" role="alert">
-          Some errands could not be refreshed. {isApiError(errands.error) && errands.error.requestId ? `Request ID: ${errands.error.requestId}` : ''}
+          Some errands could not be refreshed. 
           <Button type="button" variant="ghost" size="sm" onClick={() => void errands.refetch()}>Try again</Button>
         </Alert>
       ) : null}

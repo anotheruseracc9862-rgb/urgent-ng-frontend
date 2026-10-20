@@ -114,7 +114,6 @@ export function RunnerHistoryPage() {
       {performance.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load runner performance.</p>
-          {isApiError(performance.error) && performance.error.requestId ? <p className="mt-1 text-xs">Request ID: {performance.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void performance.refetch()}>Try again</Button>
         </Alert>
       ) : null}
@@ -171,7 +170,6 @@ export function RunnerHistoryPage() {
       {summary.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your monthly history summary.</p>
-          {isApiError(summary.error) && summary.error.requestId ? <p className="mt-1 text-xs">Request ID: {summary.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void summary.refetch()}>Try again</Button>
         </Alert>
       ) : null}
@@ -221,7 +219,6 @@ export function RunnerHistoryPage() {
       {list.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load assignment history.</p>
-          {isApiError(list.error) && list.error.requestId ? <p className="mt-1 text-xs">Request ID: {list.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void list.refetch()}>Try again</Button>
         </Alert>
       ) : null}

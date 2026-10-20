@@ -83,7 +83,6 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
         <Alert variant="danger" role="alert">
           <div className="grid gap-3">
             <p>{isApiError(errandQuery.error) && errandQuery.error.code === 'RESOURCE_NOT_FOUND' ? 'This errand could not be found, or you do not have permission to view it.' : 'We could not load this errand.'}</p>
-            {isApiError(errandQuery.error) && errandQuery.error.requestId ? <p className="text-xs">Request ID: {errandQuery.error.requestId}</p> : null}
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="ghost" onClick={() => void errandQuery.refetch()}>Try again</Button>
               <Button asChild variant="soft"><Link href="/errands">My errands</Link></Button>
@@ -118,7 +117,6 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>{cancellationError(cancel.error)}</p>
-            {isApiError(cancel.error) && cancel.error.requestId ? <p className="text-xs">Request ID: {cancel.error.requestId}</p> : null}
             {blockedAction && assignmentHref ? <Link className="font-bold underline" href={assignmentHref}>Open assignment hub</Link> : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => { cancel.reset(); void errandQuery.refetch(); }}>Refresh errand</Button>
           </div>

@@ -38,7 +38,6 @@ export default async function NotificationSettingsPage() {
     ]);
   } catch (error) {
     const isForbidden = isApiError(error) && error.status === 403;
-    const requestId = isApiError(error) ? error.requestId : undefined;
 
     return (
       <section className="mx-auto grid max-w-2xl gap-4">
@@ -52,7 +51,6 @@ export default async function NotificationSettingsPage() {
                 ? 'You do not have permission to view these settings.'
                 : 'We could not load your notification settings. Please try again.'}
             </p>
-            {requestId && <p className="text-xs">Request ID: {requestId}</p>}
             <Link className="font-bold underline" href="/settings/notifications">
               Try again
             </Link>

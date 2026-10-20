@@ -102,7 +102,6 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
           <p>{isApiError(errand.error) && errand.error.code === 'RESOURCE_NOT_FOUND'
             ? 'This errand is no longer available, or you do not have permission to view it.'
             : 'We could not load this errand.'}</p>
-          {isApiError(errand.error) && errand.error.requestId ? <p className="mt-1 text-xs">Request ID: {errand.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void errand.refetch()}>Try again</Button>
         </Alert>
       </main>
@@ -196,7 +195,6 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
             {eligibilityError ? (
               <Alert variant="warn" role="status">
                 <p>We could not confirm your offer eligibility. Try again before sending an offer.</p>
-                {isApiError(eligibilityError) && eligibilityError.requestId ? <p className="mt-1 text-xs">Request ID: {eligibilityError.requestId}</p> : null}
                 <Button type="button" variant="ghost" className="mt-2" onClick={() => void eligibility.refetch()}>Check again</Button>
               </Alert>
             ) : reasons.length ? reasons.map((reason) => (

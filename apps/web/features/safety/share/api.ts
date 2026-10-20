@@ -18,7 +18,7 @@ export const getShared = (token: string, signal: AbortSignal) => api<SharedErran
 export const raiseConcern = (token: string, body: components['schemas']['RaiseConcernDto']) => api<components['schemas']['ConcernResultDto']>(`/shared/${encodeURIComponent(token)}/concern`, { ...publicOptions, method: 'POST', body });
 export const unavailable = (error: unknown) => isApiError(error) && (error.status === 404 || error.code === 'RESOURCE_NOT_FOUND');
 export function errorText(error: unknown) {
-  return `Unable to complete this request. Please try again.${isApiError(error) && error.requestId ? ` Reference: ${error.requestId}` : ''}`;
+  return `Unable to complete this request. Please try again.`;
 }
 export function dateText(value: string) {
   return Number.isFinite(Date.parse(value)) ? `${formatDate(value)} (Lagos time)` : 'Not available';

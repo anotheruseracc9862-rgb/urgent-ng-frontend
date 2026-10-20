@@ -6,7 +6,6 @@ import { Receipt } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
 import { PageHead } from '@/components/shell/page-head';
-import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { billingApi, ORDER_STATUS_LABEL, ORDER_TYPE_LABEL, type Order } from './api';
 
@@ -75,7 +74,6 @@ export function OrdersPage() {
       {orders.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your orders.</p>
-          {isApiError(orders.error) && orders.error.requestId ? <p className="mt-1 text-xs">Request ID: {orders.error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" onClick={() => void orders.refetch()}>Try again</Button>
         </Alert>
       ) : null}

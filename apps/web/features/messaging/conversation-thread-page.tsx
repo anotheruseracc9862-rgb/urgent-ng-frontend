@@ -113,7 +113,6 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
         <h1 className="text-xl font-extrabold text-ink">Conversation</h1>
         <Alert variant="danger" role="alert">
           <p>{notFound ? 'This conversation was not found.' : 'We could not load this conversation.'}</p>
-          {isApiError(conversation.error) && conversation.error.requestId ? <p className="mt-1 text-xs">Request ID: {conversation.error.requestId}</p> : null}
           {!notFound ? <Button type="button" variant="ghost" size="sm" onClick={() => void conversation.refetch()}>Try again</Button> : null}
         </Alert>
       </div>
@@ -158,7 +157,6 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
         {messages.error ? (
           <Alert variant="danger" role="alert">
             <p>We could not load the messages.</p>
-            {isApiError(messages.error) && messages.error.requestId ? <p className="mt-1 text-xs">Request ID: {messages.error.requestId}</p> : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => void messages.refetch()}>Try again</Button>
           </Alert>
         ) : null}
@@ -187,7 +185,6 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
         <div className="border-t border-line p-3">
           <Alert variant="danger" role="alert">
             <p>{isApiError(send.error) && send.error.code === 'CONVERSATION_READ_ONLY' ? 'This conversation is now read-only.' : 'Your message could not be sent. Retry to send it once.'}</p>
-            {isApiError(send.error) && send.error.requestId ? <p className="mt-1 text-xs">Request ID: {send.error.requestId}</p> : null}
           </Alert>
         </div>
       ) : null}

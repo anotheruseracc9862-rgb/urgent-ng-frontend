@@ -156,7 +156,7 @@ describe('MediaUpload', () => {
     choosePng();
 
     expect(await screen.findByText('Connection lost.')).toBeInTheDocument();
-    expect(screen.getByText('Request ID: req_upload_1')).toBeInTheDocument();
+    expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Retry upload' }));
 
     expect(await screen.findByLabelText('Ready')).toBeInTheDocument();

@@ -19,7 +19,6 @@ function ErrorPanel({ error, onRetry }: { error: unknown; onRetry: () => void })
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p>{forbidden ? 'You do not have permission to view blocked people.' : 'We could not load or update your blocked people.'}</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onRetry}>Try again</Button>
       </div>

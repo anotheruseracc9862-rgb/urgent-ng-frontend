@@ -100,7 +100,6 @@ function ErrorNotice({ error, onRetry }: { error: unknown; onRetry: () => void }
   return (
     <Alert variant="danger" role="alert">
       <p>{friendlyError(error)}</p>
-      {requestId(error) && <p className="mt-1 text-xs">Request ID: {requestId(error)}</p>}
       <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onRetry}>Try again</Button>
     </Alert>
   );
@@ -446,7 +445,6 @@ export function VerificationPage() {
         <Alert variant="danger" role="alert">
           <p>{friendlyError(submitError)}</p>
           {retryAt(submitError) && <p className="mt-1">You can try again after {dateLabel(retryAt(submitError)!)} (Lagos time).</p>}
-          {submitError.requestId && <p className="mt-1 text-xs">Request ID: {submitError.requestId}</p>}
         </Alert>
       )}
 
@@ -458,7 +456,7 @@ export function VerificationPage() {
             {feeOrder && <p className="mt-1 text-xs text-muted">Order status: {feeOrder.status.toLowerCase()}</p>}
             {feeOrder?.status === 'PAID' && <p className="mt-1 text-sm font-bold text-ok">Payment received. Refreshing your verification allowance…</p>}
             {feeOrder?.status === 'PENDING' && <Button type="button" variant="ghost" size="sm" className="mt-2" disabled={feeBusy} onClick={() => void verifyFeePayment()}>I’ve paid — check payment</Button>}
-            {feeError ? <p role="alert" className="mt-2 text-sm text-red">{friendlyError(feeError)}{requestId(feeError) ? ` Request ID: ${requestId(feeError)}` : ''}</p> : null}
+            {feeError ? <p role="alert" className="mt-2 text-sm text-red">{friendlyError(feeError)}</p> : null}
           </div>
           <Button type="button" disabled={feeBusy} onClick={() => void startFeePayment()}>{feeBusy ? 'Preparing payment…' : 'Pay verification fee'}</Button>
         </section>

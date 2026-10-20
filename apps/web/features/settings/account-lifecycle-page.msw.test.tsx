@@ -73,7 +73,7 @@ describe('account lifecycle settings', () => {
 
     expect(await screen.findByText('Finish your active errand.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View errands' })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByText(/req-delete-blocked/)).toBeInTheDocument();
+    expect(screen.queryByText(/req-delete-blocked/)).not.toBeInTheDocument();
   });
 
   it('shows the backend grace-period date and redirects after a successful deletion request', async () => {

@@ -38,7 +38,6 @@ function updateMe(queryClient: ReturnType<typeof useQueryClient>, me: Me, result
 
 function errorText(error: unknown): string {
   if (isApiError(error) && error.code === 'RESOURCE_CONFLICT') return 'This account state has changed. Refresh and try again.';
-  if (isApiError(error) && error.requestId) return `We could not update your account. Request ID: ${error.requestId}`;
   return 'We could not update your account. Please try again.';
 }
 

@@ -149,7 +149,6 @@ function UploadCard({
             <div>
               <AlertCircle className="mx-auto mb-2 h-6 w-6 text-red" aria-hidden="true" />
               <p className="text-xs">{file.error ?? 'The image was rejected.'}</p>
-              {file.requestId && <p className="mt-1 break-all text-[10px]">Request ID: {file.requestId}</p>}
               {file.status === 'failed' && file.removeFailed && (
                 <button type="button" onClick={onRemove} className="mt-2 text-xs underline">
                   Retry removal

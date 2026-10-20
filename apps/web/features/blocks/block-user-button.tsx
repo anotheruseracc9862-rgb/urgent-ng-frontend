@@ -64,7 +64,6 @@ export function BlockUserButton({ userId, userName, label = 'Block', variant = '
               <p>{isApiError(mutation.error) && mutation.error.code === 'USER_BLOCKED'
                 ? 'This action is not available between these users.'
                 : 'We could not block this person. Please try again.'}</p>
-              {isApiError(mutation.error) && mutation.error.requestId ? <p className="mt-1 text-xs">Request ID: {mutation.error.requestId}</p> : null}
             </Alert>
           ) : null}
           <DialogFooter>

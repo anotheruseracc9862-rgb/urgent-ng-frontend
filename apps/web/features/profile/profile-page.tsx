@@ -268,9 +268,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
                 Retry photo
               </Button>
             </div>
-            {isApiError(photo.error) && photo.error.requestId && (
-              <p className="mt-1 text-xs">Request ID: {photo.error.requestId}</p>
-            )}
           </Alert>
         )}
         <div id="profile-photo-editor" hidden={!showPhotoEditor}>
@@ -282,7 +279,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
             {photoError && (
               <Alert variant="danger" role="alert" className="mb-4">
                 <p>{photoError}</p>
-                {photoRequestId && <p className="mt-1 text-xs">Request ID: {photoRequestId}</p>}
                 {failedPhotoId && (
                   <Button
                     type="button"
@@ -427,7 +423,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
             {saveError && (
               <Alert variant="danger" role="alert">
                 <p>{saveError}</p>
-                {saveRequestId && <p className="mt-1 text-xs">Request ID: {saveRequestId}</p>}
               </Alert>
             )}
             {saved && (
@@ -556,9 +551,6 @@ function Stats({
       {error ? (
         <Alert variant="danger" role="alert" className="mt-4">
           <p>We could not load your profile stats.</p>
-          {isApiError(error) && error.requestId && (
-            <p className="mt-1 text-xs">Request ID: {error.requestId}</p>
-          )}
           <Button type="button" variant="ghost" size="sm" className="mt-3" onClick={onRetry}>
             Retry stats
           </Button>

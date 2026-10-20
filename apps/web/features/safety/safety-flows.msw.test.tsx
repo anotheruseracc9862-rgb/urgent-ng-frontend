@@ -50,7 +50,7 @@ it('opens a dispute with evidence, preserves retries, and refreshes the visible 
   await user.type(screen.getByLabelText('Evidence statement'), 'Packaging was torn.');
   await user.click(screen.getByRole('button', { name: 'Attach evidence' }));
   await user.click(screen.getByRole('button', { name: 'Submit dispute' }));
-  await screen.findByText('Request ID: case-failure');
+  expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Submit dispute' }));
   expect(await screen.findByRole('heading', { name: 'The claim' })).toBeInTheDocument();
   expect(keys[0]).toBeTruthy(); expect(keys[0]).toBe(keys[1]);

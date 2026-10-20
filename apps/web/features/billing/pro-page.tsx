@@ -6,7 +6,6 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
-import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { billingApi, productFor, type ProSubscription } from './api';
 import { billingErrorMessage } from './messages';
@@ -99,7 +98,6 @@ export function ProPage() {
       <div className="mx-auto grid max-w-3xl gap-3">
         <Alert variant="danger" role="alert">
           <p>We could not load your Runner Pro status.</p>
-          {isApiError(pro.error) && pro.error.requestId ? <p className="mt-1 text-xs">Request ID: {pro.error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" onClick={() => void pro.refetch()}>Try again</Button>
         </Alert>
       </div>
@@ -151,7 +149,6 @@ export function ProPage() {
           {buy.error ? (
             <Alert variant="danger" role="alert">
               <p>{billingErrorMessage(buy.error)}</p>
-              {isApiError(buy.error) && buy.error.requestId ? <p className="mt-1 text-xs">Request ID: {buy.error.requestId}</p> : null}
             </Alert>
           ) : null}
           <div>

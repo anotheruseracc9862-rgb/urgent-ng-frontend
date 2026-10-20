@@ -107,7 +107,7 @@ describe('errand review and publish', () => {
     expect(idempotencyKeys[0]).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
-  it('names fields the backend reports as incomplete and displays the request ID', async () => {
+  it('names fields the backend reports as incomplete without showing the request ID', async () => {
     const user = userEvent.setup();
     server.use(
       http.get(`*/api/v1/errands/${errandId}`, () => envelope(draft)),
@@ -130,7 +130,7 @@ describe('errand review and publish', () => {
       'href',
       `/errands/${errandId}/edit#errand-destination`,
     );
-    expect(screen.getByText('Request ID: req-incomplete')).toBeInTheDocument();
+    expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
   });
 
   it('maps a backend schedule rejection back to the schedule field', async () => {
@@ -156,7 +156,7 @@ describe('errand review and publish', () => {
       'href',
       `/errands/${errandId}/edit#errand-schedule`,
     );
-    expect(screen.getByText('Request ID: req-schedule')).toBeInTheDocument();
+    expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
   });
 
   it('reuses the same idempotency key when retrying a failed request', async () => {

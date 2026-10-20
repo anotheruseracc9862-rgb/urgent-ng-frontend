@@ -74,7 +74,7 @@ describe('business topbar', () => {
 
     const searches = await screen.findAllByRole('search');
     expect(searches.some((search) => search.getAttribute('action') === '/errands')).toBe(true);
-    expect(screen.getAllByRole('searchbox', { name: 'Search my errands' })).toHaveLength(2);
+    expect(screen.getAllByRole('searchbox', { name: 'Search my errands' })).toHaveLength(1);
     fireEvent.click(await screen.findByLabelText(/Notifications/));
     expect(await screen.findByText('A runner sent you an offer')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View notifications' })).toHaveAttribute('href', '/notifications');
@@ -83,7 +83,7 @@ describe('business topbar', () => {
   it('routes runner search to the marketplace', () => {
     renderTopbar('RUNNER');
     expect(screen.getAllByRole('search').some((search) => search.getAttribute('action') === '/marketplace')).toBe(true);
-    expect(screen.getAllByRole('searchbox', { name: 'Search marketplace errands' })).toHaveLength(2);
+    expect(screen.getAllByRole('searchbox', { name: 'Search marketplace errands' })).toHaveLength(1);
   });
 
   it('renders a mobile breadcrumb for the current dashboard', () => {
@@ -133,7 +133,7 @@ describe('business topbar', () => {
     }
   });
 
-  it.each(['REQUESTER', 'RUNNER'] as const)('shows the settings hierarchy for %s on desktop and mobile', (mode) => {
+  it.each(['REQUESTER', 'RUNNER'] as const)('shows the settings hierarchy for %s', (mode) => {
     const settingsPages = [
       ['/settings/contact', 'Contact methods'],
       ['/settings/notifications', 'Notifications'],
@@ -147,7 +147,7 @@ describe('business topbar', () => {
       navigation.pathname = pathname;
       const { unmount } = renderTopbar(mode);
       const crumbs = screen.getAllByRole('navigation', { name: 'Breadcrumb' });
-      expect(crumbs).toHaveLength(2);
+      expect(crumbs).toHaveLength(1);
       for (const crumb of crumbs) {
         expect(crumb).toHaveTextContent(new RegExp(`${mode === 'REQUESTER' ? 'Requester' : 'Runner'}\\s*›\\s*Settings\\s*›\\s*${title}`));
         expect(within(crumb).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');

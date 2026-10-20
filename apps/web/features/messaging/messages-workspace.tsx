@@ -93,7 +93,6 @@ function ConversationList({ activeId }: { activeId?: string }) {
           <div className="p-2">
             <Alert variant="danger" role="alert">
               <p>{forbidden ? 'You do not have permission to view messages.' : 'We could not load your conversations.'}</p>
-              {isApiError(conversations.error) && conversations.error.requestId ? <p className="mt-1 text-xs">Request ID: {conversations.error.requestId}</p> : null}
               <Button type="button" variant="ghost" size="sm" onClick={() => void conversations.refetch()}>Try again</Button>
             </Alert>
           </div>

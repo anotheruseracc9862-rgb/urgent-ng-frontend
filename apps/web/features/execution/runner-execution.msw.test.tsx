@@ -141,7 +141,7 @@ describe('runner execution steps', () => {
     await user.click(await screen.findByRole('button', { name: 'Start errand' }));
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Start errand' }));
-    expect(await within(dialog).findByText('Request ID: retry-step')).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Request ID/)).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Start errand' }));
     expect(keys).toHaveLength(2);
     expect(keys[0]).toBeTruthy();

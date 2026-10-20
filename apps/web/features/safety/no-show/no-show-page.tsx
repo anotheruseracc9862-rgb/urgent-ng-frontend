@@ -151,7 +151,6 @@ function ApiError({ error, fallback, onRetry }: { error: unknown; fallback: stri
     <Alert variant="danger" role="alert">
       <p>{tooEarly ? 'It is too early to report a no-show.' : isApiError(error) ? error.message : fallback}</p>
       {earliest ? <p className="mt-1 text-sm">Earliest report time: <time dateTime={earliest}>{new Date(earliest).toLocaleString()}</time></p> : null}
-      {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
       {onRetry ? <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onRetry}>Try again</Button> : null}
     </Alert>
   );

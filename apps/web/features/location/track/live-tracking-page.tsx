@@ -56,7 +56,6 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
           <p>{isApiError(error) && error.code === 'RESOURCE_NOT_FOUND'
             ? 'This assignment could not be found, or you do not have permission to view it.'
             : 'We could not load live tracking.'}</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={retry}>Try again</Button>
         </Alert>
       </main>

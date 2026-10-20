@@ -100,7 +100,6 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
           <p>{isApiError(assignment.error) && assignment.error.code === 'RESOURCE_NOT_FOUND'
             ? 'This assignment could not be found, or you do not have permission to view it.'
             : 'We could not load this assignment.'}</p>
-          {isApiError(assignment.error) && assignment.error.requestId ? <p className="mt-1 text-xs">Request ID: {assignment.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void assignment.refetch()}>Try again</Button>
         </Alert>
       </main>
@@ -236,7 +235,6 @@ function ApiErrorAlert({ error, fallback, onRetry }: { error: unknown; fallback:
   return (
     <Alert variant="danger" role="alert">
       <p>{isApiError(error) ? error.message : fallback}</p>
-      {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
       {onRetry ? <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onRetry}>Try again</Button> : null}
     </Alert>
   );

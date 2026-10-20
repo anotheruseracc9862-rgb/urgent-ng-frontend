@@ -317,7 +317,6 @@ export function PrimitiveGallery() {
               <ErrorState
                 title={retried ? "Retry requested" : undefined}
                 message="We could not load your errands. Check your connection and try again."
-                requestId="demo-request-123"
                 onRetry={() => setRetried(true)}
               />
               <LoadingState label="Loading errands" />

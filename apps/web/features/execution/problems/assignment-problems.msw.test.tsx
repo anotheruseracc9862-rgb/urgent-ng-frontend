@@ -64,7 +64,7 @@ describe('assignment problem and delay controls', () => {
       if (i < 3) await screen.findByText('Delay notice sent.');
     }
     expect(await screen.findByText('You have used all the delay notices for this errand.')).toBeInTheDocument();
-    expect(screen.getByText('Request ID: req-delay-limit')).toBeInTheDocument();
+    expect(screen.queryByText(/Request ID/)).not.toBeInTheDocument();
   });
 
   it('does not offer a receipt for a non-shopping errand', async () => {

@@ -56,7 +56,6 @@ function getErrorMessage(error: unknown): string {
     if (error.code === 'VALIDATION_ERROR') return 'Check the notification settings and try again.';
     if (error.code === 'AUTH_REQUIRED')
       return 'Your session has expired. Sign in again to save these settings.';
-    if (error.requestId) return `We could not save your settings. Request ID: ${error.requestId}`;
   }
   return 'We could not save your settings. Please try again.';
 }

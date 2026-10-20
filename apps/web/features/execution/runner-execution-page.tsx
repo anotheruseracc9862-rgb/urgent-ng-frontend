@@ -113,7 +113,6 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
           <p>{isApiError(assignment.error) && assignment.error.code === 'RESOURCE_NOT_FOUND'
             ? 'This assignment could not be found, or you do not have permission to view it.'
             : 'We could not load the assignment steps.'}</p>
-          {isApiError(assignment.error) && assignment.error.requestId ? <p className="mt-1 text-xs">Request ID: {assignment.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void assignment.refetch()}>Try again</Button>
         </Alert>
       </main>
@@ -155,7 +154,6 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
             : isApiError(execute.error)
               ? execute.error.message
               : 'We could not record this step.'}</p>
-          {isApiError(execute.error) && execute.error.requestId ? <p className="mt-1 text-xs">Request ID: {execute.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void assignment.refetch()}>Refresh assignment</Button>
         </Alert>
       ) : null}
@@ -241,7 +239,6 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
           {intent?.evidence?.mediaId ? <p className="text-sm text-muted">One evidence photo attached.</p> : null}
           {execute.error ? <Alert variant="danger" role="alert">
             <p>We could not confirm this step. Try again with the same details.</p>
-            {isApiError(execute.error) && execute.error.requestId ? <p className="mt-1 text-xs">Request ID: {execute.error.requestId}</p> : null}
           </Alert> : null}
           <DialogFooter className="gap-2 sm:space-x-0">
             <Button type="button" variant="ghost" disabled={execute.isPending} onClick={() => setIntent(null)}>Go back</Button>

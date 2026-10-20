@@ -89,7 +89,6 @@ export function SavedErrandsPage() {
       {list.error ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(list.error) && list.error.code === 'RESOURCE_NOT_FOUND' ? 'Saved errands are not available to this account.' : 'We could not load saved errands.'}</p>
-          {isApiError(list.error) && list.error.requestId ? <p className="mt-1 text-xs">Request ID: {list.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void list.refetch()}>Try again</Button>
         </Alert>
       ) : null}

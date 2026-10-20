@@ -99,7 +99,6 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>{errand.error ? 'We could not load this errand for review.' : 'This errand could not be found.'}</p>
-            {isApiError(errand.error) && errand.error.requestId ? <p className="text-xs">Request ID: {errand.error.requestId}</p> : null}
             <div className="flex flex-wrap gap-3">
               <Button type="button" variant="ghost" onClick={() => void errand.refetch()}>Try again</Button>
               <Link href={`/errands/${errandId}/edit`} className="inline-flex items-center font-bold underline">Back to edit</Link>
@@ -144,7 +143,6 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>{publishError(publish.error)}</p>
-            {isApiError(publish.error) && publish.error.requestId ? <p className="text-xs">Request ID: {publish.error.requestId}</p> : null}
             {problems.length ? (
               <ul className="grid gap-1">
                 {problems.map((problem, index) => {

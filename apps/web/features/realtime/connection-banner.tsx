@@ -34,21 +34,21 @@ export function ConnectionBanner() {
   if (status === 'offline') {
     return (
       <Alert variant="warn" role="status">
-        <p><strong>You are offline.</strong> Updates will resume when your connection returns.</p>
+        <p><strong>You are offline.</strong></p>
       </Alert>
     );
   }
   if (status === 'degraded') {
     return (
       <Alert variant="warn" role="status">
-        <p><strong>Reconnecting…</strong> Live offers, messages and progress updates will resume. Pages still refresh on their own.</p>
+        <p><strong>Reconnecting…</strong></p>
       </Alert>
     );
   }
   if (recovered) {
     return (
       <Alert variant="ok" role="status">
-        <p><strong>Back online.</strong> You are up to date.</p>
+        <p><strong>Back online.</strong></p>
       </Alert>
     );
   }

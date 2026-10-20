@@ -135,7 +135,6 @@ export function AssignmentProblemsPage({ assignmentId }: { assignmentId: string 
           <p>{isApiError(error) && error.code === 'RESOURCE_NOT_FOUND'
             ? 'This assignment could not be found, or you do not have permission to view it.'
             : 'We could not load the assignment problems.'}</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => { void assignment.refetch(); void problems.refetch(); }}>Try again</Button>
         </Alert>
       </main>
@@ -253,7 +252,6 @@ function MutationError({ error, fallback }: { error: unknown; fallback: string }
   return (
     <Alert variant="danger" role="alert">
       <p>{isApiError(error) ? error.message : fallback}</p>
-      {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
     </Alert>
   );
 }

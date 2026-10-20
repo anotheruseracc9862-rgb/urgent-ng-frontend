@@ -47,6 +47,6 @@ export async function adminApi<T>(path: string, options?: AdminRequestOptions): 
 }
 
 export function adminErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return `${error.message}${error.requestId ? ` (Request ID: ${error.requestId})` : ""}`;
+  if (error instanceof ApiError) return error.message;
   return "Something went wrong. Please try again.";
 }

@@ -4,6 +4,8 @@ import { env } from "./lib/env";
 import { securityHeaders } from "./lib/security-headers";
 
 const buildConfig = (production: boolean): NextConfig => ({
+  // Dev only: lets a phone reach dev assets and HMR through a GitHub/VS Code port-forwarding tunnel.
+  allowedDevOrigins: ["**.devtunnels.ms"],
   experimental: {
     // Barrel packages: import only the components and icons a route uses.
     optimizePackageImports: ["@urgent/ui", "lucide-react"],

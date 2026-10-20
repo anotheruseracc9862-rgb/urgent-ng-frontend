@@ -190,7 +190,6 @@ export function MarketplaceFeedPage() {
               : isApiError(error) && error.code === 'OFFER_NOT_ELIGIBLE'
                 ? 'Your runner account is not currently eligible to browse errands.'
                 : 'We could not load the marketplace feed.'}</p>
-            {isApiError(error) && error.requestId && <p className="text-xs">Request ID: {error.requestId}</p>}
             <div className="flex gap-2">
               <Button type="button" variant="ghost" onClick={() => void errands.refetch()}>Try again</Button>
             </div>

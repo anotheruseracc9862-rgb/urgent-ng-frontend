@@ -227,7 +227,6 @@ export function RunnerProfilePage() {
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>We could not load your runner profile requirements.</p>
-            {isApiError(error) && error.requestId && <p className="text-xs">Request ID: {error.requestId}</p>}
             <Button type="button" variant="ghost" onClick={() => { void profile.refetch(); void eligibility.refetch(); void categories.refetch(); }}>Try again</Button>
           </div>
         </Alert>
@@ -262,7 +261,6 @@ export function RunnerProfilePage() {
         {Boolean(saveError) && (
           <Alert variant="danger" role="alert" className="w-full">
             <p>{profileErrorCopy(saveError)}</p>
-            {isApiError(saveError) && saveError.requestId && <p className="mt-1 text-xs">Request ID: {saveError.requestId}</p>}
           </Alert>
         )}
         {savedMessage && <Alert variant="ok" role="status" className="w-full">{savedMessage}</Alert>}

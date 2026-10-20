@@ -4,7 +4,6 @@ import { Alert, Button } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/lib/api/auth';
-import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
 
@@ -25,7 +24,6 @@ export function RestrictionBanner() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span>We could not check whether any account restrictions affect your actions.</span>
           <span className="flex items-center gap-3">
-            {isApiError(enforcement.error) && enforcement.error.requestId ? <span className="text-xs">Request ID: {enforcement.error.requestId}</span> : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => void enforcement.refetch()}>Retry</Button>
           </span>
         </div>

@@ -67,9 +67,9 @@ export function Topbar({ mode }: { mode: ShellMode }) {
   return (
     <div className="grid min-w-0 gap-2">
       {modeDialog}
-      <header className="flex min-w-0 items-center gap-2 rounded-full bg-surface p-1.5 pl-2 shadow-[var(--shadow)] sm:gap-3 sm:p-2 sm:pl-3 lg:pl-[18px]">
-      <Link href="/dashboard" className="shrink-0 lg:hidden">
-        <Image src="/assets/logo.png" alt="Urgent.ng" width={67} height={20} className="h-5 w-auto sm:h-6" />
+      <header className="flex min-w-0 items-center gap-2 rounded-full bg-surface px-3 py-1.5 shadow-[var(--shadow)] sm:gap-3 sm:p-2 sm:pl-3 lg:pl-[18px]">
+      <Link href="/dashboard" className="flex h-12 min-w-0 flex-1 items-center sm:h-auto sm:flex-none lg:hidden">
+        <Image src="/assets/logo.png" alt="Urgent.ng" width={161} height={48} className="h-full w-full object-contain object-left sm:h-6 sm:w-auto" />
       </Link>
 
       {crumb ? (
@@ -102,22 +102,8 @@ export function Topbar({ mode }: { mode: ShellMode }) {
           className="h-10 min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-muted"
         />
       </form>
-      <details className="group relative sm:hidden">
-        <summary aria-label="Search" className="grid size-9 cursor-pointer list-none place-items-center rounded-full bg-panel text-ink-2 marker:hidden">
-          <Search className="size-4" />
-        </summary>
-        <form action={mode === 'RUNNER' ? '/marketplace' : '/errands'} role="search" className="absolute right-0 top-12 z-30 w-[min(320px,calc(100vw-24px))] rounded-2xl border border-line bg-surface p-3 shadow-[var(--shadow)]">
-          <input
-            type="search"
-            name="q"
-            aria-label={mode === 'RUNNER' ? 'Search marketplace errands' : 'Search my errands'}
-            placeholder={mode === 'RUNNER' ? 'Search errands…' : 'Search my errands…'}
-            className="h-10 w-full rounded-full bg-panel px-4 text-xs text-ink outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-lime-600"
-          />
-        </form>
-      </details>
 
-      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0">
         <div role="group" aria-label="Mode" className="inline-flex rounded-full bg-panel p-0.5 sm:p-1">
           {MODES.map(({ value, label }) => (
             <button
@@ -126,7 +112,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
               aria-pressed={mode === value}
               onClick={() => switchMode(value)}
               className={cn(
-                'rounded-full px-2 py-1.5 text-[11px] font-bold transition-colors sm:px-3.5 sm:py-2 sm:text-[12.5px]',
+                'min-h-11 rounded-full px-2 py-1.5 text-[11px] font-bold transition-colors sm:min-h-0 sm:px-3.5 sm:py-2 sm:text-[12.5px]',
                 mode === value ? 'bg-ink text-white' : 'text-muted hover:text-ink',
               )}
             >
@@ -138,7 +124,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         <details className="group relative">
           <summary
             aria-label={hydrated && unread.data?.count ? `Notifications, ${unread.data.count} unread` : 'Notifications'}
-            className="relative grid size-9 cursor-pointer list-none place-items-center rounded-full bg-panel text-ink-2 transition-colors hover:bg-tint-2 marker:hidden sm:size-[42px]"
+            className="relative grid size-11 cursor-pointer list-none place-items-center rounded-full bg-panel text-ink-2 transition-colors hover:bg-tint-2 marker:hidden sm:size-[42px]"
           >
             <Bell className="size-5" />
             {hydrated && unread.data && unread.data.count > 0 ? (
@@ -147,7 +133,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
               </span>
             ) : null}
           </summary>
-          <div className="absolute right-0 top-12 z-30 hidden w-[min(320px,calc(100vw-24px))] rounded-2xl border border-line bg-surface p-4 shadow-[var(--shadow)] group-open:block">
+          <div className="absolute right-0 top-14 z-30 hidden w-[min(320px,calc(100vw-24px))] rounded-2xl border border-line bg-surface p-4 shadow-[var(--shadow)] group-open:block sm:top-12">
             <div className="flex items-center justify-between gap-3">
               <strong className="text-sm text-ink">Notifications</strong>
               <span className="text-xs text-muted">{hydrated ? unread.data?.count ?? 0 : 0} unread</span>
@@ -169,7 +155,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         </details>
 
         <DropdownMenu>
-          <DropdownMenuTrigger aria-label="Account menu" className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600">
+          <DropdownMenuTrigger aria-label="Account menu" className="hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-600 sm:inline-flex">
             <Avatar size="sm" className="sm:size-10 sm:text-[13px]" variant="default" initials={initialsOf(me.name)} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[200px]">
@@ -189,25 +175,6 @@ export function Topbar({ mode }: { mode: ShellMode }) {
         </DropdownMenu>
       </div>
       </header>
-      {crumb ? (
-        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 truncate px-3 text-xs font-semibold text-muted sm:hidden">
-          <span>{mode === 'RUNNER' ? 'Runner' : 'Requester'}</span>
-          <span aria-hidden="true">›</span>
-          {assignmentTrail ? assignmentTrail.trail.map((step) => (
-            <React.Fragment key={step.href}>
-              <Link href={step.href} className="shrink-0 hover:text-ink">{step.label}</Link>
-              <span aria-hidden="true">›</span>
-            </React.Fragment>
-          )) : null}
-          {isSettingsSubpage || isProfileSubpage || isMarketplaceDetail || isOfferDetail ? <>
-            <Link href={isSettingsSubpage ? '/settings' : isMarketplaceDetail ? '/marketplace' : isOfferDetail ? mode === 'RUNNER' ? '/offers' : '/errands' : '/profile'} className="shrink-0 hover:text-ink">
-              {isSettingsSubpage ? 'Settings' : isMarketplaceDetail ? 'Find errands' : isOfferDetail ? mode === 'RUNNER' ? 'My offers' : 'My errands' : 'Profile & account'}
-            </Link>
-            <span aria-hidden="true">›</span>
-          </> : null}
-          <span aria-current="page" className="truncate text-ink">{crumb}</span>
-        </nav>
-      ) : null}
     </div>
   );
 }

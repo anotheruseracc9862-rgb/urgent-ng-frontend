@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { BriefcaseBusiness, MessageCircle } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { PageHead } from '@/components/shell/page-head';
-import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { assignmentQueries, type RunnerTask } from '../queries';
@@ -93,7 +92,6 @@ export function ActiveTasksPage() {
       {error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your tasks.</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" onClick={() => { void pending.refetch(); void active.refetch(); }}>Try again</Button>
         </Alert>
       ) : null}

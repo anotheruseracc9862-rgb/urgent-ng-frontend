@@ -34,7 +34,6 @@ export function MarketplaceEligibilityError({ requestId }: { requestId?: string 
       <Alert variant="danger" role="alert">
         <div className="grid gap-2">
           <p>We could not confirm that you can browse the marketplace. Try checking again.</p>
-          {requestId ? <p className="text-xs">Request ID: {requestId}</p> : null}
           <Button type="button" variant="ghost" className="w-fit" onClick={() => router.refresh()}>Check again</Button>
         </div>
       </Alert>

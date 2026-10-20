@@ -31,7 +31,6 @@ export function RatingError({ error, retry }: { error: unknown; retry?: () => vo
     : known && error.status === 404 ? 'This assignment or rating could not be found.'
     : 'We could not load or save your ratings. Please try again.';
   return <Alert variant="danger" role="alert"><p>{text}</p>
-    {known && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
     {retry ? <Button type="button" variant="ghost" size="sm" onClick={retry}>Try again</Button> : null}
   </Alert>;
 }

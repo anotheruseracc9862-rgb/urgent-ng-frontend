@@ -6,7 +6,6 @@ import { Check, Zap } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
 import { PageHead } from '@/components/shell/page-head';
-import { isApiError } from '@/lib/api/client';
 import { errandsApi } from '@/features/errands/api';
 import { queryKeys } from '@/lib/query/keys';
 import { useApiMutation } from '@/lib/query/mutations';
@@ -58,7 +57,6 @@ function BoostRow({ errandId, title, boostedOrder, price, selected }: {
           {buy.error ? (
             <p role="alert" className="mt-2 text-xs font-bold text-danger">
               {billingErrorMessage(buy.error)}
-              {isApiError(buy.error) && buy.error.requestId ? ` (Request ID: ${buy.error.requestId})` : ''}
             </p>
           ) : null}
         </div>
@@ -107,7 +105,6 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
       {open.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your open errands.</p>
-          {isApiError(open.error) && open.error.requestId ? <p className="mt-1 text-xs">Request ID: {open.error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" onClick={() => void open.refetch()}>Try again</Button>
         </Alert>
       ) : null}

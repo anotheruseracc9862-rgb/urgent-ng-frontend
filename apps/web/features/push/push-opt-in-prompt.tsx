@@ -73,7 +73,6 @@ export function PushOptInPrompt() {
       {register.error ? (
         <Alert variant="danger" role="alert">
           <p>{isApiError(register.error) ? 'We could not enable push notifications.' : register.error instanceof Error ? register.error.message : 'We could not enable push notifications.'}</p>
-          {isApiError(register.error) && register.error.requestId ? <p className="mt-1 text-xs">Request ID: {register.error.requestId}</p> : null}
         </Alert>
       ) : null}
       {!CONFIGURED ? <p className="text-xs text-muted">Browser push is not configured for this environment yet.</p> : null}

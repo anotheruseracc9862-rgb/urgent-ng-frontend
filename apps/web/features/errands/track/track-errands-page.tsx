@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Flag, MessageSquare } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { PageHead } from '@/components/shell/page-head';
-import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { errandQueries } from '../queries';
@@ -133,7 +132,6 @@ export function TrackErrandsPage() {
       {active.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your errands in progress.</p>
-          {isApiError(active.error) && active.error.requestId ? <p className="mt-1 text-xs">Request ID: {active.error.requestId}</p> : null}
           <Button type="button" variant="ghost" size="sm" onClick={() => void active.refetch()}>Try again</Button>
         </Alert>
       ) : null}

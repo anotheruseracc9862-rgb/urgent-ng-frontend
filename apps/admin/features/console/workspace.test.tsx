@@ -100,10 +100,10 @@ describe("server-driven admin workspaces", () => {
     expect(document.activeElement).toBe(details);
   });
 
-  it("shows server failures with their request IDs and a retry", async () => {
+  it("shows server failures without request IDs and a retry", async () => {
     server.use(http.get("*/api/v1/admin/users", () => HttpResponse.json({ error: { code: "UNAVAILABLE", message: "Try later" }, requestId: "req-users-503" }, { status: 503 })));
     mount(<Workspace resource={resource("users")} />);
-    expect((await screen.findByRole("alert")).textContent).toContain("req-users-503");
+    expect((await screen.findByRole("alert")).textContent).not.toContain("req-users-503");
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 });

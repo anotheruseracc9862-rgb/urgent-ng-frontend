@@ -104,7 +104,6 @@ function ApiErrorMessage({ error, fallback }: { error: unknown; fallback: string
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p>{message}</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
         </div>
       </div>
     </Alert>
@@ -371,7 +370,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
       />
       <ErrandJourney errand={errand} />
 
-      {actionErrorMessage ? <Alert variant={selectionConflict ? 'info' : 'danger'} role={selectionConflict ? 'status' : 'alert'}><div className="flex flex-wrap items-center justify-between gap-3"><div><p>{actionErrorMessage}</p>{isApiError(actionError) && actionError.requestId ? <p className="mt-1 text-xs">Request ID: {actionError.requestId}</p> : null}</div><Button type="button" size="sm" variant="ghost" onClick={() => { extend.reset(); duplicate.reset(); selectRunner.reset(); void errandQuery.refetch(); void offersQuery.refetch(); }}>Refresh errand</Button></div></Alert> : null}
+      {actionErrorMessage ? <Alert variant={selectionConflict ? 'info' : 'danger'} role={selectionConflict ? 'status' : 'alert'}><div className="flex flex-wrap items-center justify-between gap-3"><div><p>{actionErrorMessage}</p></div><Button type="button" size="sm" variant="ghost" onClick={() => { extend.reset(); duplicate.reset(); selectRunner.reset(); void errandQuery.refetch(); void offersQuery.refetch(); }}>Refresh errand</Button></div></Alert> : null}
 
       <StatusNotice errand={errand} />
 

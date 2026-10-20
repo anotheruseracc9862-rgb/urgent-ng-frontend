@@ -120,7 +120,6 @@ function ReportProfileDialog({ userId, name }: { userId: string; name: string })
           {mutation.error ? (
             <Alert variant="danger" role="alert">
               <p>{isApiError(mutation.error) && mutation.error.code === 'RESOURCE_NOT_FOUND' ? 'This profile is no longer available.' : 'We could not submit this report. Please try again.'}</p>
-              {isApiError(mutation.error) && mutation.error.requestId ? <p className="mt-1 text-xs">Request ID: {mutation.error.requestId}</p> : null}
             </Alert>
           ) : null}
           <DialogFooter>
@@ -140,7 +139,6 @@ function ProfileLoadError({ error, onRetry }: { error: unknown; onRetry: () => v
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p>{notFound ? 'This profile is unavailable. It may have been deleted or cannot be viewed.' : 'We could not load this profile.'}</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onRetry}>Try again</Button>
       </div>

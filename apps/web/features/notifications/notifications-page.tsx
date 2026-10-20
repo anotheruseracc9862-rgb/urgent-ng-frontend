@@ -53,7 +53,6 @@ function ErrorNotice({ error, onRetry }: { error: unknown; onRetry: () => void }
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p>We could not load or update your notifications.</p>
-          {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onRetry}>Try again</Button>
       </div>
@@ -263,7 +262,7 @@ export function NotificationsPage() {
           </div>
         ) : null}
       </section>
-      <p className="text-center text-xs leading-relaxed text-muted">Live updates arrive here automatically. If you were offline, we catch you up when you reconnect.</p>
+      <p className="text-center text-xs leading-relaxed text-muted">Updates appear here automatically.</p>
     </div>
   );
 }

@@ -46,7 +46,6 @@ function ErrorPanel({ error, onRetry }: { error: unknown; onRetry: () => void })
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p>{forbidden ? 'You do not have permission to view consent settings.' : 'We could not load or update consent settings.'}</p>
-          {requestId && <p className="mt-1 text-xs">Request ID: {requestId}</p>}
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onRetry}>Try again</Button>
       </div>

@@ -125,7 +125,6 @@ function ApiError({ error, fallback, onRetry }: { error: unknown; fallback: stri
   return (
     <Alert variant="danger" role="alert">
       <p>{isApiError(error) ? error.message : fallback}</p>
-      {isApiError(error) && error.requestId ? <p className="mt-1 text-xs">Request ID: {error.requestId}</p> : null}
       {onRetry ? <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onRetry}>Try again</Button> : null}
     </Alert>
   );

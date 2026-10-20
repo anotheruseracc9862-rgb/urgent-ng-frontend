@@ -37,7 +37,6 @@ export function LoginForm() {
   const justVerified = params.get('verified') === '1';
   const justReset = params.get('reset') === '1';
   const sessionCheckFailed = params.get('reason') === 'session-check-failed';
-  const sessionCheckRequestId = params.get('requestId');
 
   const [errorMessage, setErrorMessage] = useState('');
   const [locked, setLocked] = useState(false);
@@ -92,7 +91,6 @@ export function LoginForm() {
       {sessionCheckFailed ? (
         <Alert variant="danger">
           We could not check your session. Sign in again to continue.
-          {sessionCheckRequestId ? <span className="ml-1">Reference: {sessionCheckRequestId}</span> : null}
         </Alert>
       ) : null}
       {errorMessage ? <FormError message={errorMessage} /> : null}

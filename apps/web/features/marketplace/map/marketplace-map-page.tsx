@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { ArrowRight, ChevronRight, Expand, LockKeyhole, MapPin, Minus, Package, Plus, X } from 'lucide-react';
-import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { marketplaceApi, type MapPoint, type MarketplaceFilters } from '../api';
 import { MarketplaceControls } from '../marketplace-controls';
@@ -167,7 +166,6 @@ export function MarketplaceMapPage() {
       {query.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load the map errands.</p>
-          {isApiError(query.error) && query.error.requestId ? <p className="mt-1 text-xs">Request ID: {query.error.requestId}</p> : null}
           <Button type="button" variant="ghost" className="mt-2" onClick={() => void query.refetch()}>Try again</Button>
         </Alert>
       ) : null}

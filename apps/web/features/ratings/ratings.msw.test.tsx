@@ -86,7 +86,7 @@ describe('assignment rating public UI', () => {
     await user.type(screen.getByRole('textbox'), 'Fair and helpful');
     await user.click(screen.getByRole('button', { name: 'Submit rating' }));
     await screen.findByRole('alert');
-    expect(screen.getByText(/req-rating-failed/)).toBeInTheDocument();
+    expect(screen.queryByText(/req-rating-failed/)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Submit rating' }));
     await waitFor(() => expect(requests).toHaveLength(2));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Submit rating' })).toBeEnabled());
@@ -174,7 +174,7 @@ describe('assignment rating public UI', () => {
     server.use(http.patch('*/api/v1/ratings/:id', () => failure('RATING_NOT_ELIGIBLE', reason)));
     mount(<AssignmentRatingPage assignmentId="assignment-1" />);
     await user.click(await screen.findByRole('button', { name: 'Save changes' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('req-rating-failed');
+    expect(await screen.findByRole('alert')).not.toHaveTextContent('req-rating-failed');
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 
@@ -203,13 +203,13 @@ describe('assignment rating public UI', () => {
     await user.click(await screen.findByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument());
     expect(screen.getByRole('alert')).toHaveTextContent('being moderated');
-    expect(screen.getByRole('alert')).toHaveTextContent('req-rating-failed');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('req-rating-failed');
   });
 
   it.each([403, 404, 500])('renders access/not-found/error states with request ID and retry: %s', async (status) => {
     server.use(http.get('*/api/v1/assignments/:id/ratings', () => failure('ERROR', undefined, status)));
     mount(<AssignmentRatingPage assignmentId="assignment-1" />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('req-rating-failed');
+    expect(await screen.findByRole('alert')).not.toHaveTextContent('req-rating-failed');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 });
