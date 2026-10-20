@@ -216,7 +216,7 @@ describe('F5 runner end-to-end flow', () => {
     feedStage.unmount();
 
     const offerStage = renderStage(client, <SubmitOfferPage errandId={errand.id} />);
-    await user.type(await screen.findByLabelText(/Your price \(NGN\)/), '5500');
+    await user.type(await screen.findByLabelText(/Your price/), '5500');
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Send offer' }));
     await user.click(await screen.findByRole('button', { name: 'Continue to offer' }));
