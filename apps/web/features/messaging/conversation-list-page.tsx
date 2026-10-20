@@ -37,7 +37,7 @@ export function ConversationListPage() {
       <header>
         <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Your conversations</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Messages</h1>
-        <p className="mt-1 text-sm text-muted">Discuss errand details with the other person.</p>
+        <p className="mt-1 text-sm text-muted max-sm:hidden">Discuss errand details with the other person.</p>
       </header>
       <label className="grid gap-1 text-xs font-bold text-ink-2">
         Search conversations

@@ -99,12 +99,12 @@ export function ModeIntroDialog({ mode, open, onOpenChange, onConfirm }: {
               className="mascot-dash absolute bottom-0 right-3 h-24 w-auto drop-shadow-md"
             />
           ) : (
-            // Same mascot, framed from the chest up with the raised fist: a greeting, not a sprint.
+            // The requester version: waving, phone in hand with a location pin. A greeting, not a sprint.
             <Image
-              src="/assets/mascot-bust.png"
+              src="/assets/mascot-wave.png"
               alt=""
-              width={150}
-              height={114}
+              width={132}
+              height={110}
               priority
               className="mascot-bob absolute bottom-0 right-3 h-24 w-auto drop-shadow-md"
             />

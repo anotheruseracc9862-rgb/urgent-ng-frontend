@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { PushOptInPrompt } from '@/features/push/push-opt-in-prompt';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth/session';
 import { api, isApiError } from '@/lib/api/client';
@@ -65,8 +66,9 @@ export default async function NotificationSettingsPage() {
       <header className="px-1.5 pt-1">
         <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-green-700">Account</p>
         <h1 className="text-[clamp(24px,3vw,32px)] font-extrabold leading-[1.15] tracking-[-0.03em] text-ink">Notification settings</h1>
-        <p className="mt-1.5 max-w-[620px] text-sm text-muted">Choose what reaches you and how. Safety and account notices are always on.</p>
+        <p className="mt-1.5 max-w-[620px] text-sm text-muted max-sm:hidden">Choose what reaches you and how. Safety and account notices are always on.</p>
       </header>
+      <PushOptInPrompt />
       <NotificationPreferencesForm
         initialPreferences={preferences}
         initialQuietHours={quietHours}

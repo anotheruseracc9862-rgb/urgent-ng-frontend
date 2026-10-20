@@ -1,5 +1,6 @@
 'use client';
 
+import { PushOptInPrompt } from '@/features/push/push-opt-in-prompt';
 import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -212,6 +213,7 @@ export function DashboardPage({ mode, firstName, greeting = 'Hello' }: { mode: S
         eyebrow={mode === 'RUNNER' ? 'Runner' : 'Requester'}
         title={<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">{`${greeting}, ${firstName}`}{isPro ? <ProBadge className="py-1 text-xs" /> : null}</span>}
         description={headline(mode, summary.data)}
+        descriptionOnMobile
         actions={mode === 'RUNNER' ? (
           <>
             <Button variant="ghost" asChild><Link href="/offers"><Tag aria-hidden="true" className="size-4" />My offers</Link></Button>
@@ -226,6 +228,8 @@ export function DashboardPage({ mode, firstName, greeting = 'Hello' }: { mode: S
       />
 
       {summary.error && !summary.data ? <LoadError onRetry={() => void summary.refetch()} /> : null}
+
+      <PushOptInPrompt compact />
 
       {/* The stat cards, headings and layout are always there; numbers show a dash until they arrive. */}
       {mode === 'RUNNER'

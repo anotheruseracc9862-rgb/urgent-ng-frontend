@@ -12,7 +12,7 @@ import { EvidenceList } from '../evidence-list';
 export function ReportsPage() {
   const query = useInfiniteQuery({ queryKey: safetyKeys.reports(), queryFn: ({ pageParam }) => safetyApi.reports(pageParam), initialPageParam: undefined as string | undefined, getNextPageParam: last => last.meta?.nextCursor ?? undefined, retry: false });
   const reports = query.data?.pages.flatMap(page => page.data) ?? [];
-  return <main className="mx-auto grid max-w-3xl gap-5"><header><h1 className="text-3xl font-extrabold">Your reports</h1><p className="mt-2 text-sm text-muted">Private updates from the safety team.</p></header><Button asChild className="w-fit"><Link href="/report">Report a concern</Link></Button>
+  return <main className="mx-auto grid max-w-3xl gap-5"><header><h1 className="text-3xl font-extrabold">Your reports</h1><p className="mt-2 text-sm text-muted max-sm:hidden">Private updates from the safety team.</p></header><Button asChild className="w-fit"><Link href="/report">Report a concern</Link></Button>
     {query.isPending ? <Skeleton className="h-48 rounded-[var(--r-lg)]" /> : null}
     {query.error ? <CaseError error={query.error} retry={() => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())} /> : null}
     {!query.isPending && !query.error && !reports.length ? <section className={casePanel}><h2 className="font-extrabold">No reports yet</h2><p className="text-sm text-muted">If something is wrong, report it from the relevant assignment, profile or rating.</p></section> : null}

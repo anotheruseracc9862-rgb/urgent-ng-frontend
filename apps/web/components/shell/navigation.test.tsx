@@ -84,6 +84,21 @@ describe('shell navigation model', () => {
 });
 
 describe('mobile bottom navigation', () => {
+  it('puts offers awaiting a reply on the Find errands tab, ahead of the nearby count', async () => {
+    server.use(http.get('*/me/summary', () => envelope({ asRequester: {}, asRunner: { offersAwaitingYou: 2, activeOffers: 4, activeAssignments: 0 }, recentActivity: [] })));
+    renderWithApp(<BottomNav mode="RUNNER" />);
+    const navigation = screen.getByRole('navigation', { name: 'Main' });
+    expect(await within(navigation).findByLabelText('2 offers awaiting your reply')).toHaveTextContent('2');
+  });
+
+  it('shows the unread message count on the Messages tab', async () => {
+    server.use(http.get('*/conversations', () => envelope([{ id: 'c1', unreadCount: 3 }, { id: 'c2', unreadCount: 2 }, { id: 'c3', unreadCount: 0 }])));
+    renderWithApp(<BottomNav mode="REQUESTER" />);
+    const navigation = screen.getByRole('navigation', { name: 'Main' });
+    expect(await within(navigation).findByLabelText('Unread: 5')).toHaveTextContent('5');
+    expect(within(navigation).getAllByLabelText(/Unread/)).toHaveLength(1);
+  });
+
   it.each([
     ['REQUESTER', ['Dashboard', 'My errands', 'Track errand', 'Messages', 'Profile']],
     ['RUNNER', ['Dashboard', 'Find errands', 'Active task', 'Messages', 'Profile']],

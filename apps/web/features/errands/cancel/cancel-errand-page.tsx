@@ -103,7 +103,7 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
       <header>
         <p className="text-xs font-extrabold uppercase tracking-wider text-green-800">{errand.id} · {errand.category.name}</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">{errand.status === 'DRAFT' ? 'Delete this draft' : 'Cancel this errand'}</h1>
-        <p className="mt-1 text-sm text-muted">What happens depends on the current stage. The reason is recorded with the errand.</p>
+        <p className="mt-1 text-sm text-muted max-sm:hidden">What happens depends on the current stage. The reason is recorded with the errand.</p>
       </header>
 
       <section className="rounded-[var(--r-lg)] border border-line bg-tint p-4 sm:p-5">

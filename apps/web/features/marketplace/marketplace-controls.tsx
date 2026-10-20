@@ -1,13 +1,13 @@
 'use client';
 
+import { RunnerWorkSwitch } from '@/components/runner/work-switch';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@urgent/ui';
-import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, FileText, History, List, Map, MapPin, Package, Search, Settings2, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, FileText, List, Map, MapPin, Package, Search, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
 import { PageHead } from '@/components/shell/page-head';
-import { AvailabilityPill } from '@/components/runner/availability';
 import { runnerApi } from '@/features/runner/api';
 import { queryKeys } from '@/lib/query/keys';
 
@@ -81,23 +81,18 @@ export function MarketplaceControls({ count, pending, updating, hasMore = false 
         eyebrow="Runner"
         title="Find errands near you"
         description="Browse nearby requests and find work that fits your area and travel preferences."
-        actionsClassName="max-sm:w-full"
-        actions={<div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
-          <AvailabilityPill className="max-sm:flex-1" />
-          <Button type="button" variant="ghost" className="max-sm:size-11 max-sm:shrink-0 max-sm:p-0" asChild><Link href="/runner/history" aria-label="Job history"><History aria-hidden="true" className="size-4" /><span className="max-sm:sr-only">Job history</span></Link></Button>
-          <Button type="button" variant="ghost" className="max-sm:size-11 max-sm:shrink-0 max-sm:p-0" asChild><Link href="/runner/profile" aria-label="Update profile"><Settings2 aria-hidden="true" className="size-4" /><span className="max-sm:sr-only">Update profile</span></Link></Button>
-        </div>}
       />
-      <form ref={formRef} key={searchParams.toString()} onSubmit={onFilterSubmit} aria-label="Filter errands" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-5">
-        <div className={`grid min-w-0 gap-3 ${mapView ? 'sm:grid-cols-[minmax(0,1fr)_auto]' : 'sm:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_200px_auto]'}`}>
-          <div className="flex min-w-0 items-center gap-2 rounded-full bg-panel pl-4 pr-1.5 focus-within:ring-2 focus-within:ring-green-700">
+      <RunnerWorkSwitch current="browse" />
+      <form ref={formRef} key={searchParams.toString()} onSubmit={onFilterSubmit} aria-label="Filter errands" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-3.5 shadow-[var(--shadow)] sm:p-5">
+        <div className={`grid min-w-0 max-sm:grid-cols-[auto_minmax(0,1fr)] gap-3 max-sm:gap-2.5 ${mapView ? 'sm:grid-cols-[minmax(0,1fr)_auto]' : 'sm:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_200px_auto]'}`}>
+          <div className="flex min-w-0 items-center gap-2 rounded-full bg-panel pl-4 pr-1.5 focus-within:ring-2 focus-within:ring-green-700 max-sm:order-1 max-sm:col-span-2">
             <Search aria-hidden="true" className="size-[18px] shrink-0 text-muted" />
             <label htmlFor="marketplace-search" className="sr-only">Search</label>
-            <input id="marketplace-search" name="q" type="search" maxLength={100} defaultValue={searchTerm} placeholder="Search by title, area or item" className="min-h-12 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted" />
+            <input id="marketplace-search" name="q" type="search" maxLength={100} defaultValue={searchTerm} placeholder="Search by title, area or item" className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted sm:min-h-12" />
             <button type="submit" className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-white transition-colors hover:bg-green-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 motion-reduce:transition-none" aria-label="Search errands"><ArrowRight aria-hidden="true" className="size-4" /></button>
           </div>
           {mapView ? <input type="hidden" name="sort" value={sort} /> : <Select name="sort" defaultValue={sort}>
-            <SelectTrigger aria-label="Sort" className="min-w-0 rounded-full border-line text-[13px] font-bold text-ink hover:bg-panel"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Sort" className="min-w-0 rounded-full border-line text-[13px] font-bold text-ink hover:bg-panel max-sm:order-3 max-sm:h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="recommended">Recommended</SelectItem>
               <SelectItem value="nearest">Nearest</SelectItem>
@@ -105,26 +100,26 @@ export function MarketplaceControls({ count, pending, updating, hasMore = false 
               <SelectItem value="budget_desc">Budget high to low</SelectItem>
             </SelectContent>
           </Select>}
-          <nav aria-label="Marketplace view" className={`flex w-fit items-center gap-1 rounded-full bg-panel p-1 ${mapView ? '' : 'sm:col-span-2 xl:col-span-1'}`}>
-            <Link aria-label="List view" aria-current={!mapView ? 'page' : undefined} href={`/marketplace${listParams.size ? `?${listParams}` : ''}`} className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs font-bold transition-colors motion-reduce:transition-none ${!mapView ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:bg-surface hover:text-ink'}`}><List aria-hidden="true" className="size-4" />List</Link>
-            <Link aria-current={mapView ? 'page' : undefined} href={`/marketplace?${mapParams}`} className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs font-bold transition-colors motion-reduce:transition-none ${mapView ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:bg-surface hover:text-ink'}`}><Map aria-hidden="true" className="size-4" />Map view</Link>
+          <nav aria-label="Marketplace view" className={`flex w-fit items-center gap-1 rounded-full bg-panel p-1 max-sm:order-2 ${mapView ? 'max-sm:col-span-2' : 'sm:col-span-2 xl:col-span-1'}`}>
+            <Link aria-label="List view" aria-current={!mapView ? 'page' : undefined} href={`/marketplace${listParams.size ? `?${listParams}` : ''}`} className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs font-bold transition-colors max-sm:min-h-8 max-sm:px-3 motion-reduce:transition-none ${!mapView ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:bg-surface hover:text-ink'}`}><List aria-hidden="true" className="size-4" />List</Link>
+            <Link aria-current={mapView ? 'page' : undefined} href={`/marketplace?${mapParams}`} className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs font-bold transition-colors max-sm:min-h-8 max-sm:px-3 motion-reduce:transition-none ${mapView ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:bg-surface hover:text-ink'}`}><Map aria-hidden="true" className="size-4" />Map view</Link>
           </nav>
         </div>
-        <fieldset className="mt-4 flex min-w-0 flex-wrap gap-2 border-t border-line pt-4">
+        <fieldset className="mt-3 flex min-w-0 gap-2 border-t border-line pt-3 max-sm:-mx-3.5 max-sm:overflow-x-auto max-sm:px-3.5 max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden sm:mt-4 sm:flex-wrap sm:pt-4">
           <legend className="sr-only">Categories</legend>
-          <button type="button" aria-pressed={selectedCategories.length === 0} onClick={() => setCategories([])} className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs font-bold transition-colors motion-reduce:transition-none ${selectedCategories.length === 0 ? 'bg-ink text-white' : 'bg-panel text-ink-2 hover:bg-tint-2'}`}>All categories</button>
+          <button type="button" aria-pressed={selectedCategories.length === 0} onClick={() => setCategories([])} className={`inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-xs font-bold transition-colors max-sm:min-h-9 motion-reduce:transition-none ${selectedCategories.length === 0 ? 'bg-ink text-white' : 'bg-panel text-ink-2 hover:bg-tint-2'}`}>All categories</button>
           {(categoryOptions.data ?? []).map((category) => {
             const Icon = categoryIcons[category.key] ?? Package;
             const checked = selectedCategories.includes(category.key);
             return (
-              <label key={category.id} className="relative cursor-pointer">
+              <label key={category.id} className="relative shrink-0 cursor-pointer">
                 <input type="checkbox" checked={checked} onChange={(event) => setCategories(event.target.checked ? [...selectedCategories, category.key] : selectedCategories.filter((key) => key !== category.key))} className="peer sr-only" />
-                <span className={`inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-xs font-bold transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-green-700 peer-focus-visible:ring-offset-2 motion-reduce:transition-none ${checked ? 'bg-ink text-white' : 'bg-panel text-ink-2 hover:bg-tint-2'}`}><Icon aria-hidden="true" className="size-3.5" />{category.name}{checked && <Check aria-hidden="true" className="size-3" />}</span>
+                <span className={`inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-xs font-bold transition-colors max-sm:min-h-9 peer-focus-visible:ring-2 peer-focus-visible:ring-green-700 peer-focus-visible:ring-offset-2 motion-reduce:transition-none ${checked ? 'bg-ink text-white' : 'bg-panel text-ink-2 hover:bg-tint-2'}`}><Icon aria-hidden="true" className="size-3.5" />{category.name}{checked && <Check aria-hidden="true" className="size-3" />}</span>
               </label>
             );
           })}
         </fieldset>
-        <div className="relative mt-4 border-t border-line pt-3">
+        <div className="relative mt-3 border-t border-line pt-2.5 sm:mt-4 sm:pt-3">
           <details key={advancedCount > 0 ? 'filtered' : 'unfiltered'} open={advancedCount > 0 || undefined} className="group min-w-0">
             <summary className="flex min-h-9 w-fit cursor-pointer list-none items-center gap-2 rounded-full px-2 text-xs font-bold text-ink-2 hover:bg-panel [&::-webkit-details-marker]:hidden"><SlidersHorizontal aria-hidden="true" className="size-4" />More filters{advancedCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-tint-2 text-green-900">{advancedCount}</span>}<ChevronDown aria-hidden="true" className="size-3.5 transition-transform group-open:rotate-180 motion-reduce:transition-none" /></summary>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -134,7 +129,7 @@ export function MarketplaceControls({ count, pending, updating, hasMore = false 
               <label className="grid gap-1.5 text-xs font-bold text-ink-2">Max budget (kobo)<input name="budgetMax" defaultValue={budgetMax} type="number" min={0} step={500} placeholder="No maximum" className="min-h-11 min-w-0 w-full rounded-[var(--r-sm)] border border-line bg-panel px-3 text-sm font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-green-700" /></label>
             </div>
           </details>
-          <Button type="submit" variant="ghost" className="absolute right-0 top-3 min-h-9 px-4 py-2 text-xs">Apply filters<ArrowRight aria-hidden="true" className="size-3.5" /></Button>
+          <Button type="submit" variant="ghost" className="absolute right-0 top-2.5 min-h-9 px-4 py-2 text-xs sm:top-3">Apply filters<ArrowRight aria-hidden="true" className="size-3.5" /></Button>
         </div>
       </form>
       {categoryOptions.error && <Alert variant="danger" role="alert">

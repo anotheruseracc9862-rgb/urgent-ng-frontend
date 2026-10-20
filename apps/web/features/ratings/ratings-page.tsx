@@ -21,7 +21,7 @@ export function RatingsPage() {
   return <div className="mx-auto grid max-w-3xl gap-5">
     <header><p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Reputation</p>
       <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Reviews</h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted">What people said about working with you, and the reviews you left. Only people who completed an errand together can rate each other.</p></header>
+      <p className="mt-2 text-sm leading-relaxed text-muted max-sm:hidden">What people said about working with you, and the reviews you left. Only people who completed an errand together can rate each other.</p></header>
     <Alert variant="info">Reviews stay private until both sides rate or the rating window closes. Reviews may be checked for safety and policy.</Alert>
     <section className={panel} aria-label="Ratings list">
       <div className="mb-5 flex gap-2" role="group" aria-label="Rating direction">{(['RECEIVED', 'GIVEN'] as const).map((value) => <Button type="button" key={value} variant={direction === value ? 'primary' : 'ghost'} aria-pressed={direction === value} onClick={() => setDirection(value)}>{value === 'RECEIVED' ? 'Received' : 'Given'}</Button>)}</div>

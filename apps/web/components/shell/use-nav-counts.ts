@@ -37,7 +37,7 @@ export function useNavCounts(mode: ShellMode, userId: string): NavCounts {
 
   const counts: NavCounts = {
     notifications: unread.data?.count ?? 0,
-    messages: (conversations.data?.data ?? []).reduce((total, item) => total + item.unreadCount, 0),
+    messages: (Array.isArray(conversations.data?.data) ? conversations.data.data : []).reduce((total, item) => total + item.unreadCount, 0),
   };
   if (mode === 'REQUESTER') {
     const requester = summary.data?.asRequester;

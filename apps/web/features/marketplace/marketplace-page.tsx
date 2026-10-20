@@ -9,6 +9,7 @@ import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { MarketplaceFeedPage } from './feed/marketplace-feed-page';
 import { PageHead } from '@/components/shell/page-head';
 import { GoOnlineButton } from '@/components/runner/availability';
+import { RunnerWorkSwitch } from '@/components/runner/work-switch';
 import type { RunnerEligibility } from '@/features/runner/api';
 
 // The map and its SDK load only when the map view is opened, so the feed's first-load JavaScript
@@ -87,6 +88,7 @@ function MarketplaceEligibilityGate({ eligibility }: { eligibility: RunnerEligib
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
       <PageHead eyebrow="Marketplace" title="Find errands near you" />
+      <RunnerWorkSwitch current="browse" />
       <section aria-labelledby="marketplace-eligibility-title" className="overflow-hidden rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)]">
         <div className="grid items-center gap-6 bg-gradient-to-br from-tint to-surface p-6 sm:grid-cols-[minmax(0,1fr)_232px] sm:p-8 lg:p-10">
           <div className="min-w-0">

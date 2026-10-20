@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { LoadingFrame } from '@/components/shell/loading-frame';
 import { clearBrowserSession, isApiError, refreshBrowserSession, safeRedirect } from '@/lib/api/client';
 
 /**
@@ -46,19 +47,13 @@ function SessionRefresh() {
     };
   }, [redirect, router]);
 
-  return (
-    <div className="grid min-h-screen place-items-center bg-bg">
-      <div className="flex items-center gap-3 text-muted text-sm font-semibold">
-        <span className="size-5 animate-spin rounded-full border-2 border-line border-t-lime-600" />
-        Checking your session…
-      </div>
-    </div>
-  );
+  // Same pulsing mascot as every other loading state, so the session check reads as part of loading.
+  return <LoadingFrame />;
 }
 
 export default function SessionPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoadingFrame />}>
       <SessionRefresh />
     </Suspense>
   );

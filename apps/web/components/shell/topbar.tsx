@@ -90,7 +90,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
       {modeDialog}
       <header className="flex min-w-0 items-center gap-2 rounded-full bg-surface px-3 py-1.5 shadow-[var(--shadow)] sm:gap-3 sm:p-2 sm:pl-3 lg:pl-[18px]">
       <Link href="/dashboard" className="flex h-12 min-w-0 flex-1 items-center sm:h-auto sm:flex-none lg:hidden">
-        <Image src="/assets/logo.png" alt="Urgent.ng" width={161} height={48} className="h-full w-full object-contain object-left sm:h-6 sm:w-auto" />
+        <Image src="/assets/logo.png" alt="Urgent.ng" width={161} height={48} className="h-10 w-full object-contain object-left sm:h-6 sm:w-auto" />
       </Link>
 
       {crumb ? (

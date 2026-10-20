@@ -1,10 +1,11 @@
 'use client';
 
+import { RunnerWorkSwitch } from '@/components/runner/work-switch';
 import { persistedQuery } from '@/lib/query/persisted-query';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useInfiniteQuery, useQuery, keepPreviousData } from '@tanstack/react-query';
-import { ArrowRight, Clock3, Compass, Info, RefreshCw, Tag } from 'lucide-react';
+import { ArrowRight, Clock3, Info, RefreshCw, Tag } from 'lucide-react';
 import { Alert, Button, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
@@ -77,8 +78,8 @@ export function MyOffersPage() {
         eyebrow="Runner"
         title="My offers"
         description="Track replies, respond to counters and review closed offers."
-        actions={<Button asChild><Link href="/marketplace"><Compass aria-hidden="true" />Find errands</Link></Button>}
       />
+      <RunnerWorkSwitch current="offers" />
       <dl aria-label="Offer overview" className="grid grid-cols-3 gap-2 sm:gap-4">
         <div className="min-w-0 rounded-[var(--r-lg)] bg-surface p-3.5 shadow-[var(--shadow)] sm:p-[22px]">
           <dt className="min-h-10 text-xs font-semibold text-muted sm:min-h-0">Open offers</dt>

@@ -4,10 +4,12 @@ import * as React from 'react';
  * The page heading block used on every signed-in page (demo `.page-head`): a green eyebrow, the
  * title, a muted sentence, and the page's main actions on the right.
  */
-export function PageHead({ eyebrow, title, description, actions, actionsClassName, id }: {
+export function PageHead({ eyebrow, title, description, descriptionOnMobile = false, actions, actionsClassName, id }: {
   eyebrow?: string;
   title: React.ReactNode;
   description?: React.ReactNode;
+  /** On phones the sentence under the title is hidden so the page starts with the title alone. Pass true to keep it. */
+  descriptionOnMobile?: boolean;
   actions?: React.ReactNode;
   /** Extra classes for the actions row, for example `max-sm:w-full` to span the phone width. */
   actionsClassName?: string;
@@ -20,7 +22,7 @@ export function PageHead({ eyebrow, title, description, actions, actionsClassNam
           <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[.12em] text-green">{eyebrow}</p>
         ) : null}
         <h1 id={id} className="text-[clamp(24px,3vw,32px)] font-extrabold leading-[1.15] tracking-[-0.03em] text-ink">{title}</h1>
-        {description ? <p className="mt-1.5 max-w-[620px] text-sm text-muted">{description}</p> : null}
+        {description ? <p className={`mt-1.5 max-w-[620px] text-sm text-muted ${descriptionOnMobile ? '' : 'max-sm:hidden'}`}>{description}</p> : null}
       </div>
       {actions ? <div className={`flex flex-wrap gap-2.5 ${actionsClassName ?? ''}`}>{actions}</div> : null}
     </header>

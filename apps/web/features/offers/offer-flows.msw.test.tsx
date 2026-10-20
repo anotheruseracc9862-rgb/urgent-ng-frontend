@@ -11,7 +11,10 @@ import { SubmitOfferPage } from './submit/submit-offer-page';
 
 const navigation = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => navigation }));
-vi.mock('@/lib/auth/client', () => ({ useSession: () => ({ me: { id: 'runner-1' } }) }));
+vi.mock('@/lib/auth/client', () => ({
+  useSession: () => ({ me: { id: 'runner-1' } }),
+  useOptionalSession: () => ({ me: { id: 'runner-1' } }),
+}));
 
 const envelope = (data: unknown, meta: Record<string, unknown> = {}) =>
   HttpResponse.json({ data, meta, requestId: 'req-offers' });

@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   title: "Urgent.ng",
   description:
     "Urgent.ng — the errand marketplace connecting requesters with verified runners.",
+  // The tab icon follows the device's light or dark setting. /favicon.ico (app/) is the fallback.
+  icons: {
+    icon: [
+      { url: "/icons/favicon-light.png", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icons/favicon-dark.png", type: "image/png", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

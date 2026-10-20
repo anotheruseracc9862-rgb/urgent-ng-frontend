@@ -5,6 +5,7 @@ import { useApiMutation } from '@/lib/query/mutations';
 import type { components } from '@urgent/api-client';
 import { Alert, Button } from '@urgent/ui';
 import { api, isApiError } from '@/lib/api/client';
+import { useHydrated } from '@/lib/use-hydrated';
 
 const FIREBASE_CONFIG = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? '',
@@ -15,9 +16,34 @@ const FIREBASE_CONFIG = {
 };
 const CONFIGURED = Object.values(FIREBASE_CONFIG).every(Boolean);
 const DEVICE_STORAGE_KEY = 'urgent.web-push-device-id';
+const DISMISSED_KEY = 'urgent.web-push-prompt-dismissed-at';
+const DISMISS_DAYS = 3;
 
-export function PushOptInPrompt() {
+function readStorage(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+/** Whether this browser already has a push device registered and the permission still granted. */
+export function pushEnabledHere(): boolean {
+  if (typeof window === 'undefined' || !('Notification' in window)) return false;
+  return Notification.permission === 'granted' && Boolean(readStorage(DEVICE_STORAGE_KEY));
+}
+
+/**
+ * Asks to turn on push on this device. `compact` shows it only until the person turns it on or
+ * says "Not now" (remembered for a few days), for pages where it should not nag.
+ */
+export function PushOptInPrompt({ compact = false }: { compact?: boolean }) {
   const [dismissed, setDismissed] = React.useState(false);
+  // Browser-only facts (storage, permission) are read after hydration so the markup matches.
+  const hydrated = useHydrated();
+  const [now] = React.useState(() => Date.now());
+  const hidden = !hydrated || (compact && (
+    now - Number(readStorage(DISMISSED_KEY) ?? 0) < DISMISS_DAYS * 86_400_000
+    || !('Notification' in window)
+    || Notification.permission === 'denied'
+    || pushEnabledHere()
+  ));
   const register = useApiMutation({
     // The browser appears in the signed-in devices list.
     affects: ['security'],
@@ -62,7 +88,7 @@ export function PushOptInPrompt() {
     },
   });
 
-  if (dismissed) return null;
+  if (dismissed || (hidden && !register.isSuccess)) return null;
 
   return (
     <section aria-label="Push notification option" className="grid gap-3 rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">
@@ -80,7 +106,7 @@ export function PushOptInPrompt() {
         <Button type="button" size="sm" disabled={!CONFIGURED || register.isPending} onClick={() => register.mutate()}>
           {register.isPending ? 'Enabling…' : register.isSuccess ? 'Enabled' : 'Enable notifications'}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setDismissed(true)}>Not now</Button>
+        <Button type="button" size="sm" variant="ghost" onClick={() => { try { localStorage.setItem(DISMISSED_KEY, String(Date.now())); } catch { /* ignore */ } setDismissed(true); }}>Not now</Button>
       </div>
     </section>
   );

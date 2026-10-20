@@ -164,7 +164,7 @@ export function NotificationsPage() {
         <div>
           <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-green-700">Updates</p>
           <h1 className="text-[clamp(24px,3vw,32px)] leading-[1.15] font-extrabold tracking-[-0.03em] text-ink">Notifications</h1>
-          <p className="mt-1.5 text-sm text-muted">Offers, progress, messages and account activity.</p>
+          <p className="mt-1.5 text-sm text-muted max-sm:hidden">Offers, progress, messages and account activity.</p>
         </div>
         <div className="flex w-full flex-wrap gap-2.5 sm:w-auto">
           <Button
