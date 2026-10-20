@@ -146,6 +146,9 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
   const router = useRouter();
   const status = STATUS[errand.status];
   const href = errand.status === 'DRAFT' ? `/errands/${errand.id}/edit` : `/errands/${errand.id}`;
+  // With a runner on the job, progress, delivery and change requests live on the assignment page.
+  const onAssignment = Boolean(errand.assignmentId) && ['RUNNER_SELECTED', 'ACCEPTED', 'IN_PROGRESS', 'PICKED_UP', 'DELIVERED', 'DISPUTED'].includes(errand.status);
+  const primaryHref = onAssignment ? `/assignments/${errand.assignmentId}` : href;
   const note = attentionNote(errand);
   const action = primaryAction(errand);
   const closesIn = errand.status === 'OPEN' ? minutesUntil(errand.expiresAt) : null;
@@ -163,7 +166,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
   const posted = errand.publishedAt ?? errand.createdAt;
 
   return (
-    <article className="grid content-start gap-4 rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] transition-all hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(23,33,46,.04),0_22px_44px_-18px_rgba(23,33,46,.28)]">
+    <article className="grid content-start gap-4 rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] transition-all hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(23,33,46,.04),0_22px_44px_-18px_rgba(23,33,46,.28)] max-lg:min-w-0 max-lg:grid-cols-[minmax(0,1fr)] max-lg:break-words max-sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={status.tone}>{status.label}</Badge>
@@ -189,7 +192,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
       ) : null}
 
       {errand.status === 'OPEN' && errand.offerCount > 0 ? (
-        <div className="flex items-center gap-3 rounded-[var(--r)] border border-line p-3">
+        <div className="flex items-center gap-3 rounded-[var(--r)] border border-line p-3 max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)]">
           <div className="flex shrink-0">
             {errand.offerPreview.map((offer, index) => (
               <Avatar key={`${offer.firstName}-${index}`} name={offer.firstName} last={offer.lastName} index={index} className={index ? '-ml-2' : ''} />
@@ -203,7 +206,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
             </div>
           </div>
           {closesIn !== null ? (
-            <div className="shrink-0 text-right text-xs text-muted">Closes in<br /><b className="text-ink">{formatMinutes(closesIn)}</b></div>
+            <div className="shrink-0 text-right text-xs text-muted max-sm:col-span-2 max-sm:text-left">Closes in<br className="max-sm:hidden" /> <b className="text-ink">{formatMinutes(closesIn)}</b></div>
           ) : null}
         </div>
       ) : null}
@@ -222,7 +225,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
               </div>
             </div>
             {errand.agreedAmountMinor !== null ? (
-              <div className="text-right text-xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">
+              <div className="text-right text-xl font-extrabold tracking-[-0.03em] tabular-nums text-ink max-sm:w-full max-sm:border-t max-sm:border-line max-sm:pt-2 max-sm:text-left">
                 {money(errand.agreedAmountMinor)}
                 <small className="block text-[11px] font-semibold tracking-normal text-muted">agreed · paid directly</small>
               </div>
@@ -250,8 +253,9 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
         <div className="text-xs text-muted">
           Budget <b className="text-ink">{money(errand.suggestedBudgetMinor)}</b>{when ? <> · {when}</> : null}
         </div>
-        <div className="flex gap-2">
-          <Link href={href} className="inline-flex min-h-9 items-center rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel">Details</Link>
+        <div className="flex gap-2 max-sm:w-full max-sm:[&>*]:min-h-11 max-sm:[&>*]:flex-1 max-sm:[&>*]:justify-center">
+          {/* Shown only when it goes somewhere the main button does not (the errand, beside Repost or the assignment). */}
+          {repost || primaryHref !== href ? <Link href={href} className="inline-flex min-h-9 items-center rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel">Details</Link> : null}
           {repost ? (
             <button
               type="button"
@@ -263,7 +267,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
             </button>
           ) : (
             <Link
-              href={href}
+              href={primaryHref}
               className={`inline-flex min-h-9 items-center rounded-full px-3.5 text-[12.5px] font-bold ${action.emphasised ? 'bg-lime text-ink hover:bg-lime-600' : 'bg-ink text-white hover:bg-[#0f1822]'}`}
             >
               {action.label}
@@ -286,7 +290,7 @@ function SearchFilter({ initialValue, onSearch }: { initialValue: string; onSear
   }, [initialValue, onSearch, value]);
 
   return (
-    <label className="relative block min-w-0 sm:w-[260px]">
+    <label className="relative block min-w-0 max-sm:w-full sm:w-[260px]">
       <span className="sr-only">Search errands</span>
       <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
       <input
@@ -352,15 +356,15 @@ export function MyErrandsPage() {
   }
 
   return (
-    <div className="grid content-start gap-4 pb-10">
+    <div className="grid content-start gap-4 pb-10 max-lg:grid-cols-[minmax(0,1fr)]">
       <PageHead
         eyebrow="Requester"
         title="My errands"
         description="Everything you posted, with offers, runners and what to do next."
         actions={(
           <>
-            <Button variant="ghost" asChild><Link href="/boosts">Boost an errand</Link></Button>
-            <Button asChild><Link href="/errands/new"><Plus aria-hidden="true" className="size-4" />Post an errand</Link></Button>
+            <Button variant="ghost" className="max-sm:px-3" asChild><Link href="/boosts">Boost an errand</Link></Button>
+            <Button className="max-sm:px-3" asChild><Link href="/errands/new"><Plus aria-hidden="true" className="size-4" />Post an errand</Link></Button>
           </>
         )}
       />
@@ -401,13 +405,13 @@ export function MyErrandsPage() {
               );
             })}
           </div>
-          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5 max-sm:w-full">
             <SearchFilter key={q} initialValue={q} onSearch={(value) => updateUrl('q', value, true)} />
             <select
               aria-label="Sort"
               value={sort}
               onChange={(event) => updateUrl('sort', event.target.value)}
-              className="min-h-[42px] rounded-full border border-line bg-surface px-4 text-[13px] font-semibold text-ink"
+              className="min-h-[42px] rounded-full border border-line bg-surface px-4 text-[13px] font-semibold text-ink max-sm:w-full max-sm:min-w-0"
             >
               {SORTS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>

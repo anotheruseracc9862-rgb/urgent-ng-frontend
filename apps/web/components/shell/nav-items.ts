@@ -56,14 +56,14 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, primary: true },
 
   { href: '/errands', label: 'My errands', icon: Package, mode: 'REQUESTER', primary: true, count: 'errands' },
-  { href: '/track', label: 'Track errand', icon: MapPin, mode: 'REQUESTER', alsoActiveFor: ['/assignments'] },
+  { href: '/track', label: 'Track errand', icon: MapPin, mode: 'REQUESTER', primary: true, alsoActiveFor: ['/assignments'] },
 
   { href: '/marketplace', label: 'Find errands', icon: Compass, mode: 'RUNNER', primary: true, count: 'nearby' },
   { href: '/offers', label: 'My offers', icon: Tag, mode: 'RUNNER', count: 'offers' },
   { href: '/assignments', label: 'Active task', icon: Truck, mode: 'RUNNER', primary: true, count: 'tasks' },
 
   { href: '/messages', label: 'Messages', icon: MessageSquare, primary: true, count: 'messages', countAlert: true },
-  { href: '/notifications', label: 'Notifications', icon: Bell, primary: true, primaryModes: ['REQUESTER'], count: 'notifications' },
+  { href: '/notifications', label: 'Notifications', icon: Bell, count: 'notifications' },
   { href: '/settings', label: 'Settings', icon: Settings },
 
   { href: '/profile', label: 'Profile & account', icon: User, primary: true, section: 'account' },

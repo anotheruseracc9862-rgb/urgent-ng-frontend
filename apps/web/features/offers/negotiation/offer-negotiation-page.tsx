@@ -98,7 +98,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
   if (query.error || !query.data) {
     return (
       <main className="mx-auto max-w-4xl">
-        <Link href="/offers" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link>
+        <Link href="/offers" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800 max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link>
         <Alert variant="danger" role="alert">{isApiError(query.error) && query.error.code === 'RESOURCE_NOT_FOUND' ? 'This offer could not be found, or you do not have permission to view it.' : 'We could not load this offer.'}</Alert>
         <Button className="mt-3" type="button" variant="ghost" onClick={() => void query.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button>
       </main>
@@ -150,7 +150,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
 
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href={backHref} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />{isRunner ? 'My offers' : 'Back to errand'}</Link>
+      <Link href={backHref} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />{isRunner ? 'My offers' : 'Back to errand'}</Link>
       <PageHead
         eyebrow={active ? `Offer negotiation · ${offer.roundsUsed === 0 ? 'No counters yet' : `Round ${offer.roundsUsed} of ${offer.roundsLimit}`}` : 'Offer negotiation'}
         title={<span className="block max-w-[760px] break-words">{offer.errandTitle}</span>}

@@ -233,11 +233,11 @@ export function MessagesWorkspace({ activeId }: { activeId?: string }) {
 
   return (
     <div className="grid gap-4 lg:h-[calc(100vh-150px)] lg:min-h-[560px] lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)_320px]">
-      <section aria-label="Conversations" className={`${PANE} ${activeId ? 'hidden lg:flex' : 'flex'} max-lg:min-h-[70vh]`}>
+      <section aria-label="Conversations" className={`${PANE} ${activeId ? 'hidden lg:flex' : 'flex'} max-lg:h-[calc(100dvh-10rem)] max-lg:min-h-[420px]`}>
         <ConversationList activeId={activeId} />
       </section>
 
-      <section aria-label="Conversation" className={`${PANE} ${activeId ? 'flex' : 'hidden lg:flex'} max-lg:min-h-[75vh]`}>
+      <section aria-label="Conversation" className={`${PANE} ${activeId ? 'flex' : 'hidden lg:flex'} max-lg:h-[calc(100dvh-10rem)] max-lg:min-h-[420px]`}>
         {activeId ? (
           <ConversationThreadPage conversationId={activeId} onShowDetails={() => setDetailsOpen(true)} />
         ) : (

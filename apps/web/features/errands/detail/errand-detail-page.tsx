@@ -316,10 +316,10 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
   });
 
   if (errandQuery.isPending) {
-    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
+    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><Skeleton className="h-44 rounded-[var(--r-lg)]" /><div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"><Skeleton className="h-80 rounded-[var(--r-lg)]" /><Skeleton className="h-48 rounded-[var(--r-lg)]" /></div></div>;
   }
   if (errandQuery.error || !errand) {
-    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;
+    return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;
   }
 
   const hasLocations = Boolean(errand.pickup || errand.destination);
@@ -343,7 +343,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
 
   return (
     <div className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link>
+      <Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link>
       <PageHead
         eyebrow={`Errand · ${errand.category.name}`}
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}

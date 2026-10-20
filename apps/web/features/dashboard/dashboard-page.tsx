@@ -333,7 +333,7 @@ function RequesterDashboard({ summary }: { summary: Summary | undefined }) {
           <Card>
             <CardHeader>
               <div><CardTitle>My errands</CardTitle><CardDescription>Your latest four. See everything on the errands page.</CardDescription></div>
-              <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel" href="/errands">View all <ChevronRight aria-hidden="true" className="size-3.5" /></Link>
+              <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[12.5px] font-bold text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel max-lg:shrink-0 max-lg:whitespace-nowrap" href="/errands">View all <ChevronRight aria-hidden="true" className="size-3.5" /></Link>
             </CardHeader>
             {openErrands.isPending || activeErrands.isPending ? <Skeleton className="h-36 rounded-xl" /> : openErrands.error ? (
               <LoadError onRetry={() => void openErrands.refetch()} />
@@ -406,14 +406,14 @@ function RequesterDashboard({ summary }: { summary: Summary | undefined }) {
             {loading ? (
               <div className="grid gap-4" aria-label="Loading activity"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div>
             ) : activity.length ? (
-              <ol className="grid">
+              <ol className="grid grid-cols-[minmax(0,1fr)]">
                 {activity.map((item, index) => (
                   <li key={`${item.errandId}-${item.at}`} className="relative flex gap-3.5 pb-5 last:pb-0">
                     <span aria-hidden="true" className="relative z-10 grid size-7 shrink-0 place-items-center rounded-full bg-lime text-ink"><Check className="size-3.5" /></span>
                     {index < activity.length - 1 && <span aria-hidden="true" className="absolute bottom-0 left-[13px] top-7 w-0.5 bg-lime" />}
                     <Link href={`/errands/${item.errandId}`} className="min-w-0">
                       <strong className="block text-[13.5px] text-ink">{(ERRAND_STATUS_LABEL[item.status]?.label ?? item.status.replaceAll('_', ' '))}</strong>
-                      <small className="block truncate text-xs text-muted">“{item.errandTitle}” · {formatRelativeTime(item.at)}</small>
+                      <small className="block truncate text-xs text-muted max-lg:whitespace-normal max-lg:break-words">“{item.errandTitle}” · {formatRelativeTime(item.at)}</small>
                     </Link>
                   </li>
                 ))}

@@ -92,7 +92,7 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
     return <PageLoading title="Assignment pending" eyebrow="Offer" width="max-w-4xl" />;
   }
   if (query.error || !query.data) {
-    return <main className="mx-auto max-w-4xl"><Link href="/offers" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link><Alert variant="danger" role="alert">{isApiError(query.error) && query.error.code === 'RESOURCE_NOT_FOUND' ? 'This assignment could not be found, or you do not have permission to view it.' : 'We could not load this assignment.'}</Alert><Button className="mt-3" type="button" variant="ghost" onClick={() => void query.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></main>;
+    return <main className="mx-auto max-w-4xl"><Link href="/offers" className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-green-800 max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link><Alert variant="danger" role="alert">{isApiError(query.error) && query.error.code === 'RESOURCE_NOT_FOUND' ? 'This assignment could not be found, or you do not have permission to view it.' : 'We could not load this assignment.'}</Alert><Button className="mt-3" type="button" variant="ghost" onClick={() => void query.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></main>;
   }
 
   const assignment = query.data.data;
@@ -104,7 +104,7 @@ export function AssignmentPendingPage({ assignmentId, embedded = false }: { assi
   return (
     <section className="grid gap-4">
       {!embedded ? <>
-      <Link href="/offers" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link>
+      <Link href="/offers" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-green-800 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My offers</Link>
       <header className="rounded-[var(--r-lg)] border border-line bg-tint p-4 shadow-[var(--shadow)] sm:p-6">
         <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Assignment · Runner response</p>
         <h1 className="mt-2 text-2xl font-extrabold text-ink sm:text-3xl">{assignment.errand.title}</h1>

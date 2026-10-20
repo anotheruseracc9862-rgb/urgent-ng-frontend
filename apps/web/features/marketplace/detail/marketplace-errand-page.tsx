@@ -117,7 +117,7 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
 
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href="/marketplace" className="flex min-h-9 w-fit items-center gap-2 rounded-full text-sm font-bold text-muted transition-colors hover:text-green-900 focus-visible:outline-2 focus-visible:outline-green">
+      <Link href="/marketplace" className="flex min-h-9 w-fit items-center gap-2 rounded-full text-sm font-bold text-muted transition-colors hover:text-green-900 focus-visible:outline-2 focus-visible:outline-green max-sm:hidden">
         <ArrowLeft aria-hidden="true" className="size-4" />Back to marketplace
       </Link>
       <PageHead

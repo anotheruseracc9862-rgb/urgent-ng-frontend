@@ -108,9 +108,7 @@ describe('profile page', () => {
       expect(screen.getByLabelText('Display name')).toHaveValue('Ada Lovelace');
       expect(screen.getByRole('link', { name: 'Reviews' })).toHaveAttribute('href', '/ratings');
       const support = within(screen.getByRole('navigation', { name: 'Account and support' }));
-      expect(
-        support.queryByRole('link', { name: 'Settings', exact: true }),
-      ).not.toBeInTheDocument();
+      expect(support.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings');
       expect(support.getByRole('link', { name: 'Orders and receipts' })).toHaveAttribute(
         'href',
         '/profile/orders',

@@ -55,6 +55,27 @@ export function Topbar({ mode }: { mode: ShellMode }) {
     queryFn: () => api<components['schemas']['NotificationDto'][]>('/notifications', { query: { limit: 3 } }),
     staleTime: 30_000,
   });
+  const notificationsRef = React.useRef<HTMLDetailsElement>(null);
+  const closeNotifications = React.useCallback(() => {
+    if (notificationsRef.current) notificationsRef.current.open = false;
+  }, []);
+  // The preview is a <details> popover: close it on an outside tap, Escape or navigation.
+  React.useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const panel = notificationsRef.current;
+      if (panel?.open && event.target instanceof Node && !panel.contains(event.target)) closeNotifications();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeNotifications();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [closeNotifications]);
+  React.useEffect(() => { closeNotifications(); }, [pathname, closeNotifications]);
   const assignmentTrail = assignmentBreadcrumbs(pathname, mode);
   const crumb = assignmentTrail?.current ?? titleForPath(pathname);
   const isSettingsSubpage = pathname.startsWith('/settings/');
@@ -121,7 +142,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
           ))}
         </div>
 
-        <details className="group relative">
+        <details ref={notificationsRef} className="group relative">
           <summary
             aria-label={hydrated && unread.data?.count ? `Notifications, ${unread.data.count} unread` : 'Notifications'}
             className="relative grid size-11 cursor-pointer list-none place-items-center rounded-full bg-panel text-ink-2 transition-colors hover:bg-tint-2 marker:hidden sm:size-[42px]"
@@ -150,7 +171,7 @@ export function Topbar({ mode }: { mode: ShellMode }) {
                 ))}
               </ul>
             ) : <p className="mt-2 text-xs text-muted">You are all caught up.</p>}
-            <Link href="/notifications" className="mt-3 inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-xs font-bold text-white hover:bg-[#0f1822]">View notifications</Link>
+            <Link href="/notifications" onClick={closeNotifications} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-xs font-bold text-white hover:bg-[#0f1822]">View notifications</Link>
           </div>
         </details>
 

@@ -55,7 +55,7 @@ export function AssignmentRatingPage({ assignmentId }: { assignmentId: string })
   };
 
   return <main className="grid min-w-0 content-start gap-4 pb-10">
-    <Link href={`/assignments/${encodeURIComponent(assignmentId)}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+    <Link href={`/assignments/${encodeURIComponent(assignmentId)}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
     <PageHead eyebrow="Rating" title="Rate your errand" description="Keep it fair and about the errand. Your review stays private until both sides rate or the rating window closes." />
     <JourneyHere />
     {saveError ? <RatingError error={saveError} /> : null}

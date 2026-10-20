@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, UserRoundCheck, UserRoundX } from 'lucide-react';
 import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Textarea } from '@urgent/ui';
+import { MobileSignOut } from '@/components/shell/mobile-sign-out';
 import { PageHead } from '@/components/shell/page-head';
 import { isApiError } from '@/lib/api/client';
 import type { AccountChange, Me } from '@/lib/api/types';
@@ -168,6 +169,7 @@ export function AccountLifecyclePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <MobileSignOut />
     </div>
   );
 }

@@ -29,7 +29,7 @@ export function ReportDetailPage({ reportId }: { reportId: string }) {
   }
   if (!query.data || query.error) return <CaseError error={query.error} retry={() => void query.refetch()} />;
   const report = query.data;
-  return <main className="mx-auto grid max-w-3xl gap-5"><Link href="/reports" className="text-sm font-bold text-green-800">← Your reports</Link><header><p className="text-xs font-extrabold uppercase text-green-800">{caseLabelText(report.status)}</p><h1 className="mt-1 text-3xl font-extrabold">{caseLabelText(report.type)}</h1><p className="mt-2 break-all text-xs text-muted">Report reference: {report.id}</p></header>
+  return <main className="mx-auto grid max-w-3xl gap-5"><Link href="/reports" className="text-sm font-bold text-green-800 max-sm:hidden">← Your reports</Link><header><p className="text-xs font-extrabold uppercase text-green-800">{caseLabelText(report.status)}</p><h1 className="mt-1 text-3xl font-extrabold">{caseLabelText(report.type)}</h1><p className="mt-2 break-all text-xs text-muted">Report reference: {report.id}</p></header>
     <section className={casePanel}><h2 className="font-extrabold">Report details</h2><p className="whitespace-pre-wrap break-words text-sm">{report.description}</p><p className="text-xs text-muted">Submitted {caseDate(report.createdAt)}</p>
       {report.firstResponseDueAt ? <p className="text-xs text-muted">First response target: {caseDate(report.firstResponseDueAt)}</p> : null}
       {report.outcome ? <p className="font-bold">Outcome: {caseLabelText(report.outcome)}</p> : null}

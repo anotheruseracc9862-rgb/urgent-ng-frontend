@@ -29,7 +29,7 @@ export function DisputeDetailPage({ disputeId }: { disputeId: string }) {
   if (query.error || !query.data) return <CaseError error={query.error} retry={() => void query.refetch()} />;
   const data = query.data;
   return <main className="mx-auto grid max-w-4xl gap-5">
-    <Link href={`/assignments/${data.assignmentId}`} className="text-sm font-bold text-green-800">← Back to assignment</Link>
+    <Link href={`/assignments/${data.assignmentId}`} className="text-sm font-bold text-green-800 max-sm:hidden">← Back to assignment</Link>
     <header><p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Dispute · {caseLabelText(data.status)}</p><h1 className="mt-1 text-3xl font-extrabold">{caseLabelText(data.type)}</h1><p className="mt-2 break-all text-xs text-muted">Case reference: {data.id}</p></header>
     <Alert variant={data.canAddEvidence ? 'warn' : 'info'} role="status">{data.canAddEvidence ? 'This errand is disputed. Automatic completion is paused while the team reviews it.' : 'This case is closed to new evidence. Check the resolution and assignment for the outcome.'}</Alert>
     <section className={casePanel}><h2 className="font-extrabold">The claim</h2><p className="whitespace-pre-wrap break-words text-sm">{data.claim}</p><p className="text-xs text-muted">Opened {caseDate(data.createdAt)} · {data.openedByMe ? 'By you' : 'By the other party'}</p>

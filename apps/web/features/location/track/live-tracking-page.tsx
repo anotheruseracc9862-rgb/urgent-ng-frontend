@@ -77,7 +77,7 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
 
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
       <PageHead
         eyebrow="Live tracking"
         title={<span className="block max-w-[760px] break-words">{current.errand.title}</span>}

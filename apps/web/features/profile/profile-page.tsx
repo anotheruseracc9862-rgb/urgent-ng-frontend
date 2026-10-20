@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { accountMenuFor, type ShellMode } from '@/components/shell/nav-items';
 import * as React from 'react';
 import Image from 'next/image';
-import { Camera, Check, ChevronRight, MapPin, ShieldCheck, Star } from 'lucide-react';
+import { Camera, Check, ChevronRight, MapPin, Settings, ShieldCheck, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
@@ -21,12 +21,13 @@ import {
 } from '@urgent/ui';
 import { formatDate } from '@urgent/utils';
 import { MediaUpload } from '@/components/media/MediaUpload';
+import { MobileSignOut } from '@/components/shell/mobile-sign-out';
 import { describeAuthError } from '@/features/auth/auth-ui';
 import { authApi } from '@/lib/api/auth';
 import type { Me, StartMode } from '@/lib/api/types';
 import { useSession } from '@/lib/auth/client';
 import { saveMode } from '@/lib/auth/mode';
-import { api, isApiError } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 
 type MeSummary = components['schemas']['MeSummaryDto'];
@@ -73,11 +74,9 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
   const [showPhotoEditor, setShowPhotoEditor] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string>();
   const [saveError, setSaveError] = React.useState<string>();
-  const [saveRequestId, setSaveRequestId] = React.useState<string>();
   const [saved, setSaved] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [photoError, setPhotoError] = React.useState<string>();
-  const [photoRequestId, setPhotoRequestId] = React.useState<string>();
   const [failedPhotoId, setFailedPhotoId] = React.useState<string>();
   const [isSavingPhoto, setIsSavingPhoto] = React.useState(false);
   const photoRequest = React.useRef<string | undefined>(undefined);
@@ -122,7 +121,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
 
     setValidationError(undefined);
     setSaveError(undefined);
-    setSaveRequestId(undefined);
     setSaved(false);
     setIsSaving(true);
     const modeChanged = draft.startMode !== me.startMode;
@@ -142,7 +140,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
       setSaved(true);
     } catch (error) {
       setSaveError(describeAuthError(error));
-      setSaveRequestId(isApiError(error) ? error.requestId : undefined);
     } finally {
       setIsSaving(false);
     }
@@ -154,7 +151,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
       photoRequest.current = mediaId;
       setIsSavingPhoto(true);
       setPhotoError(undefined);
-      setPhotoRequestId(undefined);
       setFailedPhotoId(undefined);
       try {
         const updated = await authApi.setProfilePhoto(mediaId);
@@ -163,7 +159,6 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
       } catch (error) {
         setFailedPhotoId(mediaId);
         setPhotoError(describeAuthError(error));
-        setPhotoRequestId(isApiError(error) ? error.requestId : undefined);
       } finally {
         photoRequest.current = undefined;
         setIsSavingPhoto(false);
@@ -192,10 +187,13 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
 
   const menuItems = accountMenuFor(mode);
   const roleLinks = menuItems.filter((item) => item.mode);
-  const sharedLinks = menuItems.filter(
-    (item) =>
-      !item.mode && !['/profile', '/ratings', '/settings/notifications'].includes(item.href),
-  );
+  const sharedLinks = [
+    { href: '/settings', label: 'Settings', icon: Settings },
+    ...menuItems.filter(
+      (item) =>
+        !item.mode && !['/profile', '/ratings', '/settings/notifications'].includes(item.href),
+    ),
+  ];
 
   return (
     <div className="grid min-w-0 gap-4">
@@ -507,6 +505,7 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
           />
         </aside>
       </div>
+      <MobileSignOut />
     </div>
   );
 }

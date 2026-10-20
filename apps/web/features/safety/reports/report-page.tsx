@@ -51,7 +51,7 @@ export function ReportPage({ targetType: initialType, targetId: initialId = '', 
   };
 
   return <main className="grid min-w-0 content-start gap-4 pb-10">
-    <Link href="/safety" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Safety &amp; support</Link>
+    <Link href="/safety" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />Safety &amp; support</Link>
     <PageHead eyebrow="Safety & support" title="Report a concern" description="Tell the safety team what happened. We review every report and tell you the outcome." />
     <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
       <form className={`${casePanel} gap-5`} onSubmit={event => { event.preventDefault(); submit(); }}>

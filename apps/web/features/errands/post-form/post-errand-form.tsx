@@ -356,7 +356,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
 
   return (
     <div className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href={errandId ? `/errands/${errandId}` : '/errands'} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />{errandId ? 'Back to errand' : 'My errands'}</Link>
+      <Link href={errandId ? `/errands/${errandId}` : '/errands'} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />{errandId ? 'Back to errand' : 'My errands'}</Link>
       <PageHead
         eyebrow="Requester"
         title={errandId ? 'Edit errand' : 'Post an errand'}

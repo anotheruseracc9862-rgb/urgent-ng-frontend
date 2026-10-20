@@ -137,7 +137,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
   const payment = paymentPrompt('RUNNER', agreement.data);
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline">
+      <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden">
         <ArrowLeft aria-hidden="true" className="size-4" />Back to assignment
       </Link>
       <PageHead

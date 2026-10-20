@@ -107,7 +107,7 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
 
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
-      <Link href={`/marketplace/${errandId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline"><ArrowLeft aria-hidden="true" className="size-4" />Back to errand</Link>
+      <Link href={`/marketplace/${errandId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />Back to errand</Link>
       <PageHead
         eyebrow="Runner view · Send an offer"
         title={<span className="block max-w-[760px] break-words">{currentErrand.title}</span>}

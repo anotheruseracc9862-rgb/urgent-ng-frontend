@@ -85,10 +85,10 @@ describe('shell navigation model', () => {
 
 describe('mobile bottom navigation', () => {
   it.each([
-    ['REQUESTER', ['Dashboard', 'My errands', 'Messages', 'Notifications', 'Profile & account']],
-    ['RUNNER', ['Dashboard', 'Find errands', 'Active task', 'Messages', 'Profile & account']],
+    ['REQUESTER', ['Dashboard', 'My errands', 'Track errand', 'Messages', 'Profile']],
+    ['RUNNER', ['Dashboard', 'Find errands', 'Active task', 'Messages', 'Profile']],
   ] as const)('renders five items for %s mode', (mode, labels) => {
-    render(<BottomNav mode={mode} />);
+    renderWithApp(<BottomNav mode={mode} />);
     const navigation = screen.getByRole('navigation', { name: 'Main' });
     expect(within(navigation).getAllByRole('link')).toHaveLength(5);
     for (const label of labels) expect(within(navigation).getByText(label)).toBeInTheDocument();

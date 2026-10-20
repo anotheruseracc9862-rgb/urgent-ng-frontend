@@ -22,7 +22,7 @@ export function SafetyCenterPage({ assignmentId }: { assignmentId?: string }) {
     { title: 'Share progress', detail: current ? 'Create or revoke a read-only link for someone you trust.' : 'Choose an active errand, then share progress from its assignment hub.', href: current ? `/errands/${current.errandId}/share` : '/dashboard', Icon: Share2, tone: 'green' },
     { title: 'Manage blocked people', detail: 'Review and unblock people. To block someone new, use their profile or this errand’s Block action.', href: '/settings/blocked', Icon: UserRoundX, tone: 'plain' },
   ];
-  const actionTone = {
+  const actionTone: Record<string, string> = {
     green: 'bg-tint-2 text-green-900',
     blue: 'bg-blue-bg text-blue',
     violet: 'bg-violet-bg text-violet',

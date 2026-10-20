@@ -143,11 +143,11 @@ export function MyOffersPage() {
                             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted"><span className="inline-flex items-center gap-1"><Clock3 aria-hidden="true" className="size-3" />{offer.durationMinutes} min</span><span>Sent <time dateTime={offer.createdAt}>{sentLabel(offer.createdAt)}</time></span></p>
                             {offer.closeReason ? <p className="mt-2 text-xs text-ink-2">Closed: {reasonLabel(offer.closeReason)}</p> : null}
                           </div>
-                          <div className="col-start-2 flex min-w-0 flex-wrap items-center justify-between gap-2 sm:col-start-3 sm:row-start-1 sm:max-w-64 sm:flex-col sm:items-end">
+                          <div className="col-start-2 flex min-w-0 flex-wrap items-center justify-between gap-2 max-sm:col-span-2 max-sm:col-start-1 sm:col-start-3 sm:row-start-1 sm:max-w-64 sm:flex-col sm:items-end">
                             <span className="text-base font-extrabold tabular-nums text-ink">{money(offer.amountMinor)}</span>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${tone}`}>{labelFor(offer)}</span>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold max-sm:max-w-full max-sm:text-right ${tone}`}>{labelFor(offer)}</span>
                             {offer.needsReconfirmation ? <span className="rounded-full bg-amber-bg px-2.5 py-1 text-[11px] font-bold text-amber">Reconfirm details</span> : null}
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-green-900">{action}<ArrowRight aria-hidden="true" className="size-3.5 transition-transform motion-safe:group-hover:translate-x-0.5" /></span>
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-green-900 max-sm:min-h-11 max-sm:basis-full max-sm:justify-center max-sm:rounded-full max-sm:bg-panel">{action}<ArrowRight aria-hidden="true" className="size-3.5 transition-transform motion-safe:group-hover:translate-x-0.5" /></span>
                           </div>
                         </Link>
                       </article>
