@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge } from '@/components/runner/pro-badge';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -219,6 +220,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
               <div className="flex flex-wrap items-center gap-2">
                 <b className="text-sm text-ink">{errand.runner.firstName}{errand.runner.lastName ? ` ${errand.runner.lastName[0]}.` : ''}</b>
                 <Badge tone="green">✓ Verified</Badge>
+                {errand.runner.isPro ? <ProBadge /> : null}
               </div>
               <div className="text-xs text-muted">
                 {errand.runner.rating !== null ? `★ ${errand.runner.rating.toFixed(1)} · ` : ''}{errand.runner.completedErrands} errand{errand.runner.completedErrands === 1 ? '' : 's'}

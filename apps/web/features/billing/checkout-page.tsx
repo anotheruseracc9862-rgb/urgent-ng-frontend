@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHead } from '@/components/shell/page-head';
 import { PageLoading } from '@/components/shell/page-loading';
 import * as React from 'react';
 import Link from 'next/link';
@@ -56,26 +57,37 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // The order itself is cheap to read, so show it straight away.
   const checked = useQuery<CheckedOrder>({
     queryKey: queryKeys.billing.order(orderId),
-    queryFn: async () => {
-      const current = await billingApi.order(orderId);
-      if (current.status !== 'PENDING') return { order: current, providerUnavailable: false };
+    queryFn: async () => ({ order: await billingApi.order(orderId), providerUnavailable: false }),
+  });
+  const pending = checked.data?.order.status === 'PENDING';
+
+  // Asking the gateway can take several seconds, so it runs behind the page, not in front of it.
+  const verification = useQuery({
+    queryKey: [...queryKeys.billing.order(orderId), 'verify'],
+    enabled: pending && !waitedOut,
+    queryFn: async (): Promise<CheckedOrder | null> => {
       try {
         return { order: await billingApi.verify(orderId), providerUnavailable: false };
       } catch (error) {
-        if (isApiError(error) && error.code === 'PAYMENT_PROVIDER_UNAVAILABLE') {
-          return { order: current, providerUnavailable: true };
-        }
-        return { order: current, providerUnavailable: false };
+        return isApiError(error) && error.code === 'PAYMENT_PROVIDER_UNAVAILABLE'
+          ? { order: checked.data!.order, providerUnavailable: true }
+          : null;
       }
     },
-    refetchInterval: (query) => {
-      const status = query.state.data?.order.status;
+    refetchInterval: () => {
       const started = startedAt.current;
-      return status === 'PENDING' && started !== null && Date.now() - started < POLL_WINDOW_MS ? POLL_MS : false;
+      return started !== null && Date.now() - started < POLL_WINDOW_MS ? POLL_MS : false;
     },
+    gcTime: 0,
   });
+  const verified = verification.data;
+  React.useEffect(() => {
+    if (verified && verified.order.status !== 'PENDING') client.setQueryData(queryKeys.billing.order(orderId), verified);
+  }, [verified, client, orderId]);
+  const providerUnavailable = Boolean(verified?.providerUnavailable);
 
   const status = checked.data?.order.status;
   React.useEffect(() => {
@@ -93,12 +105,12 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
   }, [status, client]);
 
   if (checked.isPending) {
-    return <PageLoading title="Payment" eyebrow="Billing" width="max-w-xl" />;
+    return <PageLoading title="Payment" eyebrow="Billing" />;
   }
   if (checked.error || !checked.data) {
     const notFound = isApiError(checked.error) && checked.error.status === 404;
     return (
-      <div className="mx-auto grid max-w-xl gap-3">
+      <div className="grid min-w-0 gap-3">
         <Alert variant="danger" role="alert">
           <p>{notFound ? 'We could not find this order.' : 'We could not load this order.'}</p>
           {!notFound ? <Button type="button" variant="ghost" size="sm" onClick={() => void checked.refetch()}>Try again</Button> : null}
@@ -108,15 +120,12 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
     );
   }
 
-  const { order, providerUnavailable } = checked.data;
+  const { order } = checked.data;
   const stillChecking = order.status === 'PENDING' && !waitedOut;
 
   return (
-    <div className="mx-auto grid max-w-xl gap-5">
-      <header>
-        <p className="text-xs font-extrabold uppercase tracking-wider text-green-700">Payment</p>
-        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">{ORDER_TYPE_LABEL[order.type]}</h1>
-      </header>
+    <div className="grid min-w-0 gap-4">
+      <PageHead eyebrow="Payment" title={ORDER_TYPE_LABEL[order.type]} />
 
       {order.status === 'PAID' ? (
         <Alert variant="ok" role="status">
@@ -134,7 +143,7 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
         <Alert variant="warn" role="status">
           <p><strong>Still waiting for confirmation.</strong> If you paid, it will show here once the bank confirms. You can close this page and come back to your orders later.</p>
           <div className="mt-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => { startedAt.current = Date.now(); setWaitedOut(false); void checked.refetch(); }}>Check again</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { startedAt.current = Date.now(); setWaitedOut(false); void verification.refetch(); }}>Check again</Button>
           </div>
         </Alert>
       ) : null}
@@ -147,21 +156,21 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
         <Alert variant="info" role="status"><p><strong>This payment was refunded.</strong></p></Alert>
       ) : null}
 
-      <dl className="grid gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 text-sm shadow-[var(--shadow)]">
-        <div className="flex justify-between gap-3"><dt className="text-muted">Item</dt><dd className="font-bold text-ink">{ORDER_TYPE_LABEL[order.type]}</dd></div>
-        <div className="flex justify-between gap-3"><dt className="text-muted">VAT included</dt><dd className="font-bold text-ink">{formatMoney(order.vatMinor)}</dd></div>
-        <div className="flex justify-between gap-3 border-t border-line pt-3"><dt className="text-muted">Total</dt><dd className="font-extrabold text-ink">{formatMoney(order.amountMinor)}</dd></div>
-      </dl>
-
-      <div className="flex flex-wrap gap-3">
-        {order.status === 'PAID' ? (
-          <Link href={nextLink(order).href} className="inline-flex min-h-11 items-center rounded-full bg-green-800 px-5 text-sm font-bold text-white">{nextLink(order).label}</Link>
-        ) : null}
-        {order.status === 'FAILED' || order.status === 'CANCELLED' ? (
-          <Link href={retryLink(order).href} className="inline-flex min-h-11 items-center rounded-full bg-green-800 px-5 text-sm font-bold text-white">{retryLink(order).label}</Link>
-        ) : null}
-        <Link href="/profile/orders" className="inline-flex min-h-11 items-center rounded-full px-5 text-sm font-bold text-green-800 underline">Orders and receipts</Link>
-      </div>
+      <section className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-label="Order summary">
+        <dl className="grid gap-3 text-sm">
+          <div className="flex justify-between gap-3"><dt className="text-muted">Item</dt><dd className="font-bold text-ink">{ORDER_TYPE_LABEL[order.type]}</dd></div>
+          <div className="flex justify-between gap-3 border-t border-line pt-3"><dt className="text-muted">Total</dt><dd className="font-extrabold text-ink">{formatMoney(order.amountMinor)}</dd></div>
+        </dl>
+        <div className="flex flex-wrap items-center gap-3">
+          {order.status === 'PAID' ? (
+            <Link href={nextLink(order).href} className="inline-flex min-h-11 items-center rounded-full bg-lime px-5 text-sm font-bold text-ink hover:bg-lime-600">{nextLink(order).label}</Link>
+          ) : null}
+          {order.status === 'FAILED' || order.status === 'CANCELLED' ? (
+            <Link href={retryLink(order).href} className="inline-flex min-h-11 items-center rounded-full bg-lime px-5 text-sm font-bold text-ink hover:bg-lime-600">{retryLink(order).label}</Link>
+          ) : null}
+          <Link href="/profile/orders" className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-green-800 underline">Orders and receipts</Link>
+        </div>
+      </section>
     </div>
   );
 }

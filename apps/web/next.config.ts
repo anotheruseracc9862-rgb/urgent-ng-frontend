@@ -36,7 +36,8 @@ const buildConfig = (production: boolean): NextConfig => ({
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${env.NEXT_PUBLIC_API_URL}/:path*`,
+        // The proxy runs on this server, so it can use the backend's private address when one is set.
+        destination: `${process.env.API_INTERNAL_URL ?? env.NEXT_PUBLIC_API_URL}/:path*`,
       },
     ];
   },

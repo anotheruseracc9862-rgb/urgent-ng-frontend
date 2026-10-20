@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import { PageLoading } from '@/components/shell/page-loading';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -194,7 +195,7 @@ export function PublicProfilePage({ userId }: { userId: string }) {
             {person.bio && !isDeletedName ? <p className="mt-3 max-w-2xl whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-2">{person.bio}</p> : null}
             {person.badges.length ? (
               <ul className="mt-3 flex flex-wrap gap-2" aria-label="Badges">
-                {person.badges.map((badge) => <li className="rounded-full bg-surface px-3 py-1 text-xs font-bold text-green-900" key={badge}>{badgeLabel(badge)}</li>)}
+                {person.badges.map((badge) => isProBadge(badge) ? <li key={badge}><ProBadge className="px-3 py-1 text-xs" /></li> : <li className="rounded-full bg-surface px-3 py-1 text-xs font-bold text-green-900" key={badge}>{badgeLabel(badge)}</li>)}
               </ul>
             ) : null}
           </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import Link from 'next/link';
 import { accountMenuFor, type ShellMode } from '@/components/shell/nav-items';
 import * as React from 'react';
@@ -68,6 +69,7 @@ function memberSince(date: string): string {
 
 export function ProfilePage({ mode }: { mode: ShellMode }) {
   const { me } = useSession();
+  const isPro = useIsPro(mode === 'RUNNER');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [draft, setDraft] = React.useState(() => initialDraft(me));
@@ -228,8 +230,9 @@ export function ProfilePage({ mode }: { mode: ShellMode }) {
             )}
           </div>
           <div className="min-w-0 flex-1 basis-40">
-            <h2 className="break-words text-xl font-extrabold tracking-tight text-ink">
+            <h2 className="flex flex-wrap items-center gap-x-2.5 gap-y-1 break-words text-xl font-extrabold tracking-tight text-ink">
               {me.name}
+              {isPro ? <ProBadge className="py-1 text-xs" /> : null}
             </h2>
             <p className="mt-1 text-xs text-muted">{memberSince(me.createdAt)}</p>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">

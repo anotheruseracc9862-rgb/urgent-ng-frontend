@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,6 +52,26 @@ afterEach(() => { server.resetHandlers(); cleanup(); });
 afterAll(() => server.close());
 
 describe('Runner Pro', () => {
+  it('lists every Pro payment as a card and stacks the periods they cover', async () => {
+    const now = Date.now();
+    const day = 86_400_000;
+    server.use(
+      http.get('*/subscriptions/pro', () => envelope(sub({ active: true, status: 'ACTIVE', currentPeriodEnd: new Date(now + 50 * day).toISOString() }))),
+      http.get('*/billing/orders', () => envelope([
+        order({ id: 'order-b', status: 'PAID', paidAt: new Date(now - 5 * day).toISOString() }),
+        order({ id: 'order-a', status: 'PAID', paidAt: new Date(now - 10 * day).toISOString() }),
+        order({ id: 'order-boost', type: 'BOOST', status: 'PAID', paidAt: new Date(now - 1 * day).toISOString() }),
+      ])),
+    );
+    renderWith(<ProPage />);
+    const list = within(await screen.findByRole('region', { name: 'Your Runner Pro purchases' }));
+    expect(list.getAllByRole('listitem')).toHaveLength(2);
+    expect(list.getAllByRole('link', { name: 'View receipt' }).map((link) => link.getAttribute('href'))).toEqual(['/checkout/order-b', '/checkout/order-a']);
+    // The first payment is running now; the second starts when the first ends.
+    expect(list.getByText('Active now')).toBeInTheDocument();
+    expect(list.getByText('Starts later')).toBeInTheDocument();
+  });
+
   it.each([
     ['ACTIVE', { active: true, status: 'ACTIVE', autoRenew: true, currentPeriodEnd: '2026-11-15T00:00:00Z' }, /Runner Pro is active/],
     ['GRACE_PERIOD', { active: true, status: 'GRACE_PERIOD', graceEndsAt: '2026-10-20T00:00:00Z' }, /renewal payment failed/],

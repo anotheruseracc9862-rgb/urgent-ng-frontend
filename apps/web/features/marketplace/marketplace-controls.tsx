@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@urgent/ui';
 import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, FileText, History, List, Map, MapPin, Package, Search, Settings2, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
 import { PageHead } from '@/components/shell/page-head';
+import { AvailabilityPill } from '@/components/runner/availability';
 import { runnerApi } from '@/features/runner/api';
 import { queryKeys } from '@/lib/query/keys';
 
@@ -80,9 +81,11 @@ export function MarketplaceControls({ count, pending, updating, hasMore = false 
         eyebrow="Runner"
         title="Find errands near you"
         description="Browse nearby requests and find work that fits your area and travel preferences."
-        actions={<div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" asChild><Link href="/runner/history"><History aria-hidden="true" className="size-4" />Job history</Link></Button>
-          <Button type="button" variant="ghost" asChild><Link href="/runner/profile"><Settings2 aria-hidden="true" className="size-4" />Update profile</Link></Button>
+        actionsClassName="max-sm:w-full"
+        actions={<div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
+          <AvailabilityPill className="max-sm:flex-1" />
+          <Button type="button" variant="ghost" className="max-sm:size-11 max-sm:shrink-0 max-sm:p-0" asChild><Link href="/runner/history" aria-label="Job history"><History aria-hidden="true" className="size-4" /><span className="max-sm:sr-only">Job history</span></Link></Button>
+          <Button type="button" variant="ghost" className="max-sm:size-11 max-sm:shrink-0 max-sm:p-0" asChild><Link href="/runner/profile" aria-label="Update profile"><Settings2 aria-hidden="true" className="size-4" /><span className="max-sm:sr-only">Update profile</span></Link></Button>
         </div>}
       />
       <form ref={formRef} key={searchParams.toString()} onSubmit={onFilterSubmit} aria-label="Filter errands" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-5">

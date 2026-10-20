@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -112,6 +113,7 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
   const search = useSearchParams();
   const router = useRouter();
   const { me, signOut } = useSession();
+  const isPro = useIsPro(mode === 'RUNNER');
   const [failedPhotoUrl, setFailedPhotoUrl] = useState<string>();
   const photo = useQuery({
     queryKey: queryKeys.media.url(me.photoMediaId ?? ''),
@@ -185,7 +187,7 @@ export function Sidebar({ mode, name }: { mode: ShellMode; name?: string }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-bold text-ink">{display}</span>
-            <span className="block text-[11px] text-muted">{mode === 'RUNNER' ? 'Runner mode' : 'Requester mode'}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-muted">{mode === 'RUNNER' ? 'Runner mode' : 'Requester mode'}{isPro ? <ProBadge className="px-1.5 py-0 text-[10px]" /> : null}</span>
           </span>
           <ChevronRight aria-hidden="true" className="size-4 shrink-0 -rotate-90 text-muted transition-transform duration-200 group-data-[state=open]:rotate-90" />
         </DropdownMenuTrigger>

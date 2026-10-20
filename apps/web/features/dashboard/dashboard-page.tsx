@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -203,12 +204,13 @@ function headline(mode: ShellMode, summary: Summary | undefined): string {
 export function DashboardPage({ mode, firstName, greeting = 'Hello' }: { mode: ShellMode; firstName: string; greeting?: string }) {
   const { me } = useSession();
   const summary = useQuery(dashboardQueries.summary(me.id));
+  const isPro = useIsPro(mode === 'RUNNER');
 
   return (
     <div className="grid content-start gap-4">
       <PageHead
         eyebrow={mode === 'RUNNER' ? 'Runner' : 'Requester'}
-        title={`${greeting}, ${firstName}`}
+        title={<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">{`${greeting}, ${firstName}`}{isPro ? <ProBadge className="py-1 text-xs" /> : null}</span>}
         description={headline(mode, summary.data)}
         actions={mode === 'RUNNER' ? (
           <>
@@ -485,6 +487,27 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
 
   return (
     <>
+      {/* The rail has this switch on desktop; phones have no rail, so it lives here too. */}
+      {profile.data && (
+        <Card id="availability" variant="tint" className="flex flex-wrap items-center justify-between gap-4 !p-4 lg:hidden">
+          <div className="flex min-w-0 items-center gap-3">
+            <span aria-hidden="true" className={`size-2.5 rounded-full ${profile.data.availability === 'AVAILABLE' ? 'bg-lime-600 shadow-[0_0_0_3px_rgba(147,199,0,.25)]' : 'bg-faint'}`} />
+            <div>
+              <strong className="block text-[13px] text-ink">{profile.data.availability === 'AVAILABLE' ? 'You are online' : 'You are offline'}</strong>
+              <span className="text-xs text-muted">{profile.data.availability === 'AVAILABLE' ? 'Nearby errand offers are on.' : 'New offers are paused.'}</span>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant={profile.data.availability === 'AVAILABLE' ? 'ghost' : 'primary'}
+            disabled={availability.isPending}
+            onClick={() => availability.mutate(profile.data!.availability === 'AVAILABLE' ? 'UNAVAILABLE' : 'AVAILABLE')}
+          >
+            {availability.isPending ? 'Updating…' : profile.data.availability === 'AVAILABLE' ? 'Go offline' : 'Go online'}
+          </Button>
+        </Card>
+      )}
+
       {pendingAssignments.isPending ? <Skeleton className="h-16 rounded-[var(--r)]" /> : pendingAssignments.error ? (
         <LoadError onRetry={() => void pendingAssignments.refetch()} />
       ) : pendingAssignments.data?.[0] ? (
@@ -558,26 +581,6 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
       )}
       {eligibility.error && <LoadError onRetry={() => void eligibility.refetch()} />}
 
-      {/* The rail has this switch on desktop; phones have no rail, so it lives here too. */}
-      {profile.data && (
-        <Card id="availability" variant="tint" className="flex flex-wrap items-center justify-between gap-4 !p-4 lg:hidden">
-          <div className="flex min-w-0 items-center gap-3">
-            <span aria-hidden="true" className={`size-2.5 rounded-full ${profile.data.availability === 'AVAILABLE' ? 'bg-lime-600 shadow-[0_0_0_3px_rgba(147,199,0,.25)]' : 'bg-faint'}`} />
-            <div>
-              <strong className="block text-[13px] text-ink">{profile.data.availability === 'AVAILABLE' ? 'You are online' : 'You are offline'}</strong>
-              <span className="text-xs text-muted">{profile.data.availability === 'AVAILABLE' ? 'Nearby errand offers are on.' : 'New offers are paused.'}</span>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant={profile.data.availability === 'AVAILABLE' ? 'ghost' : 'primary'}
-            disabled={availability.isPending}
-            onClick={() => availability.mutate(profile.data!.availability === 'AVAILABLE' ? 'UNAVAILABLE' : 'AVAILABLE')}
-          >
-            {availability.isPending ? 'Updating…' : profile.data.availability === 'AVAILABLE' ? 'Go offline' : 'Go online'}
-          </Button>
-        </Card>
-      )}
       {profile.error && !eligibility.data?.reasons.includes('NO_RUNNER_PROFILE') && (
         <LoadError onRetry={() => void profile.refetch()} />
       )}
@@ -727,7 +730,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
                 </div>
                 <hr className="my-[18px] border-0 border-t border-line" />
                 <div className="flex flex-wrap gap-2">
-                  {(performance.data?.badges ?? []).map((badge) => (
+                  {(performance.data?.badges ?? []).map((badge) => isProBadge(badge) ? <ProBadge key={badge} className="py-1 text-[11.5px]" /> : (
                     <span key={badge} className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{badge.replaceAll('_', ' ')}</span>
                   ))}
                   {performance.data?.response.medianMinutes != null ? (

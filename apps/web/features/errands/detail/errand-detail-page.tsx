@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import { useApiMutation } from '@/lib/query/mutations';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -211,7 +212,7 @@ function RunnerCard({ runnerId, amountMinor }: { runnerId: string; amountMinor: 
           </p>
         </div>
       </div>
-      {runner.badges.length ? <ul className="mt-3 flex flex-wrap gap-2">{runner.badges.map((badge) => <li key={badge} className="rounded-full bg-green-bg px-2.5 py-1 text-xs font-bold text-green-900">{badge.toLowerCase().replaceAll('_', ' ')}</li>)}</ul> : null}
+      {runner.badges.length ? <ul className="mt-3 flex flex-wrap gap-2">{runner.badges.map((badge) => isProBadge(badge) ? <li key={badge}><ProBadge className="py-1 text-xs" /></li> : <li key={badge} className="rounded-full bg-green-bg px-2.5 py-1 text-xs font-bold text-green-900">{badge.toLowerCase().replaceAll('_', ' ')}</li>)}</ul> : null}
       <dl className="mt-4 border-t border-line pt-3">
         <div className="flex justify-between gap-3 text-sm"><dt className="text-muted">Agreed runner fee</dt><dd className="font-extrabold text-ink">{money(amountMinor)}</dd></div>
       </dl>
@@ -229,7 +230,7 @@ function OfferCard({ offer, onSelect, selecting }: { offer: ErrandOffer; onSelec
           <div className="flex flex-wrap items-center gap-2">
             <Link href={`/users/${offer.runnerId}`} className="font-extrabold text-ink hover:underline">{offer.runnerName}</Link>
             {offer.runnerVerified ? <span className="inline-flex items-center gap-1 rounded-full bg-green-bg px-2 py-0.5 text-[11px] font-bold text-green-900"><ShieldCheck aria-hidden="true" className="size-3" />Verified</span> : null}
-            {offer.runnerIsPro ? <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-white">Pro</span> : null}
+            {offer.runnerIsPro ? <ProBadge /> : null}
             {offer.needsReconfirmation ? <span className="rounded-full bg-amber-bg px-2 py-0.5 text-[11px] font-bold text-amber">Reconfirmation needed</span> : null}
           </div>
           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
@@ -240,7 +241,7 @@ function OfferCard({ offer, onSelect, selecting }: { offer: ErrandOffer; onSelec
           </p>
           {offer.message ? <p className="mt-2 break-words text-sm text-ink-2">{offer.message}</p> : null}
           {offer.needsReconfirmation ? <p className="mt-2 text-xs font-semibold text-amber">Waiting for the runner to reconfirm after your errand edit.</p> : offer.awaitingParty === 'RUNNER' ? <p className="mt-2 text-xs text-muted">Waiting for the runner to reply to your counter.</p> : null}
-          {offer.runnerBadges.length ? <ul className="mt-2 flex flex-wrap gap-1.5">{offer.runnerBadges.map((badge) => <li key={badge} className="rounded-full bg-panel px-2 py-0.5 text-[11px] font-semibold text-ink-2">{badge.toLowerCase().replaceAll('_', ' ')}</li>)}</ul> : null}
+          {offer.runnerBadges.filter((badge) => !isProBadge(badge)).length ? <ul className="mt-2 flex flex-wrap gap-1.5">{offer.runnerBadges.filter((badge) => !isProBadge(badge)).map((badge) => <li key={badge} className="rounded-full bg-panel px-2 py-0.5 text-[11px] font-semibold text-ink-2">{badge.toLowerCase().replaceAll('_', ' ')}</li>)}</ul> : null}
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 sm:flex-col sm:items-end sm:border-0 sm:pt-0">

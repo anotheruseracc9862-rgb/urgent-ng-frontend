@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
 import { runnerQueries } from '@/features/runner/queries';
 import { useSession } from '@/lib/auth/client';
 import Link from 'next/link';
@@ -150,7 +151,7 @@ export function RunnerHistoryPage() {
           </div>
           {performance.data.badges.length ? (
             <ul className="flex flex-wrap gap-2">
-              {performance.data.badges.map((badge) => <li key={badge} className="rounded-full bg-green-bg px-3 py-2 text-xs font-bold text-green-900">{titleCase(badge)}</li>)}
+              {performance.data.badges.map((badge) => isProBadge(badge) ? <li key={badge}><ProBadge className="px-3 py-2 text-xs" /></li> : <li key={badge} className="rounded-full bg-green-bg px-3 py-2 text-xs font-bold text-green-900">{titleCase(badge)}</li>)}
             </ul>
           ) : <p className="text-sm text-muted">No badges earned yet. Keep completing errands and responding promptly to earn recognition.</p>}
         </section>

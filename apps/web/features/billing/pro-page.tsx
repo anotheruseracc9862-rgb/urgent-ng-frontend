@@ -4,6 +4,7 @@ import { PageHead } from '@/components/shell/page-head';
 import { PageLoading } from '@/components/shell/page-loading';
 import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
+import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { formatDate, formatMoney } from '@urgent/utils';
@@ -63,6 +64,68 @@ export function ProStatusBanner({ pro }: { pro: ProSubscription }) {
     default:
       return null;
   }
+}
+
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Every Runner Pro payment as a card, with the stretch of time it covers. Payments stack the way the
+ * backend stacks them: one made while Pro is still running starts when the current period ends.
+ */
+function ProPurchases({ periodDays, subscription }: { periodDays: number; subscription: ProSubscription }) {
+  const [now] = React.useState(() => Date.now());
+  const orders = useQuery({ queryKey: [...queryKeys.billing.orders(), 'pro-page'], queryFn: () => billingApi.orders() });
+  const list = Array.isArray(orders.data?.data) ? orders.data.data : [];
+  const pro = list.filter((order) => order.type === 'RUNNER_PRO' && (order.status === 'PAID' || order.status === 'REFUNDED'));
+  if (orders.isPending || !pro.length) return null;
+
+  const byPaid = [...pro].filter((order) => order.status === 'PAID' && order.paidAt).sort((a, b) => Date.parse(a.paidAt!) - Date.parse(b.paidAt!));
+  const spans = new Map<string, { start: number; end: number }>();
+  let previousEnd = 0;
+  for (const order of byPaid) {
+    const start = Math.max(Date.parse(order.paidAt!), previousEnd);
+    const end = start + periodDays * DAY_MS;
+    spans.set(order.id, { start, end });
+    previousEnd = end;
+  }
+  const cards = [...pro].sort((a, b) => Date.parse(b.paidAt ?? b.createdAt) - Date.parse(a.paidAt ?? a.createdAt));
+
+  return (
+    <section aria-labelledby="pro-purchases" className="grid min-w-0 gap-3">
+      <div className="flex items-end justify-between gap-3 px-1.5">
+        <h2 id="pro-purchases" className="text-base font-extrabold text-ink">Your Runner Pro purchases</h2>
+        <Link href="/profile/orders" className="text-xs font-bold text-green-800 underline">All orders</Link>
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((order) => {
+          const span = spans.get(order.id);
+          const refunded = order.status === 'REFUNDED';
+          const state = refunded ? 'Refunded'
+            : !span ? 'Paid'
+            : span.end <= now ? 'Ended'
+            : span.start > now ? 'Starts later'
+            : subscription.active ? 'Active now' : 'Ended';
+          const tone = state === 'Active now' ? 'bg-tint-2 text-green-900' : state === 'Starts later' ? 'bg-blue-bg text-blue' : 'bg-panel text-ink-2';
+          return (
+            <li key={order.id} className="grid min-w-0 gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-extrabold text-ink">{formatMoney(order.amountMinor)}</span>
+                <span className={`rounded-full px-2.5 py-1 text-[11.5px] font-bold ${tone}`}>{state}</span>
+              </div>
+              <dl className="grid gap-1.5 text-xs text-muted">
+                {span && !refunded ? (
+                  <div className="flex justify-between gap-3"><dt>Covers</dt><dd className="text-right font-bold text-ink-2">{formatDate(new Date(span.start).toISOString(), 'medium')} – {formatDate(new Date(span.end).toISOString(), 'medium')}</dd></div>
+                ) : null}
+                <div className="flex justify-between gap-3"><dt>Paid</dt><dd className="text-right font-bold text-ink-2">{order.paidAt ? formatDate(order.paidAt, 'medium') : '—'}</dd></div>
+              </dl>
+              <Link href={`/checkout/${order.id}`} className="text-xs font-bold text-green-800 underline">View receipt</Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }
 
 export function ProPage() {
@@ -178,6 +241,8 @@ export function ProPage() {
           ) : null}
         </div>
       </div>
+
+      <ProPurchases periodDays={product?.periodDays ?? 30} subscription={sub} />
     </div>
   );
 }

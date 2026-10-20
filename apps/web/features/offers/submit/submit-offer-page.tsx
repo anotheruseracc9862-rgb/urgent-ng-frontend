@@ -5,6 +5,7 @@ import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { GoOnlineButton } from '@/components/runner/availability';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
@@ -201,7 +202,7 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
             {!currentEligibility.canOffer ? (
               <div className="grid gap-2 border-t border-line pt-3">
                 <h3 className="flex items-center gap-2 text-sm font-extrabold text-ink"><ShieldCheck aria-hidden="true" className="size-4" />Eligibility</h3>
-                {currentEligibility.reasons.map((reason) => <Alert key={reason} variant="warn" role="status">{eligibilityMessages[reason] ?? 'Your runner account is not currently eligible to send offers.'}</Alert>)}
+                {currentEligibility.reasons.map((reason) => <Alert key={reason} variant="warn" role="status"><div className="grid gap-2"><p>{eligibilityMessages[reason] ?? 'Your runner account is not currently eligible to send offers.'}</p>{reason === 'UNAVAILABLE' ? <GoOnlineButton className="w-fit" /> : null}</div></Alert>)}
               </div>
             ) : null}
             <div className="border-t border-line pt-3">

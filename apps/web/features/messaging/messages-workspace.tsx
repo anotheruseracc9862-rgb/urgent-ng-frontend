@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge } from '@/components/runner/pro-badge';
 import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
 import Link from 'next/link';
@@ -116,7 +117,10 @@ function ConversationList({ activeId }: { activeId?: string }) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <b className="truncate text-[13.5px] text-ink">{counterpartName(conversation.counterpart)}</b>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <b className="truncate text-[13.5px] text-ink">{counterpartName(conversation.counterpart)}</b>
+                        {conversation.counterpart.role === 'RUNNER' && conversation.counterpart.isPro ? <ProBadge className="px-1.5 py-0 text-[10px]" /> : null}
+                      </span>
                       {conversation.lastMessageAt ? <time dateTime={conversation.lastMessageAt} className="shrink-0 text-[11px] text-faint">{formatRelativeTime(conversation.lastMessageAt)}</time> : null}
                     </span>
                     <span className="block truncate text-[11.5px] font-bold text-green-700">{conversation.errandTitle}</span>

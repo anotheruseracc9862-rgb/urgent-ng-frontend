@@ -8,6 +8,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { MarketplaceFeedPage } from './feed/marketplace-feed-page';
 import { PageHead } from '@/components/shell/page-head';
+import { GoOnlineButton } from '@/components/runner/availability';
 import type { RunnerEligibility } from '@/features/runner/api';
 
 // The map and its SDK load only when the map view is opened, so the feed's first-load JavaScript
@@ -47,14 +48,20 @@ function MarketplaceEligibilityGate({ eligibility }: { eligibility: RunnerEligib
   const verificationPending = reasons.includes('VERIFICATION_PENDING');
   const profileRequired = reasons.includes('NO_RUNNER_PROFILE') || reasons.some((reason) => reason === 'OPERATING_AREA_REQUIRED') || reasons.includes('UNAVAILABLE');
   const accountRestricted = reasons.includes('RESTRICTED') || reasons.includes('ACCOUNT_NOT_ACTIVE');
-  const title = verificationPending && !verificationRequired
+  // The only thing in the way is the online switch: let them flip it right here.
+  const offlineOnly = reasons.length === 1 && reasons[0] === 'UNAVAILABLE';
+  const title = offlineOnly
+    ? 'You are offline'
+    : verificationPending && !verificationRequired
     ? 'Your verification is in progress'
     : accountRestricted
       ? 'Your account needs attention'
       : profileRequired && !verificationRequired
         ? 'Set up your runner profile'
         : 'Your next errand starts here';
-  const description = verificationRequired
+  const description = offlineOnly
+    ? 'Go online to browse nearby errands and send offers.'
+    : verificationRequired
     ? 'Complete runner verification to browse nearby errands and send offers. It helps requesters know who they can trust.'
     : verificationPending
       ? 'Your identity check is being reviewed. You can check its progress any time.'
@@ -73,7 +80,7 @@ function MarketplaceEligibilityGate({ eligibility }: { eligibility: RunnerEligib
     VERIFICATION_PENDING: 'Your identity check is still being reviewed.',
     NO_RUNNER_PROFILE: 'Set up your operating area and travel preferences.',
     OPERATING_AREA_REQUIRED: 'Confirm your operating area and save your runner profile.',
-    UNAVAILABLE: 'Set your runner availability to available.',
+    UNAVAILABLE: 'You are offline, so the errand feed is paused.',
     RESTRICTED: 'An account restriction currently prevents marketplace access.',
   };
 
@@ -89,14 +96,16 @@ function MarketplaceEligibilityGate({ eligibility }: { eligibility: RunnerEligib
             </span>
             <h2 id="marketplace-eligibility-title" className="mt-4 text-2xl font-extrabold tracking-tight text-ink sm:text-[28px]">{title}</h2>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-2">{description}</p>
-            {reasons.length > 0 ? (
+            {reasons.length > 0 && !offlineOnly ? (
               <ul className="mt-4 grid max-w-lg gap-2 text-sm text-ink-2">
                 {reasons.map((reason) => <li key={reason}>{messages[reason] ?? 'Your runner account is not currently eligible to browse.'}</li>)}
               </ul>
             ) : null}
-            <Button asChild className="mt-5">
-              <Link href={action.href}>{action.label}<ArrowRight aria-hidden="true" /></Link>
-            </Button>
+            {offlineOnly ? <GoOnlineButton className="mt-5" /> : (
+              <Button asChild className="mt-5">
+                <Link href={action.href}>{action.label}<ArrowRight aria-hidden="true" /></Link>
+              </Button>
+            )}
           </div>
           <Image src="/assets/mascot.png" alt="" width={180} height={190} className="row-start-1 mx-auto h-36 w-auto sm:col-start-2 sm:row-start-1 sm:h-48" />
         </div>

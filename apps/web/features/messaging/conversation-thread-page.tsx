@@ -1,5 +1,6 @@
 'use client';
 
+import { ProBadge } from '@/components/runner/pro-badge';
 import { useApiMutation } from '@/lib/query/mutations';
 import * as React from 'react';
 import Link from 'next/link';
@@ -133,7 +134,10 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
           {initialsOf(current.counterpart.firstName, current.counterpart.lastName)}
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-extrabold text-ink">{counterpartName(current.counterpart)}</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-sm font-extrabold text-ink">{counterpartName(current.counterpart)}</h1>
+            {current.counterpart.role === 'RUNNER' && current.counterpart.isPro ? <ProBadge className="px-1.5 py-0 text-[10px]" /> : null}
+          </div>
           <p className="truncate text-xs text-muted">{counterpartSubtitle(current.counterpart)}</p>
         </div>
         {onShowDetails ? (
