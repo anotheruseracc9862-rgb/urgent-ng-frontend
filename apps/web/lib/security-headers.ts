@@ -7,11 +7,18 @@ interface Options {
   production: boolean;
   /** Origin of the backend API, used when the browser calls it directly. */
   apiOrigin?: string;
+  /**
+   * Headers for the push service worker file. A worker takes its policy from its own response, and
+   * the Firebase worker loads its code from Google's CDN, so it needs that one extra script source.
+   * The pages do not.
+   */
+  serviceWorker?: boolean;
 }
 
 /** Third parties the app uses: Google sign-in, Google Maps, Firebase Messaging. Nothing else. */
 const GOOGLE_SCRIPT = ['https://accounts.google.com', 'https://maps.googleapis.com'];
 const GOOGLE_CONNECT = ['https://accounts.google.com', 'https://*.googleapis.com'];
+const FIREBASE_WORKER_SCRIPT = ['https://www.gstatic.com'];
 
 function originOf(value: string | undefined): string | null {
   if (!value) return null;
@@ -22,12 +29,12 @@ function originOf(value: string | undefined): string | null {
   }
 }
 
-export function contentSecurityPolicy({ production, apiOrigin }: Options): string {
+export function contentSecurityPolicy({ production, apiOrigin, serviceWorker = false }: Options): string {
   const api = originOf(apiOrigin);
   const directives: Record<string, string[]> = {
     'default-src': ["'self'"],
     // Next.js inlines its bootstrap scripts, so static pages cannot carry a per-request nonce.
-    'script-src': ["'self'", "'unsafe-inline'", ...(production ? [] : ["'unsafe-eval'"]), ...GOOGLE_SCRIPT],
+    'script-src': ["'self'", "'unsafe-inline'", ...(production ? [] : ["'unsafe-eval'"]), ...GOOGLE_SCRIPT, ...(serviceWorker ? FIREBASE_WORKER_SCRIPT : [])],
     'style-src': ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
     'img-src': ["'self'", 'data:', 'blob:', 'https:'],
     'font-src': ["'self'", 'data:'],

@@ -17,13 +17,16 @@ const buildConfig = (production: boolean): NextConfig => ({
     "@urgent/config",
   ],
   async headers() {
+    const options = { production, apiOrigin: env.NEXT_PUBLIC_API_URL };
     return [
       {
         source: '/:path*',
-        headers: securityHeaders({
-          production,
-          apiOrigin: env.NEXT_PUBLIC_API_URL,
-        }),
+        headers: securityHeaders(options),
+      },
+      // Listed after the rule above, so for this one file its policy replaces the general one.
+      {
+        source: '/firebase-messaging-sw.js',
+        headers: securityHeaders({ ...options, serviceWorker: true }),
       },
     ];
   },
