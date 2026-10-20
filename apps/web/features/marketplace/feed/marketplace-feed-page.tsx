@@ -166,7 +166,7 @@ export function MarketplaceFeedPage() {
               </Button>
             </div>
             <Image
-              src="/assets/mascot.png"
+              src="/assets/mascot-full.png"
               alt=""
               width={180}
               height={190}

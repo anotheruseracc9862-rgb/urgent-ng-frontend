@@ -6396,6 +6396,8 @@ export interface components {
             ratingCount: number;
             /** @description Errands this runner has completed. */
             completedErrands: number;
+            /** @description The runner has an active Runner Pro entitlement right now. */
+            isPro: boolean;
         };
         ErrandSummaryDto: {
             status: components["schemas"]["ErrandStatus"];
@@ -6636,6 +6638,8 @@ export interface components {
             /** @description Null until enough ratings are published to show an average. */
             rating: number | null;
             ratingCount: number;
+            /** @description The other person is a runner with an active Runner Pro entitlement right now. */
+            isPro: boolean;
         };
         ConversationDto: {
             id: string;

@@ -91,7 +91,7 @@ export function ModeIntroDialog({ mode, open, onOpenChange, onConfirm }: {
           </div>
           {runner ? (
             <Image
-              src="/assets/mascot.png"
+              src="/assets/mascot-full.png"
               alt=""
               width={96}
               height={112}

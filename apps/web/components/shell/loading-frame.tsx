@@ -13,7 +13,7 @@ export function LoadingFrame({ inShell = false }: { inShell?: boolean }) {
       className={`grid place-items-center ${inShell ? 'min-h-[60vh]' : 'min-h-screen bg-panel'}`}
     >
       <Image
-        src="/assets/mascot.png"
+        src="/assets/mascot-full.png"
         alt=""
         width={96}
         height={112}

@@ -107,7 +107,7 @@ function MarketplaceEligibilityGate({ eligibility }: { eligibility: RunnerEligib
               </Button>
             )}
           </div>
-          <Image src="/assets/mascot.png" alt="" width={180} height={190} className="row-start-1 mx-auto h-36 w-auto sm:col-start-2 sm:row-start-1 sm:h-48" />
+          <Image src="/assets/mascot-full.png" alt="" width={180} height={190} className="row-start-1 mx-auto h-36 w-auto sm:col-start-2 sm:row-start-1 sm:h-48" />
         </div>
       </section>
     </main>

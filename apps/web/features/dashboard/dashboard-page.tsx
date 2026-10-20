@@ -565,7 +565,7 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
               )}
             </div>
           </div>
-          <Image src="/assets/mascot.png" alt="" width={100} height={106} className="h-auto w-full" />
+          <Image src="/assets/mascot-full.png" alt="" width={100} height={106} className="h-auto w-full" />
         </section>
       )}
       {accountBlockers.length > 0 && (
