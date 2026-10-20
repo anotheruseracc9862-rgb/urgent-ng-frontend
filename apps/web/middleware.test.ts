@@ -20,22 +20,26 @@ describe('isAccessTokenValid()', () => {
 });
 
 describe('middleware()', () => {
-  it.each(['/safety', '/report', '/reports/case-id', '/disputes/case-id'])('protects the safety route %s', (path) => {
+  it.each(['/dashboard', '/errands', '/errands?tab=active', '/marketplace/offer-1', '/messages/c1', '/safety', '/reports/case-id', '/disputes/case-id'])(
+    'shows the coming-soon page instead of the business area %s, signed in or not',
+    (path) => {
+      const response = middleware(new NextRequest(`https://app.test${path}`));
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-middleware-rewrite')).toBe('https://app.test/coming-soon');
+      expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    },
+  );
+
+  it.each(['/', '/help', '/pricing', '/login', '/register'])('leaves the public page %s open', (path) => {
     const response = middleware(new NextRequest(`https://app.test${path}`));
-    expect(response.status).toBe(307);
+    expect(response.headers.get('x-middleware-rewrite')).toBeNull();
+    expect(response.status).toBe(200);
+  });
+
+  it.each(['/onboarding', '/policy-acceptance', '/account/standing'])('keeps %s as a signed-in account page, not coming soon', (path) => {
+    const response = middleware(new NextRequest(`https://app.test${path}`));
+    expect(response.headers.get('x-middleware-rewrite')).toBeNull();
     expect(response.headers.get('location')).toContain('/session?redirect=');
-  });
-
-  it('keeps trusted-contact links public', () => {
-    expect(middleware(new NextRequest('https://app.test/shared/secret')).status).toBe(200);
-  });
-
-  it('sends unauthenticated protected visits through the browser refresh route', () => {
-    const response = middleware(new NextRequest('https://app.test/errands?tab=active'));
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'https://app.test/session?redirect=%2Ferrands%3Ftab%3Dactive',
-    );
   });
 
   it('does not allow a backslash-based external post-login redirect', () => {

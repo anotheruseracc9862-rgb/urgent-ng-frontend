@@ -7,6 +7,11 @@ const ACCESS_COOKIE = 'ung_at';
 
 /** Areas that need a session. Any other path is public, so unknown URLs reach the 404 page. */
 const PROTECTED = PROTECTED_PATHS;
+/**
+ * The signed-in business areas are not open yet: every one of them shows the coming-soon page. The
+ * account, onboarding and policy pages stay open, because sign-up and sign-in lead through them.
+ */
+const NOT_OPEN_YET = PROTECTED.filter((route) => !['/account', '/onboarding', '/policy-acceptance'].includes(route));
 /** Auth pages: a signed-in user is sent to the app instead. */
 const GUEST_ONLY = ['/login', '/register', '/forgot-password', '/reset-password'];
 
@@ -46,6 +51,12 @@ function hasAccessCookie(request: NextRequest): boolean {
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const signedIn = hasAccessCookie(request);
+
+  if (NOT_OPEN_YET.some((r) => matches(pathname, r))) {
+    const response = NextResponse.rewrite(new URL('/coming-soon', request.url));
+    response.headers.set('X-Robots-Tag', 'noindex');
+    return response;
+  }
 
   if (GUEST_ONLY.some((r) => matches(pathname, r))) {
     // A page that just found the session dead sends the user here with a reason. Do not bounce
