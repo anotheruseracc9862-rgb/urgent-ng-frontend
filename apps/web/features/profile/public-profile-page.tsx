@@ -1,6 +1,6 @@
 'use client';
 
-import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
+import { ProBadge, isProBadge } from '@/components/runner/pro-badge';
 import { PageLoading } from '@/components/shell/page-loading';
 import Image from 'next/image';
 import Link from 'next/link';

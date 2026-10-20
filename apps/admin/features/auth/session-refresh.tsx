@@ -7,26 +7,12 @@ import { ApiError } from "@urgent/api-client";
 import { safeAdminReturnTo } from "../../lib/auth/shared";
 import { AuthPanel } from "./auth-panel";
 
-const LOOP_KEY = "ung_admin_refresh_loop";
-
-/** True when a refresh already "succeeded" twice in the last 30s yet the console still rejected the session. */
-function refreshLooping(): boolean {
-  try {
-    const now = Date.now();
-    const recent = (JSON.parse(sessionStorage.getItem(LOOP_KEY) ?? "[]") as number[]).filter((at) => now - at < 30_000);
-    recent.push(now);
-    sessionStorage.setItem(LOOP_KEY, JSON.stringify(recent));
-    return recent.length > 2;
-  } catch { return false; }
-}
-
 export function SessionRefresh() {
   const started = useRef(false);
   const [error, setError] = useState("");
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    if (refreshLooping()) { window.location.replace("/login"); return; }
     void refreshAdminSession().then(() => {
       window.location.replace(safeAdminReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
     }).catch((cause: unknown) => {

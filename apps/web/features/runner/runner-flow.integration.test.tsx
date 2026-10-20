@@ -15,9 +15,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ ...navigation, refresh: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
-vi.mock('@/lib/auth/client', () => ({
-  useSession: () => ({ me: { id: 'runner-flow-1', firstName: 'Ada', lastName: 'Lovelace', phoneVerified: true } }),
-}));
+vi.mock('@/lib/auth/client', () => {
+  const session = { me: { id: 'runner-flow-1', firstName: 'Ada', lastName: 'Lovelace', phoneVerified: true } };
+  return { useSession: () => session, useOptionalSession: () => session };
+});
 vi.mock('@/components/media-upload/media-upload', () => ({
   MediaUpload: ({ capture, onChange }: { capture?: string; onChange?: (ids: string[]) => void }) => (
     <button type="button" onClick={() => onChange?.([capture ? 'runner-flow-selfie' : 'runner-flow-id'])}>

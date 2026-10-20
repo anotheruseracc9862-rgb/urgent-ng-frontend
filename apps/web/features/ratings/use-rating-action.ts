@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOptionalSession } from '@/lib/auth/client';
 import { ratingKeys, ratingsApi } from './api';
@@ -21,6 +22,8 @@ const NOTHING: RatingAction = { label: null, note: 'This errand is complete. Rev
  */
 export function useRatingAction(assignmentId: string, enabled: boolean): RatingAction {
   const userId = useOptionalSession()?.me.id;
+  // Read once on mount: the editing window is minutes or days long, and the render must stay pure.
+  const [now] = useState(() => Date.now());
   const query = useQuery({
     queryKey: ratingKeys.assignment(userId ?? 'no-session', assignmentId),
     queryFn: ({ signal }) => ratingsApi.assignment(assignmentId, signal),
@@ -31,7 +34,7 @@ export function useRatingAction(assignmentId: string, enabled: boolean): RatingA
   if (!data) return NOTHING;
   const mine = data.mine;
   if (mine) {
-    const stillEditable = mine.editable && !mine.revealed && (mine.editableUntil === null || Date.parse(mine.editableUntil) > Date.now());
+    const stillEditable = mine.editable && !mine.revealed && (mine.editableUntil === null || Date.parse(mine.editableUntil) > now);
     return stillEditable
       ? { label: 'Edit your rating', note: 'You rated this errand. You can still change your rating.' }
       : { label: 'View your rating', note: 'You rated this errand.' };

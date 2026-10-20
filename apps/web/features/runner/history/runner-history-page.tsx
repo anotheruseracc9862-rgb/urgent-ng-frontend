@@ -1,6 +1,6 @@
 'use client';
 
-import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
+import { ProBadge, isProBadge } from '@/components/runner/pro-badge';
 import { runnerQueries } from '@/features/runner/queries';
 import { useSession } from '@/lib/auth/client';
 import Link from 'next/link';

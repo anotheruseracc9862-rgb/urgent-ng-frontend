@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// findBy and waitFor give up after 1s by default, which is too tight when the whole suite runs in parallel.
+configure({ asyncUtilTimeout: 5000 });
 
 // Cleanup after each test
 afterEach(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
+import { ProBadge, useIsPro } from '@/components/runner/pro-badge';
 import Link from 'next/link';
 import { accountMenuFor, type ShellMode } from '@/components/shell/nav-items';
 import * as React from 'react';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ProBadge, isProBadge, useIsPro } from '@/components/runner/pro-badge';
+import { ProBadge, useIsPro } from '@/components/runner/pro-badge';
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
