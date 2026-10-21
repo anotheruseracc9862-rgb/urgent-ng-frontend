@@ -19,14 +19,14 @@ describe('Quick post', () => {
     open();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByText(/Say what needs to be done/)).toBeTruthy();
-    expect(screen.getByText('Add the pickup area.')).toBeTruthy();
+    expect(screen.getByText('Add the pickup or service area.')).toBeTruthy();
     expect(push).not.toHaveBeenCalled();
   });
 
   it('hands the values to the full post form', () => {
     open();
     fireEvent.change(screen.getByLabelText(/What do you need done/), { target: { value: 'Pick up groceries' } });
-    fireEvent.change(screen.getByLabelText('Pickup area'), { target: { value: 'Lekki Phase 1' } });
+    fireEvent.change(screen.getByLabelText('Pickup or service area'), { target: { value: 'Lekki Phase 1' } });
     fireEvent.change(screen.getByLabelText(/Suggested budget/), { target: { value: '5,000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(push).toHaveBeenCalledWith('/errands/new');

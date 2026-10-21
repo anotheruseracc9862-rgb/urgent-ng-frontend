@@ -3,6 +3,7 @@
 import { PageLoading } from '@/components/shell/page-loading';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
+import { CANCEL_BLOCKED, flowOf } from '@/features/reference/flow';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,27 +26,28 @@ const REASONS: Array<{ value: CancelReason; label: string }> = [
 
 const CANCELLABLE = ['DRAFT', 'OPEN', 'RUNNER_SELECTED', 'ACCEPTED', 'IN_PROGRESS'];
 
-function consequence(status: Errand['status']) {
+function consequence(status: Errand['status'], service: boolean) {
   switch (status) {
     case 'DRAFT': return 'The draft is closed and will no longer appear in your active drafts.';
     case 'OPEN': return 'The errand and its offers will close. No runner has been selected.';
     case 'RUNNER_SELECTED': return 'The selected runner will be notified. The selection and cancellation reason will be recorded.';
     case 'ACCEPTED': return 'The accepted runner will be notified and the reason will be recorded.';
     case 'IN_PROGRESS': return 'This is recorded as a late cancellation and may affect account reliability.';
-    case 'PICKED_UP': return 'Cancellation is not available after pickup. Open a dispute if something is wrong.';
-    case 'DELIVERED': return 'Cancellation is not available after delivery. Confirm completion or open a dispute.';
+    case 'PICKED_UP': return service ? 'Cancellation is not available once the work has started. Open a dispute if something is wrong.' : 'Cancellation is not available after pickup. Open a dispute if something is wrong.';
+    case 'DELIVERED': return service ? 'Cancellation is not available once the work is finished. Confirm completion or open a dispute.' : 'Cancellation is not available after delivery. Confirm completion or open a dispute.';
     case 'DISPUTED': return 'This errand is already under review. Continue in the assignment hub.';
     default: return 'This errand is already closed.';
   }
 }
 
-function cancellationError(error: unknown) {
+function cancellationError(error: unknown, flow?: Parameters<typeof flowOf>[0]) {
+  const blocked = CANCEL_BLOCKED[flowOf(flow)];
   if (!isApiError(error)) return 'We could not cancel this errand. Please try again.';
   if (error.code === 'ERRAND_EXPIRED') return 'This errand expired before it could be cancelled. Refresh to see its current status.';
   if (error.code === 'ERRAND_INVALID_STATE') {
     const action = error.details.suggestedAction;
-    if (action === 'OPEN_DISPUTE') return 'The item has been picked up. Cancellation is blocked; open a dispute from the assignment hub.';
-    if (action === 'COMPLETE_OR_DISPUTE') return 'The errand was delivered. Confirm completion or open a dispute from the assignment hub.';
+    if (action === 'OPEN_DISPUTE') return blocked.startedShort;
+    if (action === 'COMPLETE_OR_DISPUTE') return blocked.finishedShort;
     return 'The errand changed status before cancellation could finish. Refresh to see the available actions.';
   }
   return error.message;
@@ -110,13 +112,13 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
         <p className="text-xs font-extrabold uppercase tracking-wide text-green-800">{errand.status.replaceAll('_', ' ')}</p>
         <h2 className="mt-1 break-words text-lg font-extrabold text-ink">{errand.title}</h2>
         <p className="mt-1 text-sm text-muted"><LocationSummary location={errand.pickup} />{errand.pickup && errand.destination ? ' → ' : null}<LocationSummary location={errand.destination} /></p>
-        <Alert variant={allowed ? 'warn' : 'info'} className="mt-4">{consequence(errand.status)}</Alert>
+        <Alert variant={allowed ? 'warn' : 'info'} className="mt-4">{consequence(errand.status, flowOf(errand.category) === 'SERVICE')}</Alert>
       </section>
 
       {cancel.error ? (
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
-            <p>{cancellationError(cancel.error)}</p>
+            <p>{cancellationError(cancel.error, errand.category)}</p>
             {blockedAction && assignmentHref ? <Link className="font-bold underline" href={assignmentHref}>Open assignment hub</Link> : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => { cancel.reset(); void errandQuery.refetch(); }}>Refresh errand</Button>
           </div>

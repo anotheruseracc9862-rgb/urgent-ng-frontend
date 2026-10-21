@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useApiMutation } from '@/lib/query/mutations';
 import type { components } from '@urgent/api-client';
-import { Alert, Button, Input, MoneyInput, Skeleton, Textarea } from '@urgent/ui';
+import { Alert, Button, Input, MoneyInput, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, Skeleton, Textarea } from '@urgent/ui';
 import { MediaUpload } from '@/components/media/MediaUpload';
 import { LagosDateTimeField } from '@/components/forms/lagos-date-time-field';
 import type { PinValue } from '@/components/map/PinPicker';
@@ -20,6 +20,7 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import type { Category, ParticipantLocation } from '@/lib/api/types';
 import { useCategories, requiredLocations } from '@/features/reference/hooks';
+import { FLOW_GROUP_LABEL, PLACE_COPY, flowOf } from '@/features/reference/flow';
 import { errandsApi, type Errand, type UpdateErrand } from '../api';
 import { isScheduledTimeInRange, SCHEDULE_MAX_DAYS_AHEAD, SCHEDULE_MIN_LEAD_HOURS } from '../schemas';
 
@@ -80,9 +81,10 @@ function formFromDraft(): ErrandForm {
   if (Number.isFinite(draft.budgetNaira) && draft.budgetNaira >= 500) {
     form.suggestedBudgetMinor = Math.round(draft.budgetNaira * 100);
   }
+  // Without a pickup the one place is where the work happens, not a drop-off.
   const places = [
     draft.pickup ? `Pickup area: ${draft.pickup}` : '',
-    draft.destination ? `Drop-off area: ${draft.destination}` : '',
+    draft.destination ? `${draft.pickup ? 'Drop-off' : 'Service'} area: ${draft.destination}` : '',
   ].filter(Boolean);
   form.instructions = places.join('\n');
   return form;
@@ -302,6 +304,8 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
 
   const selectedCategory = categories.find((category) => category.id === form.categoryId);
   const locations = selectedCategory ? requiredLocations(selectedCategory) : null;
+  const flow = flowOf(selectedCategory);
+  const service = flow === 'SERVICE';
   const dateInvalid = form.timeMode === 'SCHEDULED' && !isScheduledTimeInRange(form.scheduledAt);
   const phoneInvalid = contactPhoneInvalid(form.pickupContact) || contactPhoneInvalid(form.dropoffContact);
   const currentPatch = baseline ? diffForm(form, baseline, version) : null;
@@ -372,21 +376,34 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
             <p className="mt-1 text-xs text-muted">{errandId ? 'Changes save automatically as you go.' : 'Start a draft with a title and category, then add the details.'}</p>
           </div>
           <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-title">What do you need done?
-            <Input id="errand-title" maxLength={120} required value={form.title} onChange={(event) => update('title', event.target.value)} placeholder="e.g. Pick up groceries from Justrite" />
+            <Input id="errand-title" maxLength={120} required value={form.title} onChange={(event) => update('title', event.target.value)} placeholder={service ? 'e.g. Wash my car at home' : 'e.g. Pick up groceries from Justrite'} />
           </label>
-          <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-category">Category
-            <select id="errand-category" required value={form.categoryId} onChange={(event) => updateCategory(event.target.value)} className="min-h-11 rounded-[var(--r)] border border-line bg-surface px-3 text-sm">
-              <option value="">Choose a category</option>
-              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
-          </label>
+          <div className="grid gap-2 text-sm font-bold text-ink">
+            <label htmlFor="errand-category">Category</label>
+            <Select value={form.categoryId} onValueChange={updateCategory} required>
+              <SelectTrigger id="errand-category" className="min-h-11 rounded-[var(--r)] text-left font-bold">
+                <SelectValue placeholder="Choose a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {(['TRANSIT', 'SERVICE'] as const).map((group) => {
+                  const items = categories.filter((category) => flowOf(category) === group);
+                  return items.length ? (
+                    <SelectGroup key={group}>
+                      <SelectLabel>{FLOW_GROUP_LABEL[group]}</SelectLabel>
+                      {items.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+                    </SelectGroup>
+                  ) : null;
+                })}
+              </SelectContent>
+            </Select>
+          </div>
           {errandId ? (
             <>
               <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-description">Describe the task
-                <Textarea id="errand-description" maxLength={2000} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="Name the item and the exact task." />
+                <Textarea id="errand-description" maxLength={2000} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder={service ? 'Describe the job: what needs doing, how big it is and what to bring.' : 'Name the item and the exact task.'} />
               </label>
               <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-instructions">Instructions for the runner <span className="font-normal text-muted">Optional</span>
-                <Textarea id="errand-instructions" maxLength={1000} value={form.instructions} onChange={(event) => update('instructions', event.target.value)} placeholder="Mention size, weight, fragile items or anything else to know." />
+                <Textarea id="errand-instructions" maxLength={1000} value={form.instructions} onChange={(event) => update('instructions', event.target.value)} placeholder={service ? 'Gate code, parking, pets or anything else to know.' : 'Mention size, weight, fragile items or anything else to know.'} />
               </label>
               <fieldset id="errand-time-mode" className="grid gap-2">
                 <legend className="text-sm font-bold text-ink">When?</legend>
@@ -409,9 +426,8 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                 />
               ) : null}
               {locations?.pickup ? <div id="errand-pickup"><LocationPicker label="Pickup location" value={form.pickup} onChange={(value) => update('pickup', value)} /></div> : null}
-              {locations?.destination ? <div id="errand-destination"><LocationPicker label="Drop-off location" value={form.destination} onChange={(value) => update('destination', value)} /></div> : null}
-              {locations?.onSite ? <div id="errand-pickup" className="grid gap-2"><p className="text-sm text-muted">This is an on-site task. Add the area where the work will happen.</p><LocationPicker label="On-site location" value={form.pickup} onChange={(value) => update('pickup', value)} /></div> : null}
-              <div className="grid gap-3 sm:grid-cols-2">
+              {locations?.destination ? <div id="errand-destination" className="grid gap-2">{service ? <p className="text-sm text-muted">Where should the runner come to do the work?</p> : null}<LocationPicker label={PLACE_COPY[flow].destination} value={form.destination} onChange={(value) => update('destination', value)} /></div> : null}
+              {service ? null : <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-size">Item size <span className="font-normal text-muted">Optional</span>
                   <select id="errand-size" value={form.itemSize} onChange={(event) => update('itemSize', event.target.value as ItemSize | '')} className="min-h-11 rounded-[var(--r)] border border-line bg-surface px-3 text-sm">
                     <option value="">Not specified</option><option value="SMALL">Small (fits a bag)</option><option value="MEDIUM">Medium (a box)</option><option value="LARGE">Large (needs a car)</option><option value="EXTRA_LARGE">Extra large</option>
@@ -420,7 +436,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                 <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-value">Item value <span className="font-normal text-muted">Optional</span>
                   <MoneyInput id="errand-value" value={form.itemValueMinor} onChange={(value) => update('itemValueMinor', value)} placeholder="20,000" />
                 </label>
-              </div>
+              </div>}
               <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-budget">Suggested budget <span className="font-normal text-muted">Optional · guidance, not a commitment</span>
                 <MoneyInput id="errand-budget" value={form.suggestedBudgetMinor} onChange={(value) => update('suggestedBudgetMinor', value)} placeholder="5,000" />
               </label>
@@ -428,9 +444,9 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                 <h3 className="text-sm font-bold text-ink">Photos <span className="font-normal text-muted">Up to 5 · no IDs or payment cards</span></h3>
                 <MediaUpload purpose="ERRAND_PHOTO" value={form.photoMediaIds} maxFiles={5} onChange={(ids) => update('photoMediaIds', ids)} />
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <ContactFields label="Pickup contact" value={form.pickupContact} onChange={(value) => update('pickupContact', value)} />
-                <ContactFields label="Drop-off contact" value={form.dropoffContact} onChange={(value) => update('dropoffContact', value)} />
+              <div className={service ? 'grid gap-3' : 'grid gap-3 sm:grid-cols-2'}>
+                {service ? null : <ContactFields label="Pickup contact" value={form.pickupContact} onChange={(value) => update('pickupContact', value)} />}
+                <ContactFields label={PLACE_COPY[flow].contact} value={form.dropoffContact} onChange={(value) => update('dropoffContact', value)} />
               </div>
               <p className="rounded-[var(--r)] border border-line bg-panel p-3 text-sm text-muted">Exact addresses and contacts are shared only with the runner you select, after they accept. Payment is made directly to the runner; Urgent.ng does not handle it.</p>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
@@ -450,7 +466,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
         <aside className="grid content-start gap-4 lg:sticky lg:top-6">
           <section className="rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Tips for faster offers</h2>
-            <ul className="mt-3 grid gap-2 pl-5 text-sm text-ink-2"><li>Name the item and exact task.</li><li>Add a photo if it helps.</li><li>Set a fair budget; offers may differ.</li><li>Keep chat inside Urgent.ng.</li></ul>
+            <ul className="mt-3 grid gap-2 pl-5 text-sm text-ink-2"><li>{service ? 'Say what needs doing and how big the job is.' : 'Name the item and exact task.'}</li><li>Add a photo if it helps.</li><li>Set a fair budget; offers may differ.</li><li>Keep chat inside Urgent.ng.</li></ul>
           </section>
           <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">What runners see</h2>

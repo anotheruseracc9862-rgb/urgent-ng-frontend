@@ -173,12 +173,12 @@ function ConversationDetails({ conversation }: { conversation: Conversation }) {
       <h2 className="text-base font-extrabold leading-snug text-ink">{conversation.errandTitle}</h2>
 
       <dl className="mt-4">
-        <DetailRow label="Status" value={errandStatusLabel(conversation.errandStatus)} />
+        <DetailRow label="Status" value={errandStatusLabel(conversation.errandStatus, conversation.categoryFlow)} />
         {conversation.amountMinor !== null ? (
           <DetailRow label={conversation.amountKind === 'AGREED' ? 'Agreed amount' : 'Offer'} value={money(conversation.amountMinor)} />
         ) : null}
         {conversation.pickupArea ? <DetailRow label="Pickup" value={conversation.pickupArea} /> : null}
-        {conversation.destinationArea ? <DetailRow label="Drop-off" value={conversation.destinationArea} /> : null}
+        {conversation.destinationArea ? <DetailRow label={conversation.categoryFlow === 'SERVICE' ? 'Service address' : 'Drop-off'} value={conversation.destinationArea} /> : null}
       </dl>
 
       <div className="mt-4 flex items-start gap-3 rounded-[var(--r)] bg-tint px-4 py-3.5 text-[13px] leading-relaxed text-green-900">

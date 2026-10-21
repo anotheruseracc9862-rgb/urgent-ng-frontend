@@ -58,7 +58,7 @@ export function AssignmentCancellationPage({ assignmentId }: { assignmentId: str
   }
 
   const current = assignment.data.data;
-  const guidance = cancellationGuidance(current.role, current.status, current.errand.status);
+  const guidance = cancellationGuidance(current.role, current.status, current.errand.status, current.errand.category);
   const reasons = current.role === 'REQUESTER' ? requesterReasons : runnerReasons;
   const action = suggestedAction(cancel.error);
   const completed = cancel.data?.status === 'CANCELLED';

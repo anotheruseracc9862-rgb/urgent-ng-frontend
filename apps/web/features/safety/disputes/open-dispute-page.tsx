@@ -16,11 +16,14 @@ import { caseInput, caseLabel, caseLabelText, casePanel, CaseError } from '../ca
 import { EvidenceEditor } from '../evidence-editor';
 import { DisputeDetailPage } from './dispute-detail-page';
 import { JourneyHere } from '@/features/journey/journey-context';
+import { DISPUTE_TYPE_ORDER, flowOf } from '@/features/reference/flow';
 
 export function OpenDisputePage({ assignmentId }: { assignmentId: string }) {
   const client = useQueryClient();
   const assignment = useQuery({ queryKey: queryKeys.assignments.detail(assignmentId), queryFn: () => offersApi.assignment(assignmentId), retry: false });
-  const [type, setType] = useState<OpenDispute['type']>('ITEM_NOT_DELIVERED');
+  const [pickedType, setType] = useState<OpenDispute['type'] | null>(null);
+  const disputeTypes = DISPUTE_TYPE_ORDER[flowOf(assignment.data?.data.errand.category)] as readonly OpenDispute['type'][];
+  const type = pickedType ?? disputeTypes[0];
   const [claim, setClaim] = useState('');
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const intent = useRef<{ body: string; key: string } | null>(null);
@@ -56,7 +59,7 @@ export function OpenDisputePage({ assignmentId }: { assignmentId: string }) {
     <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
       {allowed ? <form className={casePanel} onSubmit={event => { event.preventDefault(); if (claim.trim() && !mutation.isPending) mutation.mutate({ type, claim: claim.trim(), ...(evidence.length ? { evidence } : {}) }); }}>
         <fieldset disabled={mutation.isPending} className="grid min-w-0 gap-4">
-          <label className={caseLabel}>Issue<select className={caseInput} value={type} onChange={event => setType(event.target.value as OpenDispute['type'])}>{(['ITEM_NOT_DELIVERED', 'ITEM_DAMAGED', 'ITEM_MISSING', 'WRONG_ITEM', 'UNAUTHORIZED_CHANGE', 'SAFETY_INCIDENT', 'OTHER'] as const).map(value => <option key={value} value={value}>{caseLabelText(value)}</option>)}</select></label>
+          <label className={caseLabel}>Issue<select className={caseInput} value={type} onChange={event => setType(event.target.value as OpenDispute['type'])}>{disputeTypes.map(value => <option key={value} value={value}>{caseLabelText(value)}</option>)}</select></label>
           <label className={caseLabel}>What happened?<textarea className={caseInput} rows={5} maxLength={2000} required value={claim} onChange={event => setClaim(event.target.value)} placeholder="What happened, and what did you already try?" /><span className="text-xs font-normal text-muted">{claim.length}/2000</span></label>
           <EvidenceEditor assignmentId={assignmentId} value={evidence} onChange={setEvidence} />
           <Button type="submit" disabled={!claim.trim() || mutation.isPending}>{mutation.isPending ? 'Submitting…' : 'Submit dispute'}</Button>

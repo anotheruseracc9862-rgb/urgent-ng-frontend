@@ -5086,6 +5086,11 @@ export interface components {
             interstateEnabled: boolean;
         };
         CategoryDto: {
+            /**
+             * @description TRANSIT moves something between places. SERVICE is work done at one address.
+             * @enum {string}
+             */
+            flow: "TRANSIT" | "SERVICE";
             id: string;
             /** @description Stable key, for example `delivery`. */
             key: string;
@@ -5970,6 +5975,11 @@ export interface components {
             name: string;
             requiresPickup: boolean;
             requiresDestination: boolean;
+            /**
+             * @description TRANSIT moves something between places. SERVICE is work done at one address.
+             * @enum {string}
+             */
+            flow: "TRANSIT" | "SERVICE";
             isPopular: boolean;
             active: boolean;
             sortOrder: number;
@@ -5985,8 +5995,16 @@ export interface components {
             /** @description A stable key: lower-case letters, digits and underscores. */
             key: string;
             name: string;
-            requiresPickup: boolean;
-            requiresDestination: boolean;
+            /**
+             * @description SERVICE ignores the two booleans: one address, stored as the destination.
+             * @default TRANSIT
+             * @enum {string}
+             */
+            flow: "TRANSIT" | "SERVICE";
+            /** @description Required for TRANSIT. */
+            requiresPickup?: boolean;
+            /** @description Required for TRANSIT. */
+            requiresDestination?: boolean;
             isPopular?: boolean;
             sortOrder?: number;
         };
@@ -5999,6 +6017,11 @@ export interface components {
             /** @description Free text for the audit record. Required when the code is OTHER. */
             reasonText?: string;
             name?: string;
+            /**
+             * @description Cannot change once an errand uses the category.
+             * @enum {string}
+             */
+            flow?: "TRANSIT" | "SERVICE";
             requiresPickup?: boolean;
             requiresDestination?: boolean;
             isPopular?: boolean;
@@ -6261,6 +6284,8 @@ export interface components {
         /** @enum {string} */
         ErrandStatus: "DRAFT" | "OPEN" | "RUNNER_SELECTED" | "ACCEPTED" | "IN_PROGRESS" | "PICKED_UP" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "DISPUTED";
         CategoryRefDto: {
+            /** @enum {string} */
+            flow: "TRANSIT" | "SERVICE";
             id: string;
             key: string;
             name: string;
@@ -6659,6 +6684,11 @@ export interface components {
             pickupArea: string | null;
             /** @description Approximate area only. */
             destinationArea: string | null;
+            /**
+             * @description A service has no pickup: its one address is the destination.
+             * @enum {string}
+             */
+            categoryFlow: "TRANSIT" | "SERVICE";
             /** @description The assignment for this conversation, from selection onward. */
             assignmentId: string | null;
             /** Format: date-time */
@@ -6921,7 +6951,7 @@ export interface components {
             /** @description The caller opened the dispute. */
             openedByMe: boolean;
             /** @enum {string} */
-            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "OTHER";
+            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "SERVICE_NOT_DONE" | "POOR_QUALITY" | "PROPERTY_DAMAGE" | "OTHER";
             /** @enum {string} */
             status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "CLOSED";
             claim: string;
@@ -6959,7 +6989,7 @@ export interface components {
         };
         OpenDisputeDto: {
             /** @enum {string} */
-            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "OTHER";
+            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "SERVICE_NOT_DONE" | "POOR_QUALITY" | "PROPERTY_DAMAGE" | "OTHER";
             claim: string;
             evidence?: components["schemas"]["EvidenceItemDto"][];
         };
@@ -7167,7 +7197,7 @@ export interface components {
             id: string;
             status: string;
             version: number;
-            category: Record<string, never>;
+            category: components["schemas"]["CategoryRefDto"];
             title: string;
             description: string;
             instructions: string | null;
@@ -7309,6 +7339,11 @@ export interface components {
             /** @description Approximate area only. Use GET /assignments/:id for exact data once accepted. */
             pickupArea: string | null;
             destinationArea: string | null;
+            /**
+             * @description A service has no pickup: its one address is the destination.
+             * @enum {string}
+             */
+            categoryFlow: "TRANSIT" | "SERVICE";
             /** Format: date-time */
             selectedAt: string;
             /** @description The requester's first name. */
@@ -7436,6 +7471,8 @@ export interface components {
             note?: string;
         };
         FeedCategoryDto: {
+            /** @enum {string} */
+            flow: "TRANSIT" | "SERVICE";
             key: string;
             name: string;
         };
@@ -7678,6 +7715,11 @@ export interface components {
         SharedErrandDto: {
             title: string;
             category: string;
+            /**
+             * @description A service is work at one address: there is no pickup, and its steps read as work started and finished.
+             * @enum {string}
+             */
+            categoryFlow: "TRANSIT" | "SERVICE";
             requesterFirstName: string;
             runner: components["schemas"]["SharedRunnerDto"];
             /** @description The errand status, for example IN_PROGRESS, PICKED_UP or DELIVERED. */

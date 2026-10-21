@@ -16,6 +16,7 @@ const base: RunnerTask = {
   acceptedAt: null,
   pickupArea: 'Balogun Island, Lagos Island',
   destinationArea: 'Fashion Studio, Lekki Phase 1',
+  categoryFlow: 'TRANSIT',
   selectedAt: new Date().toISOString(),
   requesterFirstName: 'Emmanuella',
   conversationId: 'c1',
@@ -29,6 +30,7 @@ export default function AssignmentsPreviewPage() {
       <ul className="grid gap-3">
         <TaskRow assignment={{ ...base, status: 'PENDING_ACCEPTANCE', errandStatus: 'RUNNER_SELECTED' }} respond />
         <TaskRow assignment={base} />
+        <TaskRow assignment={{ ...base, errandStatus: 'PICKED_UP', categoryFlow: 'SERVICE', pickupArea: null, destinationArea: 'Admiralty Way, Lekki Phase 1', errandTitle: 'Wash my car at home', agreedAmountMinor: 600000 }} />
         <TaskRow assignment={{ ...base, errandStatus: 'DELIVERED', errandTitle: 'Pick up dry-cleaned agbada and lace attire', agreedAmountMinor: 400000, conversationId: null }} />
       </ul>
     </main>

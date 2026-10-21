@@ -12,6 +12,7 @@ import { Alert, Button, Skeleton } from '@urgent/ui';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { errandsApi, type Errand } from '../api';
+import { CONFIRM_COPY, PLACE_COPY, flowOf } from '@/features/reference/flow';
 
 const money = (minor: number | null) =>
   minor === null ? 'Not set' : new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(minor / 100);
@@ -110,6 +111,8 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
   }
 
   const currentErrand = errand.data;
+  const flow = flowOf(currentErrand.category);
+  const service = flow === 'SERVICE';
   const problems = isApiError(publish.error) && publish.error.code === 'ERRAND_NOT_ELIGIBLE' && Array.isArray(publish.error.details.problems)
     ? publish.error.details.problems
     : [];
@@ -149,7 +152,7 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
                   const field = problem && typeof problem === 'object' && 'field' in problem && typeof problem.field === 'string' ? problem.field : null;
                   if (!field) return <li key={index}>Check the errand details.</li>;
                   const target = FIELD_TARGETS[field];
-                  return <li key={`${field}-${index}`}><Link className="font-bold underline" href={`/errands/${errandId}/edit#${target?.anchor ?? 'errand-title'}`}>{target?.label ?? field}</Link> needs attention.</li>;
+                  return <li key={`${field}-${index}`}><Link className="font-bold underline" href={`/errands/${errandId}/edit#${target?.anchor ?? 'errand-title'}`}>{field === 'destination' && service ? PLACE_COPY.SERVICE.destination : target?.label ?? field}</Link> needs attention.</li>;
                 })}
               </ul>
             ) : null}
@@ -179,8 +182,8 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
             {currentErrand.description ? <p className="text-sm text-ink-2">{currentErrand.description}</p> : <p className="text-sm text-amber">Add a description before posting.</p>}
             {currentErrand.instructions ? <p className="rounded-[var(--r)] bg-panel p-3 text-sm text-ink-2">{currentErrand.instructions}</p> : null}
             <dl className="grid gap-x-4 gap-y-3 border-t border-line pt-4 sm:grid-cols-2">
-              <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">Pickup / on-site area</dt><dd className="mt-1 text-sm font-semibold text-ink">{area(currentErrand.pickup)}</dd></div>
-              <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">Drop-off area</dt><dd className="mt-1 text-sm font-semibold text-ink">{area(currentErrand.destination)}</dd></div>
+              {service ? null : <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">Pickup area</dt><dd className="mt-1 text-sm font-semibold text-ink">{area(currentErrand.pickup)}</dd></div>}
+              <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">{PLACE_COPY[flow].destinationArea}</dt><dd className="mt-1 text-sm font-semibold text-ink">{area(currentErrand.destination)}</dd></div>
               <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">When</dt><dd className="mt-1 text-sm font-semibold text-ink">{currentErrand.timeMode === 'ASAP' ? 'As soon as possible' : currentErrand.timeMode === 'SCHEDULED' ? scheduledTime(currentErrand.scheduledAt) : 'Not selected'}</dd></div>
               <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">Suggested budget</dt><dd className="mt-1 text-sm font-semibold text-ink">{money(currentErrand.suggestedBudgetMinor)}</dd></div>
               <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">Photos</dt><dd className="mt-1 text-sm font-semibold text-ink">{currentErrand.photos.length} attached</dd></div>
@@ -191,11 +194,11 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
         <aside className="grid min-w-0 content-start gap-4 lg:sticky lg:top-6">
           <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Runners see now</h2>
-            <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>Title, category and approximate areas</li><li>Timing, item size and suggested budget</li><li>Photos you attached</li></ul>
+            <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>Title, category and approximate areas</li><li>{service ? 'Timing and suggested budget' : 'Timing, item size and suggested budget'}</li><li>Photos you attached</li></ul>
           </section>
           <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Shared after acceptance</h2>
-            <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>Exact addresses and landmarks</li><li>Pickup and drop-off contacts</li><li>Your phone number</li></ul>
+            <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>{service ? 'Exact address and landmark' : 'Exact addresses and landmarks'}</li><li>{service ? 'Contact at the address' : 'Pickup and drop-off contacts'}</li><li>Your phone number</li></ul>
           </section>
           <label className="flex items-start gap-3 rounded-[var(--r-lg)] bg-tint p-4 text-sm text-ink sm:p-[22px]">
             <input
@@ -204,7 +207,7 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
               checked={confirmed}
               onChange={(event) => setConfirmed(event.target.checked)}
             />
-            <span>I confirm this errand does not include prohibited items.</span>
+            <span>{CONFIRM_COPY[flow]}</span>
           </label>
           <div className="flex flex-wrap justify-end gap-2">
             <Link href={`/errands/${errandId}/edit`} className="inline-flex min-h-11 items-center justify-center rounded-full px-4 text-sm font-bold text-ink hover:bg-panel">Back to edit</Link>

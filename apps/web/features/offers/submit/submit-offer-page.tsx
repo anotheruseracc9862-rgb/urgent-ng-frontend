@@ -1,5 +1,6 @@
 'use client';
 
+import { isService } from '@/features/reference/flow';
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
@@ -112,7 +113,9 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
       <PageHead
         eyebrow="Runner view · Send an offer"
         title={<span className="block max-w-[760px] break-words">{currentErrand.title}</span>}
-        description={`${currentErrand.category.name} · ${currentErrand.pickup?.area ?? 'Pickup area unavailable'}${currentErrand.destination?.area ? ` → ${currentErrand.destination.area}` : ''}`}
+        description={isService(currentErrand.category)
+          ? `${currentErrand.category.name} · ${currentErrand.destination?.area ?? 'Service area unavailable'}`
+          : `${currentErrand.category.name} · ${currentErrand.pickup?.area ?? 'Pickup area unavailable'}${currentErrand.destination?.area ? ` → ${currentErrand.destination.area}` : ''}`}
         actions={<>
           <span className="rounded-full bg-tint px-3 py-1.5 text-xs font-bold text-green-900">Requester budget {money(currentErrand.suggestedBudgetMinor)}</span>
           {currentErrand.distance ? <span className="rounded-full bg-panel px-3 py-1.5 text-xs font-bold text-ink-2">{currentErrand.distance.label}</span> : null}

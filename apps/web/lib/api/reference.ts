@@ -5,6 +5,8 @@ export interface PopularCategory {
   name: string;
   requiresPickup: boolean;
   requiresDestination: boolean;
+  /** A service is work done at one address. Missing means a delivery-style errand. */
+  flow?: 'TRANSIT' | 'SERVICE';
   isPopular: boolean;
 }
 

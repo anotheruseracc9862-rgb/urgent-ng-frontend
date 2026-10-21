@@ -88,7 +88,8 @@ export function PushOptInPrompt({ compact = false }: { compact?: boolean }) {
     },
   });
 
-  if (dismissed || (hidden && !register.isSuccess)) return null;
+  // Once push is on there is nothing left to ask, so the prompt goes away at once, not at the next reload.
+  if (dismissed || hidden || register.isSuccess) return null;
 
   return (
     <section aria-label="Push notification option" className="grid gap-3 rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">
@@ -104,7 +105,7 @@ export function PushOptInPrompt({ compact = false }: { compact?: boolean }) {
       {!CONFIGURED ? <p className="text-xs text-muted">Browser push is not configured for this environment yet.</p> : null}
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={!CONFIGURED || register.isPending} onClick={() => register.mutate()}>
-          {register.isPending ? 'Enabling…' : register.isSuccess ? 'Enabled' : 'Enable notifications'}
+          {register.isPending ? 'Enabling…' : 'Enable notifications'}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => { try { localStorage.setItem(DISMISSED_KEY, String(Date.now())); } catch { /* ignore */ } setDismissed(true); }}>Not now</Button>
       </div>

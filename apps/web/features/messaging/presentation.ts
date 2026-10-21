@@ -46,9 +46,12 @@ const STATUS: Record<string, string> = {
   DISPUTED: 'In dispute',
 };
 
-export function errandStatusLabel(status: string | null | undefined): string {
+/** A service reads "work", not "pickup" and "delivery". */
+const SERVICE_STATUS: Record<string, string> = { PICKED_UP: 'Work in progress', DELIVERED: 'Work finished' };
+
+export function errandStatusLabel(status: string | null | undefined, flow?: string | null): string {
   if (!status) return '';
-  return STATUS[status] ?? status.replaceAll('_', ' ').toLowerCase();
+  return (flow === 'SERVICE' ? SERVICE_STATUS[status] : undefined) ?? STATUS[status] ?? status.replaceAll('_', ' ').toLowerCase();
 }
 
 export function money(minor: number | null | undefined): string {

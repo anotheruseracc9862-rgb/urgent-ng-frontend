@@ -32,6 +32,7 @@ import { queryKeys } from '@/lib/query/keys';
 import { errandsApi, type Errand, type ErrandOffer, type OfferSort } from '../api';
 import { availableActions } from '@/features/assignments/available-actions';
 import { useRatingAction } from '@/features/ratings/use-rating-action';
+import { PLACE_COPY, flowOf } from '@/features/reference/flow';
 
 type Status = components['schemas']['ErrandStatus'];
 type PublicProfile = components['schemas']['PublicProfileDto'];
@@ -49,6 +50,9 @@ const STATUS_LABEL: Record<Status, string> = {
   EXPIRED: 'Expired',
   DISPUTED: 'Disputed',
 };
+
+/** A service reads "work", not "pickup" and "delivery". Every other status keeps its common label. */
+const SERVICE_STATUS_LABEL: Partial<Record<Status, string>> = { IN_PROGRESS: 'On the way', PICKED_UP: 'Work in progress', DELIVERED: 'Work finished' };
 
 const STATUS_STYLE: Record<Status, string> = {
   DRAFT: 'bg-panel text-ink-2',
@@ -323,6 +327,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
     return <div className="grid min-w-0 content-start gap-4 pb-10"><Link href="/errands" className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />My errands</Link><ApiErrorMessage error={errandQuery.error} fallback="We could not load this errand." /><Button className="mt-3" type="button" variant="ghost" onClick={() => void errandQuery.refetch()}><RefreshCw aria-hidden="true" className="mr-2 size-4" />Try again</Button></div>;
   }
 
+  const flow = flowOf(errand.category);
   const hasLocations = Boolean(errand.pickup || errand.destination);
   const canExtend = errand.status === 'OPEN' && !errand.extended;
   const showOffers = errand.status === 'OPEN';
@@ -348,7 +353,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
       <PageHead
         eyebrow={`Errand · ${errand.category.name}`}
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
-        description={<span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_STYLE[errand.status]}`}>{STATUS_LABEL[errand.status]}</span><span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span></span>}
+        description={<span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_STYLE[errand.status]}`}>{(flowOf(errand.category) === 'SERVICE' ? SERVICE_STATUS_LABEL[errand.status] : undefined) ?? STATUS_LABEL[errand.status]}</span><span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span></span>}
         actions={<>
           {errand.status === 'DRAFT' ? <>
             <Button asChild><Link href={`/errands/${errandId}/edit`}>Edit draft</Link></Button>
@@ -412,8 +417,8 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
               {errand.itemValueMinor !== null ? <div><dt className="text-xs font-bold text-muted">Item value</dt><dd className="mt-1 text-sm font-semibold text-ink">{money(errand.itemValueMinor)}</dd></div> : null}
               {errand.expiresAt ? <div><dt className="text-xs font-bold text-muted">Closes</dt><dd className="mt-1 flex items-center gap-2 text-sm font-semibold text-ink"><Clock3 aria-hidden="true" className="size-4 text-green-800" />{dateLabel(errand.expiresAt)}</dd></div> : null}
             </dl>
-            {hasLocations ? <div className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-2"><ErrandLocation title={errand.pickup && errand.destination ? 'Pickup' : 'On-site location'} location={errand.pickup} />{errand.destination ? <ErrandLocation title="Drop-off" location={errand.destination} /> : null}</div> : null}
-            {errand.pickupContact || errand.dropoffContact ? <dl className="mt-5 grid gap-3 border-t border-line pt-4 sm:grid-cols-2"><Contact label="Pickup contact" contact={errand.pickupContact} /><Contact label="Drop-off contact" contact={errand.dropoffContact} /></dl> : null}
+            {hasLocations ? <div className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-2"><ErrandLocation title="Pickup" location={errand.pickup} />{errand.destination ? <ErrandLocation title={flow === 'SERVICE' ? PLACE_COPY.SERVICE.destination : 'Drop-off'} location={errand.destination} /> : null}</div> : null}
+            {errand.pickupContact || errand.dropoffContact ? <dl className="mt-5 grid gap-3 border-t border-line pt-4 sm:grid-cols-2"><Contact label="Pickup contact" contact={errand.pickupContact} /><Contact label={PLACE_COPY[flow].contact} contact={errand.dropoffContact} /></dl> : null}
             {errand.photos.length ? <div className="mt-5 border-t border-line pt-4"><h3 className="text-sm font-extrabold text-ink">Photos</h3><div className="mt-3 flex flex-wrap gap-3">{[...errand.photos].sort((a, b) => a.position - b.position).map((photo) => <ErrandPhoto key={photo.mediaId} mediaId={photo.mediaId} />)}</div></div> : null}
           </section>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { isService } from '@/features/reference/flow';
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
@@ -139,7 +140,7 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
             <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-2">{current.description}</p>
             <div className="mt-4 grid gap-4 rounded-[var(--r-sm)] bg-panel p-4">
               <Area label="Pickup" area={pickup} />
-              <Area label="Destination" area={destination} />
+              <Area label={isService(current.category) ? 'Service address' : 'Destination'} area={destination} />
               {!pickup && !destination ? <p className="text-sm text-muted">Area details are not available.</p> : null}
             </div>
             <dl className="mt-2 divide-y divide-line-2 text-[13px] [&>div]:flex [&>div]:justify-between [&>div]:gap-5 [&>div]:py-3 [&_dt]:shrink-0 [&_dt]:text-muted [&_dd]:text-right [&_dd]:font-bold [&_dd]:text-ink">
@@ -153,7 +154,7 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
             </dl>
             <div className="mt-4 flex items-start gap-3 rounded-[var(--r)] bg-tint p-4 text-xs leading-relaxed text-green-900">
               <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <p>Exact pickup and destination details are kept private until an assignment is accepted.</p>
+              <p>{isService(current.category) ? 'The exact address is kept private until an assignment is accepted.' : 'Exact pickup and destination details are kept private until an assignment is accepted.'}</p>
             </div>
             <div className="mt-5 border-t border-line-2 pt-4">
               <h3 className="text-sm font-extrabold text-ink">Additional instructions</h3>

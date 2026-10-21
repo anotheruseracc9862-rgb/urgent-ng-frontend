@@ -19,6 +19,7 @@ import { dashboardQueries } from '@/features/dashboard/queries';
 import { useApiMutation } from '@/lib/query/mutations';
 import { errandsApi, type ErrandSummary, type MyErrandFilters } from './api';
 import { errandQueries } from './queries';
+import { isService } from '@/features/reference/flow';
 
 type Tab = NonNullable<MyErrandFilters['tab']>;
 type Sort = NonNullable<MyErrandFilters['sort']>;
@@ -109,7 +110,7 @@ function attentionNote(errand: ErrandSummary): { tone: 'warn' | 'danger' | 'info
     case 'CHANGE_REQUEST':
       return { tone: 'info', text: `${errand.runner?.firstName ?? 'The runner'} asked to change this errand${left === null ? '' : ` · answer within ${formatMinutes(left)}`}.` };
     case 'DELIVERY':
-      return { tone: 'ok', text: `${errand.runner?.firstName ?? 'The runner'} delivered it · confirm, or it completes automatically.` };
+      return { tone: 'ok', text: `${errand.runner?.firstName ?? 'The runner'} ${isService(errand.category) ? 'finished the work' : 'delivered it'} · confirm, or it completes automatically.` };
     case 'RUNNER_TO_CONFIRM':
       return { tone: 'warn', text: `Waiting for ${errand.runner?.firstName ?? 'the runner'} to accept.` };
     default:
@@ -128,7 +129,7 @@ function primaryAction(errand: ErrandSummary): { label: string; emphasised: bool
   switch (errand.attention) {
     case 'OFFERS': return { label: `Review ${errand.offerCount} offer${errand.offerCount === 1 ? '' : 's'}`, emphasised: true };
     case 'EXPIRING': return { label: errand.offerCount ? 'Review offers' : 'Extend', emphasised: true };
-    case 'DELIVERY': return { label: 'Confirm delivery', emphasised: true };
+    case 'DELIVERY': return { label: isService(errand.category) ? 'Confirm work done' : 'Confirm delivery', emphasised: true };
     case 'CHANGE_REQUEST': return { label: 'Answer request', emphasised: true };
     case 'RUNNER_TO_CONFIRM': return { label: 'View', emphasised: true };
     default: break;
@@ -181,8 +182,8 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
       </h2>
 
       <div className="grid gap-2 rounded-[var(--r-sm)] bg-panel px-3.5 py-3 text-[12.5px]">
-        <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-lime-600" /><span>{errand.pickupArea ?? 'Pickup to be added'}</span></div>
-        {errand.destinationArea ? <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-ink" /><span>{errand.destinationArea}</span></div> : null}
+        <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-lime-600" /><span>{isService(errand.category) ? (errand.destinationArea ?? 'Service address to be added') : (errand.pickupArea ?? 'Pickup to be added')}</span></div>
+        {errand.destinationArea && !isService(errand.category) ? <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-ink" /><span>{errand.destinationArea}</span></div> : null}
       </div>
 
       {note ? (

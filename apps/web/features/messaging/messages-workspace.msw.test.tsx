@@ -102,3 +102,23 @@ describe('Messages workspace', () => {
     expect(within(details).queryByRole('link', { name: 'Payment terms' })).toBeNull();
   });
 });
+
+describe('Messages workspace: a service', () => {
+  it('labels the one address as a service address and the status as work', async () => {
+    const carWash = { ...tunde, errandTitle: 'Wash my car', categoryFlow: 'SERVICE', pickupArea: null, destinationArea: 'Admiralty Way, Lekki', errandStatus: 'PICKED_UP' };
+    server.use(
+      http.get('*/conversations', () => envelope([carWash])),
+      http.get('*/conversations/c1', () => envelope(carWash)),
+      http.get('*/conversations/c1/messages', () => envelope([])),
+      http.post('*/conversations/c1/read', () => envelope({ marked: 0 })),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(<QueryClientProvider client={client}><SessionProvider me={me}><MessagesWorkspace activeId="c1" /></SessionProvider></QueryClientProvider>);
+    const details = await screen.findByRole('complementary', { name: 'Errand details' });
+    expect(await within(details).findByText('Service address')).toBeInTheDocument();
+    expect(within(details).getByText('Admiralty Way, Lekki')).toBeInTheDocument();
+    expect(within(details).getByText('Work in progress')).toBeInTheDocument();
+    expect(within(details).queryByText('Pickup')).not.toBeInTheDocument();
+    expect(within(details).queryByText('Drop-off')).not.toBeInTheDocument();
+  });
+});

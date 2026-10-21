@@ -53,6 +53,20 @@ describe('PushOptInPrompt', () => {
     expect(mocks.requestPermission).toHaveBeenCalledTimes(1);
   });
 
+  it('goes away as soon as notifications are enabled, without a reload', async () => {
+    renderPrompt();
+    fireEvent.click(screen.getByRole('button', { name: 'Enable notifications' }));
+    await waitFor(() => expect(screen.queryByLabelText('Push notification option')).toBeNull());
+  });
+
+  it('stays visible after a denied permission so the reason can be read', async () => {
+    mocks.requestPermission.mockResolvedValue('denied');
+    renderPrompt();
+    fireEvent.click(screen.getByRole('button', { name: 'Enable notifications' }));
+    expect(await screen.findByText(/blocked in browser settings/i)).toBeTruthy();
+    expect(screen.getByLabelText('Push notification option')).toBeTruthy();
+  });
+
   it('registers no device when permission is denied', async () => {
     mocks.requestPermission.mockResolvedValue('denied');
     renderPrompt();

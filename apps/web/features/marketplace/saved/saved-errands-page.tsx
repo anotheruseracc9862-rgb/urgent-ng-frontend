@@ -1,5 +1,6 @@
 'use client';
 
+import { isService } from '@/features/reference/flow';
 import { persistedQuery } from '@/lib/query/persisted-query';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
@@ -129,7 +130,7 @@ function SavedErrandCard({ item, removing, onRemove }: { item: SavedErrand; remo
           {isOpen ? <Link href={`/marketplace/${item.id}`} className="hover:underline">{item.title}</Link> : item.title}
         </h2>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{item.description}</p>
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-2"><MapPin aria-hidden="true" className="size-3.5 shrink-0 text-muted" />{item.pickup?.area ?? 'Pickup area unavailable'}{item.destination?.area ? ` → ${item.destination.area}` : ''}</p>
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-2"><MapPin aria-hidden="true" className="size-3.5 shrink-0 text-muted" />{isService(item.category) ? (item.destination?.area ?? 'Service area unavailable') : (item.pickup?.area ?? 'Pickup area unavailable')}{item.destination?.area && !isService(item.category) ? ` → ${item.destination.area}` : ''}</p>
         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
           <span>{money(item.suggestedBudgetMinor)}</span>
           {item.distance ? <span>{item.distance.label}</span> : null}

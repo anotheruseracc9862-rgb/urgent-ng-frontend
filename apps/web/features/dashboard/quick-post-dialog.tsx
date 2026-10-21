@@ -33,7 +33,7 @@ export function QuickPostDialog() {
     const budget = Number(text('budget').replace(/[^\d]/g, ''));
     const next: Record<string, string> = {};
     if (text('title').length < 5) next.title = 'Say what needs to be done (at least 5 characters).';
-    if (!text('pickup')) next.pickup = 'Add the pickup area.';
+    if (!text('pickup')) next.pickup = 'Add the pickup or service area.';
     if (text('budget') && budget < 500) next.budget = 'A budget starts at ₦500.';
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -76,7 +76,7 @@ export function QuickPostDialog() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-1.5 text-[12.5px] font-bold text-ink-2">
-              Pickup area
+              Pickup or service area
               <input
                 name="pickup"
                 placeholder="e.g. Lekki Phase 1"
@@ -86,7 +86,7 @@ export function QuickPostDialog() {
               {errors.pickup ? <span role="alert" className="text-xs font-semibold text-red">{errors.pickup}</span> : null}
             </label>
             <label className="grid gap-1.5 text-[12.5px] font-bold text-ink-2">
-              <span>Drop-off area <em className="ml-1 text-[11px] font-semibold not-italic text-faint">Optional</em></span>
+              <span>Drop-off area <em className="ml-1 text-[11px] font-semibold not-italic text-faint">Optional · deliveries only</em></span>
               <input
                 name="destination"
                 placeholder="e.g. Ikoyi"

@@ -122,7 +122,7 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
 
   const current = conversation.data;
   const readOnlyMessage = current.readOnlyReason ? READ_ONLY_COPY[current.readOnlyReason] ?? 'This conversation is read-only.' : null;
-  const status = errandStatusLabel(current.errandStatus);
+  const status = errandStatusLabel(current.errandStatus, current.categoryFlow);
 
   return (
     <>

@@ -169,7 +169,7 @@ describe('axe: no serious or critical violations on the main flows', () => {
   it('post errand', async () => {
     server.use(
       http.get('*/reference/categories', () => envelope([
-        { id: 'a7f7d3de-27a1-4a23-a67b-6e69c03ce541', key: 'on_site', name: 'On-site help', requiresPickup: false, requiresDestination: false, isPopular: true },
+        { id: 'a7f7d3de-27a1-4a23-a67b-6e69c03ce541', key: 'car_wash', name: 'Car wash', requiresPickup: false, requiresDestination: true, flow: 'SERVICE', isPopular: true },
       ])),
       http.get('*/me/consents', () => envelope({ consents: [] })),
     );

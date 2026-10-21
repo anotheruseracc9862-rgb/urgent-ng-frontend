@@ -5,6 +5,7 @@ import { PageHead } from '@/components/shell/page-head';
 import { ArrowLeft } from 'lucide-react';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
+import { isService } from '@/features/reference/flow';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -62,6 +63,7 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
 
   const current = assignment.data.data;
   const errand = current.errand;
+  const service = isService(errand.category);
   const canConfirm = current.role === 'REQUESTER' && current.status === 'ACCEPTED' && errand.status === 'DELIVERED';
   const deadline = errand.autoCompleteAt;
   const paused = errand.status === 'DELIVERED' && deadline === null;
@@ -70,13 +72,13 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
     <main className="grid min-w-0 content-start gap-4 pb-10">
       <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
       <PageHead
-        eyebrow="Delivery confirmation"
+        eyebrow={service ? 'Work confirmation' : 'Delivery confirmation'}
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
       />
       <JourneyHere />
       {errand.status === 'DELIVERED' ? (
         <section className="grid min-w-0 gap-2 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
-          <h2 className="font-extrabold text-ink">Delivery status</h2>
+          <h2 className="font-extrabold text-ink">{service ? 'Work status' : 'Delivery status'}</h2>
           {paused ? (
             <Alert variant="warn" role="status">Automatic completion is paused while an open report or dispute is being handled.</Alert>
           ) : (
@@ -92,9 +94,9 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
       {canConfirm ? (
         <section className="grid min-w-0 gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
           <h2 className="font-extrabold text-ink">Was the errand completed?</h2>
-          <p className="text-sm text-muted">Confirm delivery only if the errand was completed. This confirmation is independent of any payment between the parties.</p>
+          <p className="text-sm text-muted">{service ? 'Confirm only if the work was done.' : 'Confirm delivery only if the errand was completed.'} This confirmation is independent of any payment between the parties.</p>
           {complete.error ? <ApiError error={complete.error} fallback="We could not confirm completion." /> : null}
-          {complete.isSuccess ? <Alert variant="ok" role="status">Delivery confirmed. The assignment status is refreshing.</Alert> : null}
+          {complete.isSuccess ? <Alert variant="ok" role="status">{service ? 'Work confirmed.' : 'Delivery confirmed.'} The assignment status is refreshing.</Alert> : null}
           <div className="flex flex-wrap gap-2">
             <Button type="button" disabled={complete.isPending} onClick={() => complete.mutate()}>{complete.isPending ? 'Confirming…' : 'Confirm completion'}</Button>
             <Button asChild variant="ghost"><Link href={`/assignments/${assignmentId}/dispute`}>Something is wrong</Link></Button>
@@ -106,7 +108,7 @@ export function AssignmentCompletionPage({ assignmentId }: { assignmentId: strin
           {ratingAction.label ? <Button asChild className="w-fit"><Link href={`/assignments/${assignmentId}/rating`}>{ratingAction.label}</Link></Button> : null}
         </section>
       ) : errand.status !== 'DELIVERED' ? (
-        <Alert variant="warn" role="status">Delivery confirmation becomes available after the runner records delivery.</Alert>
+        <Alert variant="warn" role="status">{service ? 'Confirmation becomes available after the runner finishes the work.' : 'Delivery confirmation becomes available after the runner records delivery.'}</Alert>
       ) : current.role !== 'REQUESTER' ? (
         <Alert variant="warn" role="status">The requester confirms whether the errand was completed.</Alert>
       ) : (

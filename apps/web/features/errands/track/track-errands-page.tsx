@@ -10,8 +10,7 @@ import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { errandQueries } from '../queries';
 import type { ErrandSummary } from '../api';
 import { availableActions } from '@/features/assignments/available-actions';
-
-const STAGES = ['Accepted', 'Started', 'Picked up', 'Delivered', 'Done'];
+import { EXECUTION_STEPS, flowOf } from '@/features/reference/flow';
 
 /** Where each errand status sits on the five milestones. -1 means the runner has not accepted yet. */
 const STAGE_INDEX: Partial<Record<ErrandSummary['status'], number>> = {
@@ -32,6 +31,13 @@ const BADGE_LABEL: Partial<Record<ErrandSummary['status'], string>> = {
   DISPUTED: 'In dispute',
 };
 
+/** A service reads "work", not "pickup" and "delivery". */
+const SERVICE_BADGE_LABEL: Partial<Record<ErrandSummary['status'], string>> = {
+  IN_PROGRESS: 'On the way',
+  PICKED_UP: 'Work in progress',
+  DELIVERED: 'Finished · confirm',
+};
+
 function money(minor: number | null) {
   return minor === null
     ? '—'
@@ -43,6 +49,9 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
   const runner = errand.runner;
   const assignment = errand.assignmentId ? encodeURIComponent(errand.assignmentId) : null;
   const delivered = errand.status === 'DELIVERED';
+  const flow = flowOf(errand.category);
+  const service = flow === 'SERVICE';
+  const badgeLabel = (service ? SERVICE_BADGE_LABEL[errand.status] : undefined) ?? BADGE_LABEL[errand.status] ?? errand.status.replaceAll('_', ' ');
   const can = availableActions('REQUESTER', errand.status === 'RUNNER_SELECTED' ? 'PENDING_ACCEPTANCE' : 'ACCEPTED', errand.status);
   const link = 'relative z-10 inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
   const soft = 'relative z-10 inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-[12.5px] font-bold text-ink hover:bg-tint-2';
@@ -52,7 +61,7 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${delivered ? 'bg-ok-bg text-ok' : 'bg-blue-bg text-blue'}`}>
           {delivered ? null : <span aria-hidden="true" className="size-[7px] animate-pulse rounded-full bg-current" />}
-          {BADGE_LABEL[errand.status] ?? errand.status.replaceAll('_', ' ')}
+          {badgeLabel}
         </span>
         <span className="text-xl font-extrabold tracking-[-0.03em] tabular-nums text-ink">{money(errand.agreedAmountMinor)}</span>
       </div>
@@ -66,7 +75,7 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
       </p>
 
       <ol aria-label="Milestones" className="mt-4 grid grid-flow-col auto-cols-fr gap-1.5">
-        {STAGES.map((label, index) => (
+        {EXECUTION_STEPS[flow].map((label, index) => (
           <li key={label} className="grid gap-2">
             <i className={`block h-1.5 rounded-full ${index < stage ? 'bg-lime-600' : index === stage ? 'bg-ink' : 'bg-line'}`} />
             <b className={`text-xs ${index === stage ? 'text-ink' : 'text-muted'}`}>{label}</b>
@@ -75,8 +84,8 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
       </ol>
 
       <div className="mt-4 grid gap-2 rounded-[var(--r-sm)] bg-panel px-3.5 py-3 text-[12.5px]">
-        <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-lime-600" /><span>{errand.pickupArea ?? 'Pickup area'}</span></div>
-        {errand.destinationArea ? <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-ink" /><span>{errand.destinationArea}</span></div> : null}
+        <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-lime-600" /><span>{service ? (errand.destinationArea ?? 'Service area') : (errand.pickupArea ?? 'Pickup area')}</span></div>
+        {errand.destinationArea && !service ? <div className="flex items-start gap-2.5"><i aria-hidden="true" className="mt-[5px] size-2.5 shrink-0 rounded-full bg-ink" /><span>{errand.destinationArea}</span></div> : null}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2.5">
@@ -84,7 +93,7 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
           <Link href={`/assignments/${assignment}`} className={`${link} bg-surface text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel`}>View assignment</Link>
         ) : null}
         {assignment && can.confirmDelivery ? (
-          <Link href={`/assignments/${assignment}/confirm`} className={`${link} bg-lime text-ink hover:bg-lime-600`}>Confirm delivery</Link>
+          <Link href={`/assignments/${assignment}/confirm`} className={`${link} bg-lime text-ink hover:bg-lime-600`}>{service ? 'Confirm work done' : 'Confirm delivery'}</Link>
         ) : null}
         {assignment && can.trackRunner ? (
           <Link href={`/assignments/${assignment}/track`} className={`${link} bg-ink text-white hover:bg-[#0f1822]`}>Live tracker</Link>

@@ -14,6 +14,7 @@ import { api, apiResponse, isApiError, type ApiResponse } from '@/lib/api/client
 import { queryKeys } from '@/lib/query/keys';
 import { PageHead } from '@/components/shell/page-head';
 import { MarketplaceControls, categoryIcons } from '../marketplace-controls';
+import { isService } from '@/features/reference/flow';
 
 type FeedItem = components['schemas']['FeedItemDto'];
 type MarketplaceFilterQuery = Record<string, string | number | boolean | string[] | undefined>;
@@ -25,6 +26,13 @@ const dateLabel = (value: string) => new Date(value).toLocaleString('en-NG', { d
 const timing = (item: FeedItem) => item.timeMode === 'ASAP' ? 'ASAP' : item.timeMode === 'SCHEDULED' ? 'Scheduled' : 'Time window';
 
 function ErrandRoute({ item }: { item: FeedItem }) {
+  if (isService(item.category)) {
+    return (
+      <div className="grid gap-2.5 rounded-[var(--r-sm)] bg-panel px-3.5 py-3 text-xs text-ink-2">
+        <div className="flex items-start gap-2.5"><span aria-hidden="true" className="mt-1 size-2.5 shrink-0 rounded-sm bg-ink" /><span><span className="sr-only">Service area: </span>{item.destination?.area ?? item.pickup?.area ?? 'Service area: near you'}</span></div>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-2.5 rounded-[var(--r-sm)] bg-panel px-3.5 py-3 text-xs text-ink-2">
       <div className="flex items-start gap-2.5"><span aria-hidden="true" className="mt-1 size-2.5 shrink-0 rounded-full bg-green" /><span><span className="sr-only">Pickup: </span>{item.pickup?.area ?? 'Pickup area: near you'}</span></div>

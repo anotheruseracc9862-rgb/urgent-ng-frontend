@@ -15,6 +15,7 @@ import { queryKeys } from '@/lib/query/keys';
 import { offersApi, type AssignmentDetail } from '@/features/offers/api';
 import { AssignmentPendingPage } from '@/features/offers/assignment/assignment-pending-page';
 import { RouteBlock, stageBadge } from '../execution-progress';
+import { PLACE_COPY, flowOf } from '@/features/reference/flow';
 import { AssignmentPhoto, AssignmentTimeline } from '../assignment-timeline';
 import { availableActions } from '../available-actions';
 import { paymentPrompt } from '../payment/payment-prompt';
@@ -111,7 +112,9 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
   const exact = errand.accessLevel === 'EXACT';
   const isRunner = current.role === 'RUNNER';
   const hasArrived = timeline.data?.some((event) => event.type === 'ARRIVED');
-  const badge = stageBadge(errand.status, current.status === 'PENDING_ACCEPTANCE');
+  const flow = flowOf(errand.category);
+  const service = flow === 'SERVICE';
+  const badge = stageBadge(errand.status, current.status === 'PENDING_ACCEPTANCE', flow);
   const can = availableActions(current.role, current.status, errand.status);
   const canArrive = isRunner && current.status === 'ACCEPTED' && errand.status === 'IN_PROGRESS' && timeline.isSuccess && !hasArrived;
   const notStarted = errand.status === 'ACCEPTED';
@@ -148,19 +151,19 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
         <div className="grid min-w-0 content-start gap-4 lg:col-start-1 lg:row-start-1">
           <section className="grid gap-3 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="text-base font-extrabold text-ink">Errand details</h2>
-            <RouteBlock from={visibleLocation(errand.pickup, exact)} to={visibleLocation(errand.destination, exact)} />
+            <RouteBlock flow={flow} from={visibleLocation(errand.pickup, exact)} to={visibleLocation(errand.destination, exact)} />
             {!exact ? <p className="text-xs text-muted">Exact addresses and contacts are available to the requester and to the runner only while the assignment is accepted.</p> : null}
             <p className="whitespace-pre-wrap text-sm text-ink-2">{errand.description}</p>
             {errand.instructions ? <p className="whitespace-pre-wrap rounded-xl bg-panel p-3 text-sm text-ink-2">{errand.instructions}</p> : null}
             {exact ? <>
-              <Contact title="Pickup contact" contact={errand.pickupContact} />
-              <Contact title="Drop-off contact" contact={errand.dropoffContact} />
+              {service ? null : <Contact title="Pickup contact" contact={errand.pickupContact} />}
+              <Contact title={PLACE_COPY[flow].contact} contact={errand.dropoffContact} />
             </> : null}
             {errand.photos.length ? <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">{errand.photos.map((photo, index) => typeof photo.mediaId === 'string' ? <AssignmentPhoto key={photo.mediaId} mediaId={photo.mediaId} alt={`Errand item ${index + 1}`} /> : null)}</div> : null}
           </section>
           {canArrive ? (
             <section className="grid gap-2 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
-              <h2 className="font-extrabold text-ink">At the pickup location?</h2>
+              <h2 className="font-extrabold text-ink">{service ? 'At the address?' : 'At the pickup location?'}</h2>
               <p className="text-sm text-muted">Optionally record your arrival once the errand has started.</p>
               <Button className="w-fit" type="button" disabled={arrived.isPending} onClick={() => arrived.mutate()}>
                 {arrived.isPending ? 'Recording…' : 'I have arrived'}
@@ -192,8 +195,8 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
             </>
           ) : can.confirmDelivery ? (
             <>
-              <p className="w-full text-sm text-muted">The runner marked this delivered. Confirm it is done, or open a dispute.</p>
-              <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/confirm`}>Confirm delivery</Link></Button>
+              <p className="w-full text-sm text-muted">{service ? 'The runner marked the work finished. Confirm it is done, or open a dispute.' : 'The runner marked this delivered. Confirm it is done, or open a dispute.'}</p>
+              <Button asChild className="w-full"><Link href={`/assignments/${assignmentId}/confirm`}>{service ? 'Confirm work done' : 'Confirm delivery'}</Link></Button>
             </>
           ) : can.rate ? (
             <>
@@ -207,7 +210,7 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
           ) : current.status === 'PENDING_ACCEPTANCE' ? (
             <p className="w-full text-sm text-muted">{isRunner ? 'Accept or decline this job above.' : 'Waiting for the runner to answer.'}</p>
           ) : errand.status === 'DELIVERED' ? (
-            <p className="w-full text-sm text-muted">Delivered. Waiting for the requester to confirm.</p>
+            <p className="w-full text-sm text-muted">{service ? 'Finished. Waiting for the requester to confirm.' : 'Delivered. Waiting for the requester to confirm.'}</p>
           ) : (
             <p className="w-full text-sm text-muted">This assignment is {label(current.status).toLowerCase()}.</p>
           )}

@@ -122,3 +122,19 @@ it('removes private progress when a concern discovers that the link was revoked'
   expect(await screen.findByText('This link is unavailable')).toBeInTheDocument();
   expect(screen.queryByText('Victoria Island')).not.toBeInTheDocument();
 });
+
+it('shows a service as work at one address, with no pickup and no delivery wording', async () => {
+  server.use(http.get('*/api/v1/shared/service-token', () => envelope({
+    ...fixture(), category: 'Car wash', categoryFlow: 'SERVICE', pickup: null, destination: { area: 'Lekki Phase 1', lat: 6.5, lng: 3.4 },
+    live: null, status: 'PICKED_UP', checkpoints: [{ type: 'PICKED_UP', at: new Date().toISOString() }],
+  })));
+  render(<SharedErrandPage token="service-token" />);
+  expect(await screen.findByText('Lekki Phase 1')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Work in progress' })).toBeInTheDocument();
+  expect(screen.getByText('Service area')).toBeInTheDocument();
+  expect(screen.getByText(/Work started/)).toBeInTheDocument();
+  expect(screen.getByText(/Expected finish/)).toBeInTheDocument();
+  expect(screen.queryByText('Pickup area')).not.toBeInTheDocument();
+  expect(screen.queryByText('Drop-off area')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Item picked up/)).not.toBeInTheDocument();
+});

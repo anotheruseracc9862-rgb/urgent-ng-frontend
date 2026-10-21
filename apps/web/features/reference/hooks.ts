@@ -5,20 +5,22 @@ import { api } from '@/lib/api/client';
 import { authApi } from '@/lib/api/auth';
 import type { Category, PolicyVersion, ProhibitedItem } from '@/lib/api/types';
 import { queryKeys } from '@/lib/query/keys';
+import { isService } from './flow';
 
 const REFERENCE_STALE_TIME = 60 * 60 * 1000;
 
 export interface LocationRequirements {
   pickup: boolean;
   destination: boolean;
-  onSite: boolean;
+  /** Work done at one address: the destination is the service address and there is no item to move. */
+  service: boolean;
 }
 
-export function requiredLocations(category: Pick<Category, 'requiresPickup' | 'requiresDestination'>): LocationRequirements {
+export function requiredLocations(category: Pick<Category, 'requiresPickup' | 'requiresDestination'> & { flow?: Category['flow'] }): LocationRequirements {
   return {
     pickup: category.requiresPickup,
     destination: category.requiresDestination,
-    onSite: !category.requiresPickup && !category.requiresDestination,
+    service: isService(category),
   };
 }
 

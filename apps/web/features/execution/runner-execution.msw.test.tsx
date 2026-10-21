@@ -29,8 +29,8 @@ const me: Me = {
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
-function renderPage(withLocationConsent = false) {
-  let errandStatus = 'ACCEPTED';
+function renderPage(withLocationConsent = false, options: { flow?: 'TRANSIT' | 'SERVICE'; status?: string } = {}) {
+  let errandStatus = options.status ?? 'ACCEPTED';
   const assignment = () => ({
     id: 'execution-1',
     errandId: 'errand-1',
@@ -45,7 +45,12 @@ function renderPage(withLocationConsent = false) {
     acceptedAt: '2026-01-01T09:10:00.000Z',
     version: 2,
     role: 'RUNNER',
-    errand: { id: 'errand-1', status: errandStatus, accessLevel: 'EXACT' },
+    errand: {
+      id: 'errand-1',
+      status: errandStatus,
+      accessLevel: 'EXACT',
+      category: { id: 'category-1', key: options.flow === 'SERVICE' ? 'car_wash' : 'delivery', name: options.flow === 'SERVICE' ? 'Car wash' : 'Delivery', flow: options.flow ?? 'TRANSIT' },
+    },
   });
   server.use(
     http.get('*/api/v1/me/consents', () => envelope({
@@ -128,6 +133,38 @@ describe('runner execution steps', () => {
     expect(await screen.findByText('Delivery recorded', { selector: 'h2' })).toBeInTheDocument();
     expect(screen.getByText(/The requester now confirms it, or it completes by itself after 24 hours/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm delivery' })).not.toBeInTheDocument();
+  });
+
+  it('speaks of work, not pickup and delivery, for a service, and asks for a photo before each work step', async () => {
+    const user = userEvent.setup();
+    renderPage(false, { flow: 'SERVICE' });
+    expect(await screen.findByRole('button', { name: 'I am on my way' })).toBeInTheDocument();
+    expect(screen.getByText('Ready to start')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Errand progress' })).toHaveTextContent('Working');
+    expect(screen.queryByRole('button', { name: 'Start errand' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'I am on my way' }));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'I am on my way' }));
+
+    expect(await screen.findByRole('heading', { name: 'Step 2 of 3 · Start the work' })).toBeInTheDocument();
+    expect(screen.getByText(/You are on your way\. Next: arrive, take a before photo/)).toBeInTheDocument();
+    expect(screen.getByText('Before photo (required)')).toBeInTheDocument();
+    expect(screen.getByText('Add a photo to continue.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start work' })).toBeDisabled();
+  });
+
+  it('asks for an after photo before a service can be finished', async () => {
+    renderPage(false, { flow: 'SERVICE', status: 'PICKED_UP' });
+    expect(await screen.findByRole('heading', { name: 'Step 3 of 3 · Finish the work' })).toBeInTheDocument();
+    expect(screen.getByText('After photo (required)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Finish work' })).toBeDisabled();
+  });
+
+  it('keeps photos optional for a delivery', async () => {
+    renderPage(false, { status: 'IN_PROGRESS' });
+    expect(await screen.findByRole('button', { name: 'Confirm pickup' })).toBeEnabled();
+    expect(screen.getByText('Optional photo evidence')).toBeInTheDocument();
+    expect(screen.queryByText('Add a photo to continue.')).not.toBeInTheDocument();
   });
 
   it('reuses the confirmed intent on retry instead of recording a second step', async () => {

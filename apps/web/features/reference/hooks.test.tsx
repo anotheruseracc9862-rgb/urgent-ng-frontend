@@ -64,11 +64,14 @@ describe('reference data hooks', () => {
 
 describe('requiredLocations', () => {
   it.each([
-    [true, true, { pickup: true, destination: true, onSite: false }],
-    [true, false, { pickup: true, destination: false, onSite: false }],
-    [false, true, { pickup: false, destination: true, onSite: false }],
-    [false, false, { pickup: false, destination: false, onSite: true }],
+    [true, true, { pickup: true, destination: true, service: false }],
+    [true, false, { pickup: true, destination: false, service: false }],
+    [false, true, { pickup: false, destination: true, service: false }],
   ])('maps pickup=%s destination=%s to its location requirements', (requiresPickup, requiresDestination, expected) => {
     expect(requiredLocations({ requiresPickup, requiresDestination })).toEqual(expected);
+  });
+
+  it('marks a service category: one address, no pickup', () => {
+    expect(requiredLocations({ requiresPickup: false, requiresDestination: true, flow: 'SERVICE' })).toEqual({ pickup: false, destination: true, service: true });
   });
 });

@@ -39,6 +39,7 @@ import { errandQueries } from '@/features/errands/queries';
 import { runnerQueries } from '@/features/runner/queries';
 import { useApiMutation } from '@/lib/query/mutations';
 import { dashboardQueries } from './queries';
+import { flowOf, isService } from '@/features/reference/flow';
 
 type Summary = components['schemas']['MeSummaryDto'];
 type ErrandSummary = components['schemas']['ErrandSummaryDto'];
@@ -87,8 +88,8 @@ function Gauge({ value, label, dark = false }: { value: number | null; label: st
   );
 }
 
-function TaskProgress({ status }: { status: string }) {
-  const labels = ['Accepted', 'Pickup', 'Delivery', 'Done'];
+function TaskProgress({ status, service = false }: { status: string; service?: boolean }) {
+  const labels = service ? ['Accepted', 'On the way', 'Working', 'Done'] : ['Accepted', 'Pickup', 'Delivery', 'Done'];
   const currentStep = status === 'PICKED_UP' ? 2 : status === 'DELIVERED' ? 3 : status === 'COMPLETED' ? 4 : 1;
   return (
     <ol aria-label={`Task progress: ${status.replaceAll('_', ' ').toLowerCase()}`} className="grid grid-cols-4 gap-1.5">
@@ -355,7 +356,7 @@ function RequesterDashboard({ summary }: { summary: Summary | undefined }) {
                       </IconChip>
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-ink">{errand.title}</strong>
-                        <span className="block truncate text-[12.5px] text-muted">{errand.pickupArea ?? 'Area not set'}{errand.destinationArea ? ` → ${errand.destinationArea}` : ' · On site'}</span>
+                        <span className="block truncate text-[12.5px] text-muted">{isService(errand.category) ? `${errand.destinationArea ?? 'Area not set'} · Service` : `${errand.pickupArea ?? 'Area not set'}${errand.destinationArea ? ` → ${errand.destinationArea}` : ''}`}</span>
                       </span>
                       <span className="shrink-0 text-right">
                         <Badge tone={open ? 'amber' : status.tone}>{open ? `${errand.offerCount} offer${errand.offerCount === 1 ? '' : 's'}` : status.label}</Badge>
@@ -481,6 +482,13 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
   const completedOfSample = performance.data && performance.data.cancellation.sample > 0
     ? performance.data.cancellation.sample - Math.round(performance.data.cancellation.sample * (performance.data.cancellation.percent ?? 0) / 100)
     : 0;
+  const serviceStepLabel: Record<string, { badge: string; action: string }> = {
+    RUNNER_SELECTED: { badge: 'Accepted', action: 'Update progress' },
+    ACCEPTED: { badge: 'Accepted', action: 'Update progress' },
+    IN_PROGRESS: { badge: 'On the way', action: 'Update progress' },
+    PICKED_UP: { badge: 'Work in progress', action: 'Finish work' },
+    DELIVERED: { badge: 'Finished', action: 'View task' },
+  };
   const stepLabel: Record<string, { badge: string; action: string }> = {
     RUNNER_SELECTED: { badge: 'Accepted', action: 'Update progress' },
     ACCEPTED: { badge: 'Accepted', action: 'Update progress' },
@@ -602,7 +610,8 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
             ) : assignments.data?.length ? (
               <div className="grid gap-4">
                 {assignments.data.slice(0, 3).map((assignment) => {
-                  const step = stepLabel[assignment.errandStatus] ?? { badge: assignment.errandStatus.replaceAll('_', ' '), action: 'View task' };
+                  const service = flowOf(assignment.categoryFlow) === 'SERVICE';
+                  const step = (service ? serviceStepLabel : stepLabel)[assignment.errandStatus] ?? { badge: assignment.errandStatus.replaceAll('_', ' '), action: 'View task' };
                   return (
                     <article key={assignment.id} className="grid gap-3.5 rounded-[var(--r-lg)] border border-line bg-surface p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-18px_rgba(23,33,46,.28)]">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -610,8 +619,10 @@ function RunnerDashboard({ summary }: { summary: Summary | undefined }) {
                         <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">{money(assignment.agreedAmountMinor)}</span>
                       </div>
                       <h3 className="text-base font-extrabold leading-snug tracking-[-0.01em] text-ink">{assignment.errandTitle}</h3>
-                      <RouteBox from={assignment.pickupArea ?? 'Pickup area not shared'} to={assignment.destinationArea} />
-                      <TaskProgress status={assignment.errandStatus} />
+                      {service
+                        ? <RouteBox from={assignment.destinationArea ?? assignment.pickupArea ?? 'Service area not shared'} />
+                        : <RouteBox from={assignment.pickupArea ?? 'Pickup area not shared'} to={assignment.destinationArea} />}
+                      <TaskProgress status={assignment.errandStatus} service={service} />
                       <div className="flex flex-wrap gap-2.5">
                         <Link href={`/assignments/${assignment.id}`} className="inline-flex min-h-9 items-center rounded-full bg-ink px-3.5 text-[12.5px] font-bold text-white hover:bg-[#0f1822]">{step.action}</Link>
                         {assignment.conversationId && assignment.errandStatus !== 'RUNNER_SELECTED' ? (

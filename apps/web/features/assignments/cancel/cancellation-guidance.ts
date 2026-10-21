@@ -1,3 +1,5 @@
+import { CANCEL_BLOCKED, flowOf } from '@/features/reference/flow';
+
 export type CancellationRole = 'REQUESTER' | 'RUNNER';
 
 export interface CancellationGuidance {
@@ -10,7 +12,9 @@ export function cancellationGuidance(
   role: CancellationRole,
   assignmentStatus: string,
   errandStatus: string,
+  flow?: Parameters<typeof flowOf>[0],
 ): CancellationGuidance {
+  const blocked = CANCEL_BLOCKED[flowOf(flow)];
   if (assignmentStatus === 'PENDING_ACCEPTANCE') {
     return role === 'RUNNER'
       ? { message: 'You have not accepted this assignment. Decline it instead of cancelling.', canCancel: false, nextAction: 'DECLINE' }
@@ -30,10 +34,10 @@ export function cancellationGuidance(
       : { message: 'The runner has started work. Cancelling ends the errand and records the stage.', canCancel: true, nextAction: null };
   }
   if (errandStatus === 'PICKED_UP') {
-    return { message: 'The item has been picked up. Do not abandon the errand; open a dispute instead.', canCancel: false, nextAction: 'OPEN_DISPUTE' };
+    return { message: blocked.started, canCancel: false, nextAction: 'OPEN_DISPUTE' };
   }
   if (errandStatus === 'DELIVERED') {
-    return { message: 'The item was delivered. Confirm completion or open a dispute instead of cancelling.', canCancel: false, nextAction: 'COMPLETE_OR_DISPUTE' };
+    return { message: blocked.finished, canCancel: false, nextAction: 'COMPLETE_OR_DISPUTE' };
   }
   if (errandStatus === 'COMPLETED') {
     return { message: 'The errand is complete and cannot be cancelled.', canCancel: false, nextAction: null };

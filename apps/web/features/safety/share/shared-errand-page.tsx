@@ -16,6 +16,8 @@ const RoundedLiveLocationMap = dynamic(
 
 const panel = 'space-y-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)] sm:p-6';
 const labels: Record<string, string> = { ACCEPTED: 'Runner accepted', IN_PROGRESS: 'On the way to pickup', PICKED_UP: 'On the way to drop-off', DELIVERED: 'Delivered', COMPLETED: 'Completed', CANCELLED: 'Cancelled', DISPUTED: 'Disputed — under review' };
+/** A service is work at one address, so its steps read as work started and finished. */
+const serviceLabels: Record<string, string> = { ...labels, IN_PROGRESS: 'On the way', PICKED_UP: 'Work in progress', DELIVERED: 'Work finished' };
 export function SharedErrandPage({ token }: { token: string }) {
   // The sensitive trusted-contact family is never persisted; discard it on unmount as well.
   const query = useQuery({ queryKey: shareKeys.public(token), queryFn: ({ signal }) => getShared(token, signal), retry: false, refetchInterval: 30_000, gcTime: 0 });
@@ -39,16 +41,18 @@ export function SharedErrandPage({ token }: { token: string }) {
   const age = live?.capturedAt ? now - Date.parse(live.capturedAt) : Infinity;
   const showPoint = ['IN_PROGRESS', 'PICKED_UP'].includes(data.status) && live && ['FRESH', 'STALE'].includes(live.freshness) && age >= -60_000 && age < 15 * 60_000 && typeof live.lat === 'number' && typeof live.lng === 'number' && Math.abs(live.lat) <= 90 && Math.abs(live.lng) <= 180;
   const stale = live?.freshness === 'STALE' || age > 90_000;
+  const service = data.categoryFlow === 'SERVICE';
+  const statusLabels = service ? serviceLabels : labels;
   return <main className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-8">
     <header className="flex flex-wrap items-center justify-between gap-3"><Link href="/" className="text-2xl font-extrabold">Urgent.ng</Link><span className="rounded-full bg-lime/20 px-4 py-2 text-sm">Trusted contact · Read-only</span></header>
     <div><h1 className="text-3xl font-bold">Shared errand progress</h1><p className="mt-2 text-muted">Exact addresses, phone numbers and private messages are never shown here.</p></div>
     <div className="grid gap-5 md:grid-cols-[1.5fr_1fr]"><div className="space-y-5">
       <section className={panel}><h2 className="text-xl font-semibold">Approximate location</h2>
         {showPoint ? <><MapProvider><RoundedLiveLocationMap point={{ lat: live.lat as number, lng: live.lng as number }} /></MapProvider><p>{stale ? 'Location may be out of date.' : 'Approximate runner location.'}</p><p className="text-sm text-muted">Position captured {dateText(live.capturedAt!)}</p></> : <p>No recent location is available. A pin appears only while the runner shares a recent position.</p>}
-        <dl className="space-y-3"><div><dt className="text-sm text-muted">Pickup area</dt><dd>{data.pickup?.area || 'Not available'}</dd></div><div><dt className="text-sm text-muted">Drop-off area</dt><dd>{data.destination?.area || 'Not available'}</dd></div></dl>
+        <dl className="space-y-3">{service ? null : <div><dt className="text-sm text-muted">Pickup area</dt><dd>{data.pickup?.area || 'Not available'}</dd></div>}<div><dt className="text-sm text-muted">{service ? 'Service area' : 'Drop-off area'}</dt><dd>{data.destination?.area || 'Not available'}</dd></div></dl>
       </section>
-      <section className={panel}><h2 className="text-xl font-semibold">{labels[data.status] || 'Errand update'}</h2><p>Expected delivery: {data.expectedDeliveryAt ? dateText(data.expectedDeliveryAt) : 'Not available yet'}</p>
-        <ol className="space-y-3">{data.checkpoints.filter(point => ['PICKED_UP', 'DELIVERED'].includes(point.type)).map((point, index) => <li key={index}>{point.type === 'PICKED_UP' ? 'Item picked up' : 'Delivered'} · {dateText(point.at)}</li>)}</ol>
+      <section className={panel}><h2 className="text-xl font-semibold">{statusLabels[data.status] || 'Errand update'}</h2><p>{service ? 'Expected finish' : 'Expected delivery'}: {data.expectedDeliveryAt ? dateText(data.expectedDeliveryAt) : 'Not available yet'}</p>
+        <ol className="space-y-3">{data.checkpoints.filter(point => ['PICKED_UP', 'DELIVERED'].includes(point.type)).map((point, index) => <li key={index}>{point.type === 'PICKED_UP' ? (service ? 'Work started' : 'Item picked up') : (service ? 'Work finished' : 'Delivered')} · {dateText(point.at)}</li>)}</ol>
         <p className="text-sm text-muted">Last update: {dateText(data.lastUpdatedAt)} · Refreshes every 30 seconds</p>
       </section>
     </div><aside className="space-y-5">

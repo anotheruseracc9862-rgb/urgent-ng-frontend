@@ -25,7 +25,7 @@ const lagosTime = (iso: string) =>
 
 export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respond?: boolean }) {
   const id = encodeURIComponent(assignment.id);
-  const badge = stageBadge(assignment.errandStatus, Boolean(respond));
+  const badge = stageBadge(assignment.errandStatus, Boolean(respond), assignment.categoryFlow);
   const can = availableActions('RUNNER', assignment.status, assignment.errandStatus);
   return (
     <li className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
@@ -41,8 +41,8 @@ export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respo
       <p className="mt-1 text-sm text-muted">
         Requester: {assignment.requesterFirstName} · Agreed {formatMoney(assignment.agreedAmountMinor)} · paid directly
       </p>
-      {respond ? null : <ExecutionProgress errandStatus={assignment.errandStatus} className="mt-4" />}
-      <div className="mt-4"><RouteBlock from={assignment.pickupArea} to={assignment.destinationArea} /></div>
+      {respond ? null : <ExecutionProgress errandStatus={assignment.errandStatus} flow={assignment.categoryFlow} className="mt-4" />}
+      <div className="mt-4"><RouteBlock flow={assignment.categoryFlow} from={assignment.pickupArea} to={assignment.destinationArea} /></div>
       {respond ? <p className="mt-3 text-xs font-bold text-amber">Accept before {lagosTime(assignment.acceptanceDeadline)} (Lagos time) or it goes back to the requester.</p> : null}
       <div className="mt-4 flex flex-wrap gap-2">
         {respond ? (
