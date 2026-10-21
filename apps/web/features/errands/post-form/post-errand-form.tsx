@@ -376,7 +376,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
             <p className="mt-1 text-xs text-muted">{errandId ? 'Changes save automatically as you go.' : 'Start a draft with a title and category, then add the details.'}</p>
           </div>
           <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="errand-title">What do you need done?
-            <Input id="errand-title" maxLength={120} required value={form.title} onChange={(event) => update('title', event.target.value)} placeholder={service ? 'e.g. Wash my car at home' : 'e.g. Pick up groceries from Justrite'} />
+            <Input id="errand-title" maxLength={120} required value={form.title} onChange={(event) => update('title', event.target.value)} placeholder={service ? 'e.g. Clean my two-bedroom flat' : 'e.g. Pick up groceries from Justrite'} />
           </label>
           <div className="grid gap-2 text-sm font-bold text-ink">
             <label htmlFor="errand-category">Category</label>

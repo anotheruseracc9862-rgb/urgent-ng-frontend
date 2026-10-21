@@ -6,14 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@urgent/ui';
-import { ArrowRight, Baby, Bookmark, Car, Check, ChevronDown, ChevronRight, FileText, Hammer, List, Map, MapPin, Package, Search, ShoppingBag, SlidersHorizontal, Sparkles, Wrench, X, Zap } from 'lucide-react';
+import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, FileText, Hammer, List, Map, MapPin, Package, Search, ShoppingBag, SlidersHorizontal, Sparkles, Wrench, X, Zap } from 'lucide-react';
 import { PageHead } from '@/components/shell/page-head';
 import { runnerApi } from '@/features/runner/api';
 import { queryKeys } from '@/lib/query/keys';
 
 export const categoryIcons: Record<string, typeof Package> = {
   delivery: Package, pickup: MapPin, shopping_purchase: ShoppingBag, document: FileText,
-  car_wash: Car, home_cleaning: Sparkles, childcare: Baby, plumbing: Wrench, electrical: Zap, other_service: Hammer,
+  home_cleaning: Sparkles, plumbing: Wrench, electrical: Zap, other_service: Hammer,
 };
 
 export function MarketplaceControls({ count, pending, updating, hasMore = false }: {

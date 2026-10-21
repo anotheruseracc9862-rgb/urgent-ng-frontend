@@ -1,6 +1,6 @@
 /**
  * How an errand is carried out. TRANSIT moves something between places (delivery, pickup, shopping).
- * SERVICE is work done at one address (car wash, cleaning, repairs). Both walk the same statuses, so
+ * SERVICE is work done at one address (cleaning, plumbing, electrical work). Both walk the same statuses, so
  * the only difference on screen is the words and which fields show. All of those words live here.
  */
 

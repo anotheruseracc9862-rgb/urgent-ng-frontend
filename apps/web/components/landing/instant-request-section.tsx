@@ -46,7 +46,7 @@ const FALLBACK_CATEGORIES: Pick<PopularCategory, 'key' | 'name' | 'flow'>[] = [
   { key: 'pickup', name: 'Pickup' },
   { key: 'shopping_purchase', name: 'Shopping & Purchase' },
   { key: 'home_cleaning', name: 'Home Cleaning', flow: 'SERVICE' },
-  { key: 'car_wash', name: 'Car Wash', flow: 'SERVICE' },
+  { key: 'plumbing', name: 'Plumbing', flow: 'SERVICE' },
 ];
 
 export function InstantRequestSection({ categories = [] }: { categories?: PopularCategory[] }) {
@@ -165,7 +165,7 @@ export function InstantRequestSection({ categories = [] }: { categories?: Popula
                   name="title"
                   type="text"
                   className={FIELD}
-                  placeholder={service ? 'e.g. Wash my car at home this afternoon' : 'e.g. Pick up urgent Visa document from VFS Global, deliver to Lekki Phase 1'}
+                  placeholder={service ? 'e.g. Deep clean my two-bedroom flat this weekend' : 'e.g. Pick up urgent Visa document from VFS Global, deliver to Lekki Phase 1'}
                 />
               </IconField>
               {errors.title ? <p className="text-xs font-semibold text-red">{errors.title}</p> : null}
