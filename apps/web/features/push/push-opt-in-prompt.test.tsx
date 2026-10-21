@@ -36,6 +36,35 @@ const renderPrompt = () => render(
   <QueryClientProvider client={new QueryClient()}><PushOptInPrompt /></QueryClientProvider>,
 );
 
+describe('PushOptInPrompt when this browser already has push', () => {
+  const enabledHere = () => {
+    vi.stubGlobal('Notification', { permission: 'granted', requestPermission: mocks.requestPermission });
+    localStorage.setItem('urgent.web-push-device-id', 'device-1');
+  };
+  afterEach(() => localStorage.clear());
+
+  it('asks nothing, wherever it sits', () => {
+    enabledHere();
+    renderPrompt();
+    expect(screen.queryByLabelText('Push notification option')).toBeNull();
+    cleanup();
+    render(<QueryClientProvider client={new QueryClient()}><PushOptInPrompt compact /></QueryClientProvider>);
+    expect(screen.queryByLabelText('Push notification option')).toBeNull();
+  });
+
+  it('still asks when permission was granted but this browser has no registered device (storage cleared, or a new browser)', () => {
+    vi.stubGlobal('Notification', { permission: 'granted', requestPermission: mocks.requestPermission });
+    renderPrompt();
+    expect(screen.getByLabelText('Push notification option')).toBeTruthy();
+  });
+
+  it('still asks on a browser where it is off, even if it is on for the same person elsewhere: push is per device', () => {
+    vi.stubGlobal('Notification', { permission: 'default', requestPermission: mocks.requestPermission });
+    renderPrompt();
+    expect(screen.getByLabelText('Push notification option')).toBeTruthy();
+  });
+});
+
 describe('PushOptInPrompt', () => {
   it('does not ask for permission on load', () => {
     renderPrompt();

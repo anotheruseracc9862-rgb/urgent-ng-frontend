@@ -8,8 +8,9 @@ import { AssignmentPendingPage } from './assignment/assignment-pending-page';
 import { MyOffersPage } from './list/my-offers-page';
 import { OfferNegotiationPage } from './negotiation/offer-negotiation-page';
 import { SubmitOfferPage } from './submit/submit-offer-page';
+import { markOfferJustSent, wasOfferJustSent } from './negotiation/offer-sent-banner';
 
-const navigation = vi.hoisted(() => ({ push: vi.fn() }));
+const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => navigation }));
 vi.mock('@/lib/auth/client', () => ({
   useSession: () => ({ me: { id: 'runner-1' } }),
@@ -73,8 +74,10 @@ describe('Phase 4 offer and assignment flows', () => {
     await user.click(screen.getByRole('button', { name: 'Send offer' }));
 
     await waitFor(() => expect(requestKey).toBeTruthy());
-    await user.click(await screen.findByRole('button', { name: 'Continue to offer' }));
-    expect(navigation.push).toHaveBeenCalledWith('/offers/offer-created-1');
+    // Straight to the offer, which shows the confirmation itself: no page in between.
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('/offers/offer-created-1'));
+    expect(wasOfferJustSent('offer-created-1')).toBe(true);
+    expect(screen.queryByText('Your offer is on its way')).not.toBeInTheDocument();
   });
 
   describe('how long an estimate may be', () => {
@@ -153,6 +156,109 @@ describe('Phase 4 offer and assignment flows', () => {
     expect(screen.getByText(/Resets .* \(Lagos time\)/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Need more offers a day?' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send offer' })).not.toBeInTheDocument();
+  });
+
+  it('shows the "offer sent" confirmation on the offer itself, once', async () => {
+    const offer = {
+      id: 'offer-banner-1', errandId: 'errand-1', runnerId: 'runner-1', requesterId: 'requester-1', amountMinor: 500000, durationMinutes: 30,
+      status: 'ACTIVE', awaitingParty: 'REQUESTER', version: 1, needsReconfirmation: false, closeReason: null, conversationId: null,
+      assignmentId: null, createdAt: '2026-10-14T10:00:00.000Z', updatedAt: '2026-10-14T10:00:00.000Z',
+      availabilityConfirmedAt: '2026-10-14T10:00:00.000Z', message: null, errandTitle: 'Pick up a cake', maxDurationMinutes: 1440,
+      roundsUsed: 0, roundsLimit: 6,
+      history: [{ id: 'event-initial', type: 'INITIAL_OFFER', actorUserId: 'runner-1', amountMinor: 500000, durationMinutes: 30, message: null, createdAt: '2026-10-14T10:00:00.000Z' }],
+    };
+    server.use(
+      http.get('*/api/v1/offers/offer-banner-1', () => envelope(offer)),
+      http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+    );
+    markOfferJustSent('offer-banner-1');
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-banner-1" />);
+    expect(await screen.findByRole('status', { name: 'Offer sent' })).toHaveTextContent('Your offer is on its way');
+    expect(wasOfferJustSent('offer-banner-1')).toBe(false);
+  });
+
+  it('puts the answer to a counter-offer beside the Send button, and brings it into view, instead of at the top of the page', async () => {
+    const user = userEvent.setup();
+    const scroll = vi.spyOn(HTMLElement.prototype, 'scrollIntoView');
+    const offer = {
+      id: 'offer-feedback-1', errandId: 'errand-1', runnerId: 'runner-1', requesterId: 'requester-1', amountMinor: 500000, durationMinutes: 30,
+      status: 'ACTIVE', awaitingParty: 'RUNNER', version: 1, needsReconfirmation: false, closeReason: null, conversationId: null,
+      assignmentId: null, createdAt: '2026-10-14T10:00:00.000Z', updatedAt: '2026-10-14T10:00:00.000Z',
+      availabilityConfirmedAt: '2026-10-14T10:00:00.000Z', message: null, errandTitle: 'Pick up a cake', maxDurationMinutes: 1440,
+      roundsUsed: 0, roundsLimit: 6,
+      history: [{ id: 'event-initial', type: 'INITIAL_OFFER', actorUserId: 'runner-1', amountMinor: 500000, durationMinutes: 30, message: null, createdAt: '2026-10-14T10:00:00.000Z' }],
+    };
+    server.use(
+      http.get('*/api/v1/offers/offer-feedback-1', () => envelope(offer)),
+      http.post('*/api/v1/offers/offer-feedback-1/counter', () => HttpResponse.json({
+        error: { code: 'VALIDATION_ERROR', message: 'Phone numbers and email addresses are shared after the runner accepts. Remove the phone number from your note.' },
+        requestId: 'r',
+      }, { status: 400 })),
+    );
+
+    renderWithQuery(<OfferNegotiationPage offerId="offer-feedback-1" />);
+    await user.click(await screen.findByRole('button', { name: 'Counter' }));
+    await user.type(screen.getByLabelText('Message (optional)'), 'Call me on 08031234567');
+    await user.click(screen.getByRole('button', { name: 'Send counter' }));
+
+    const form = screen.getByRole('button', { name: 'Send counter' }).closest('form')!;
+    const alert = await within(form).findByRole('alert');
+    expect(alert).toHaveTextContent('Remove the phone number from your note');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    await waitFor(() => expect(scroll).toHaveBeenCalled());
+    scroll.mockRestore();
+  });
+
+  describe('the price path of an edited offer', () => {
+    const base = {
+      id: 'offer-edit-1', errandId: 'errand-1', runnerId: 'runner-1', requesterId: 'requester-1', amountMinor: 750000, durationMinutes: 1440,
+      status: 'ACTIVE', awaitingParty: 'REQUESTER', version: 3, needsReconfirmation: false, closeReason: null, conversationId: null,
+      assignmentId: null, createdAt: '2026-10-21T22:30:00.000Z', updatedAt: '2026-10-21T22:31:00.000Z',
+      availabilityConfirmedAt: '2026-10-21T22:30:00.000Z', message: null, errandTitle: 'Dry clean', maxDurationMinutes: 20160, roundsUsed: 0, roundsLimit: 6,
+      history: [
+        { id: 'e1', type: 'INITIAL_OFFER', actorUserId: 'runner-1', amountMinor: 600000, durationMinutes: 1440, message: 'Pick me', createdAt: '2026-10-21T22:30:00.000Z' },
+        { id: 'e2', type: 'OFFER_EDIT', actorUserId: 'runner-1', amountMinor: 750000, durationMinutes: 1440, message: 'New offer', createdAt: '2026-10-21T22:31:00.000Z' },
+      ],
+    };
+
+    it('says the runner changed their own offer, from what to what, and never "countered"', async () => {
+      server.use(http.get('*/api/v1/offers/offer-edit-1', () => envelope(base)));
+      renderWithQuery(<OfferNegotiationPage offerId="offer-edit-1" />);
+
+      const path = await screen.findByRole('list', { name: 'Negotiation history' });
+      expect(within(path).getByText(/You offered ₦6,000 · 1 day — “Pick me”/)).toBeInTheDocument();
+      expect(within(path).getByText(/You changed your offer to ₦7,500 · 1 day \(was ₦6,000 · 1 day\) — “New offer”/)).toBeInTheDocument();
+      expect(within(path).queryByText(/countered/)).not.toBeInTheDocument();
+    });
+
+    it('reads as the runner changing their offer when the person looking is the requester', async () => {
+      server.use(http.get('*/api/v1/offers/offer-edit-1', () => envelope({
+        ...base, runnerId: 'other-runner', requesterId: 'runner-1',
+        history: base.history.map((event) => ({ ...event, actorUserId: 'other-runner' })),
+      })));
+      renderWithQuery(<OfferNegotiationPage offerId="offer-edit-1" />);
+
+      const path = await screen.findByRole('list', { name: 'Negotiation history' });
+      expect(within(path).getByText(/Runner changed their offer to ₦7,500/)).toBeInTheDocument();
+    });
+
+    it('does not repeat the old terms when an edit left them as they were, and follows a chain of edits', async () => {
+      const twice = {
+        ...base,
+        history: [
+          ...base.history,
+          { id: 'e3', type: 'OFFER_EDIT', actorUserId: 'runner-1', amountMinor: 750000, durationMinutes: 2880, message: null, createdAt: '2026-10-21T22:40:00.000Z' },
+          { id: 'e4', type: 'OFFER_EDIT', actorUserId: 'runner-1', amountMinor: 750000, durationMinutes: 2880, message: null, createdAt: '2026-10-21T22:41:00.000Z' },
+        ],
+      };
+      server.use(http.get('*/api/v1/offers/offer-edit-1', () => envelope(twice)));
+      renderWithQuery(<OfferNegotiationPage offerId="offer-edit-1" />);
+
+      const path = await screen.findByRole('list', { name: 'Negotiation history' });
+      expect(within(path).getByText(/You changed your offer to ₦7,500 · 2 days \(was ₦7,500 · 1 day\)/)).toBeInTheDocument();
+      expect(within(path).getByText(/^You changed your offer to ₦7,500 · 2 days$/)).toBeInTheDocument();
+    });
   });
 
   it('counters only on the runner turn and refreshes the server negotiation after success', async () => {

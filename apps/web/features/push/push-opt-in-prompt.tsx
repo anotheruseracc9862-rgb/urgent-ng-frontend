@@ -38,11 +38,11 @@ export function PushOptInPrompt({ compact = false }: { compact?: boolean }) {
   // Browser-only facts (storage, permission) are read after hydration so the markup matches.
   const hydrated = useHydrated();
   const [now] = React.useState(() => Date.now());
-  const hidden = !hydrated || (compact && (
+  // Already on for this browser: nothing to ask, wherever the prompt sits. The rest only quiets the compact one.
+  const hidden = !hydrated || pushEnabledHere() || (compact && (
     now - Number(readStorage(DISMISSED_KEY) ?? 0) < DISMISS_DAYS * 86_400_000
     || !('Notification' in window)
     || Notification.permission === 'denied'
-    || pushEnabledHere()
   ));
   const register = useApiMutation({
     // The browser appears in the signed-in devices list.

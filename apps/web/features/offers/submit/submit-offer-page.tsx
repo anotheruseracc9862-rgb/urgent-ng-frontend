@@ -17,7 +17,7 @@ import { DurationInput, formatDuration } from '@/components/forms/duration-input
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '../api';
-import { PushOptInPrompt } from '@/features/push/push-opt-in-prompt';
+import { markOfferJustSent } from '../negotiation/offer-sent-banner';
 
 const money = (minor: number | null) =>
   minor === null
@@ -71,6 +71,9 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
         queryClient.invalidateQueries({ queryKey: queryKeys.runner.offerLimit() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.runner.offers({}) }),
       ]);
+      // Straight to the offer, where the requester's reply will show, with a one-time confirmation on it.
+      markOfferJustSent(offer.id);
+      router.replace(`/offers/${offer.id}`);
     },
   });
 
@@ -97,20 +100,6 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
         ? 'You are not eligible to send an offer right now. Check your runner eligibility below.'
         : submit.error.message
     : submit.error instanceof Error ? submit.error.message : null;
-
-  if (submit.data) {
-    return (
-      <main className="grid min-w-0 content-start gap-4 pb-10">
-        <PageHead
-          eyebrow="Offer sent"
-          title="Your offer is on its way"
-          description="You can get notified if the requester replies while you are away."
-          actions={<Button type="button" onClick={() => router.push(`/offers/${submit.data.id}`)}>Continue to offer</Button>}
-        />
-        <PushOptInPrompt />
-      </main>
-    );
-  }
 
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">

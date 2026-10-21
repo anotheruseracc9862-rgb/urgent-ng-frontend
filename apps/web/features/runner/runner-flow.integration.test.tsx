@@ -220,8 +220,7 @@ describe('F5 runner end-to-end flow', () => {
     await user.type(await screen.findByLabelText(/Your price/), '5500');
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Send offer' }));
-    await user.click(await screen.findByRole('button', { name: 'Continue to offer' }));
-    await waitFor(() => expect(navigation.push).toHaveBeenCalledWith('/offers/runner-flow-offer'));
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('/offers/runner-flow-offer'));
     expect(offerSubmitted).toBe(true);
     offerStage.unmount();
 

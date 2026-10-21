@@ -1,6 +1,7 @@
 'use client';
 
 import { isService } from '@/features/reference/flow';
+import { MyOfferBadge } from '@/features/offers/my-offer';
 import { persistedQuery } from '@/lib/query/persisted-query';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
@@ -125,6 +126,7 @@ function SavedErrandCard({ item, removing, onRemove }: { item: SavedErrand; remo
           <span className="rounded-full bg-tint-2 px-2.5 py-1 text-[11px] font-extrabold text-green-900">{item.category.name}</span>
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${isOpen ? 'bg-ok-bg text-ok' : 'bg-panel text-muted'}`}>{statusLabel(item.status)}</span>
           {item.boosted ? <span className="rounded-full bg-amber-bg px-2.5 py-1 text-[11px] font-extrabold text-amber">Boosted</span> : null}
+          {item.myOffer ? <MyOfferBadge offer={item.myOffer} /> : null}
         </div>
         <h2 className="mt-2 text-base font-extrabold tracking-tight text-ink">
           {isOpen ? <Link href={`/marketplace/${item.id}`} className="hover:underline">{item.title}</Link> : item.title}
@@ -140,7 +142,9 @@ function SavedErrandCard({ item, removing, onRemove }: { item: SavedErrand; remo
       </div>
       <div className="flex flex-row items-start gap-2 sm:flex-col sm:items-end">
         <Button type="button" variant="ghost" disabled={removing} onClick={onRemove}>{removing ? 'Removing…' : 'Remove'}</Button>
-        {isOpen ? <Button asChild><Link href={`/marketplace/${item.id}/offer`}>Send offer</Link></Button> : null}
+        {isOpen ? (item.myOffer
+          ? <Button asChild variant="ghost"><Link href={`/offers/${item.myOffer.id}`}>View your offer</Link></Button>
+          : <Button asChild><Link href={`/marketplace/${item.id}/offer`}>Send offer</Link></Button>) : null}
       </div>
     </article>
   );

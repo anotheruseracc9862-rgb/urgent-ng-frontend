@@ -4,12 +4,14 @@ import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowUpRight, Clock3, History, Info, RefreshCw } from 'lucide-react';
 import { Alert, Button, MoneyInput } from '@urgent/ui';
 import { ContactSharingNotice } from '@/components/forms/contact-sharing-notice';
 import { DurationInput, formatDuration } from '@/components/forms/duration-input';
+import { OfferSentBanner } from './offer-sent-banner';
+import { DEFAULT_MAX_OFFER_MINUTES } from '@/features/reference/flow';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -40,11 +42,25 @@ function eventDescription(event: OfferNegotiation['history'][number], currentUse
   if (event.type === 'REJECT') return 'Declined the offer.';
   if (event.type === 'WITHDRAW') return 'Withdrew the offer.';
   const party = event.actorUserId === currentUserId ? 'You' : event.actorUserId === offer.runnerId ? 'Runner' : 'Requester';
-  const terms = [
+  const note = event.message ? ` — “${event.message}”` : '';
+  if (event.type === 'OFFER_EDIT') {
+    // The runner changing their own offer. Not a counter: say what changed, and from what.
+    const earlier = offer.history.slice(0, offer.history.findIndex((candidate) => candidate.id === event.id))
+      .reverse().find((candidate) => candidate.amountMinor !== null || candidate.durationMinutes !== null);
+    const now = termsOf(event);
+    const was = earlier ? termsOf(earlier) : '';
+    return `${party === 'You' ? 'You changed your offer' : 'Runner changed their offer'}${now ? ` to ${now}` : ''}${was && was !== now ? ` (was ${was})` : ''}${note}`;
+  }
+  const terms = termsOf(event);
+  return `${party} ${event.type === 'INITIAL_OFFER' ? 'offered' : 'countered'}${terms ? ` ${terms}` : ''}${note}`;
+}
+
+/** "₦7,500 · 1 day": the terms an event proposed. */
+function termsOf(event: OfferNegotiation['history'][number]): string {
+  return [
     event.amountMinor === null ? null : money(event.amountMinor),
     event.durationMinutes === null ? null : formatDuration(event.durationMinutes),
   ].filter(Boolean).join(' · ');
-  return `${party} ${event.type === 'INITIAL_OFFER' ? 'offered' : 'countered'}${terms ? ` ${terms}` : ''}${event.message ? ` — “${event.message}”` : ''}`;
 }
 
 export function OfferNegotiationPage({ offerId }: { offerId: string }) {
@@ -55,6 +71,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
   const [duration, setDuration] = useState<number | null>(30);
   const [message, setMessage] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const queryKey = queryKeys.offers.detail(offerId);
   const query = useQuery({
     queryKey,
@@ -92,6 +109,12 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
     },
   });
 
+  // The answer to a button just pressed sits beside the buttons, and scrolls into view if it is not already.
+  // On a phone the top of the page is a screen away, and an error up there looks like nothing happened.
+  useEffect(() => {
+    if (notice || mutation.error) feedbackRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [notice, mutation.error]);
+
   if (query.isPending) {
     return <PageLoading title="Offer" eyebrow="Negotiation" width="max-w-5xl" />;
   }
@@ -120,6 +143,12 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
       ? 'The offer changed. The current terms are shown below.'
       : mutation.error.message
     : mutation.error instanceof Error ? mutation.error.message : null;
+  const feedback = notice || errorMessage ? (
+    <div ref={feedbackRef} className="grid gap-2 scroll-mt-24">
+      {notice ? <Alert role="status">{notice}</Alert> : null}
+      {errorMessage ? <Alert variant="danger" role="alert">{errorMessage}</Alert> : null}
+    </div>
+  ) : null;
   const openTermsForm = (action: 'edit' | 'counter') => {
     setAmountMinor(Math.round(offer.amountMinor / 100) * 100);
     setDuration(offer.durationMinutes);
@@ -130,7 +159,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
   const submitTerms = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const durationMinutes = duration ?? 0;
-    const maxMinutes = offer.maxDurationMinutes;
+    const maxMinutes = offer.maxDurationMinutes ?? DEFAULT_MAX_OFFER_MINUTES.TRANSIT;
     if (amountMinor === null || amountMinor < 100 || durationMinutes < 1 || durationMinutes > maxMinutes) {
       setNotice(`Enter a positive whole-naira amount and an estimated time between 1 minute and ${formatDuration(maxMinutes)}. The current system limits are checked when you submit.`);
       return;
@@ -158,6 +187,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
         description="Agree on a price and time using offers, counters and notes. Chat opens once the runner accepts the errand."
       />
       <JourneyHere />
+      <OfferSentBanner offerId={offerId} />
 
       {active && !offer.needsReconfirmation && offer.awaitingParty !== 'NONE' ? (
         <Alert variant={myTurn ? 'info' : 'warn'} role="status">
@@ -171,8 +201,6 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
               : `It is the ${offer.awaitingParty.toLowerCase()}'s turn. You cannot counter again until they answer. ${roundsLeft} counter-offer${roundsLeft === 1 ? '' : 's'} left.`}
         </Alert>
       ) : null}
-      {notice ? <Alert role="status">{notice}</Alert> : null}
-      {errorMessage ? <Alert variant="danger" role="alert">{errorMessage}</Alert> : null}
 
       <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <aside aria-label="Current terms and your actions" className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px] lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
@@ -193,6 +221,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
                 : <p>Offer status: {offer.status.toLowerCase().replaceAll('_', ' ')}. {closeReasonLabel(offer.closeReason)}</p>}
           </div>
           {!isRunner || active ? <Link href={isRunner ? `/marketplace/${offer.errandId}` : `/errands/${offer.errandId}`} className="inline-flex w-fit items-center gap-1 text-xs font-bold text-green-900 hover:underline">Review errand details<ArrowUpRight aria-hidden="true" className="size-3.5" /></Link> : null}
+          {formAction ? null : feedback}
           <div className="grid gap-2 border-t border-line-2 pt-4" aria-label="Your actions">
             {offer.needsReconfirmation && isRunner && active ? <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: 'reconfirm' })}>Reconfirm offer</Button> : null}
             {canAcceptCounter ? <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: 'accept' })}>Accept {money(offer.amountMinor)}</Button> : null}
@@ -208,9 +237,10 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
             <form className="grid min-w-0 gap-3 border-t border-line-2 pt-4" onSubmit={submitTerms}>
               <h3 className="text-sm font-extrabold text-ink">{formAction === 'edit' ? 'Edit your offer' : 'Make a counter-offer'}</h3>
               <div className="grid gap-1.5"><label className="text-xs font-bold text-ink-2" htmlFor="offer-amount">Amount</label><MoneyInput id="offer-amount" allowKobo={false} required value={amountMinor} onChange={setAmountMinor} autoComplete="off" /></div>
-              <div className="grid gap-1.5"><span id="offer-duration-label" className="text-xs font-bold text-ink-2">Estimated duration</span><DurationInput id="offer-duration" value={duration} onChange={setDuration} maxMinutes={offer.maxDurationMinutes} /></div>
+              <div className="grid gap-1.5"><span id="offer-duration-label" className="text-xs font-bold text-ink-2">Estimated duration</span><DurationInput id="offer-duration" value={duration} onChange={setDuration} maxMinutes={offer.maxDurationMinutes ?? DEFAULT_MAX_OFFER_MINUTES.TRANSIT} /></div>
               <ContactSharingNotice />
               <label className="grid gap-1.5"><span className="text-xs font-bold text-ink-2">Message (optional)</span><textarea maxLength={500} value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-20 w-full rounded-[var(--r)] border border-line bg-surface p-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-lime-600" /></label>
+              {feedback}
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Sending…' : formAction === 'edit' ? 'Save offer' : 'Send counter'}</Button>
                 <Button type="button" variant="ghost" onClick={() => setFormAction(null)}>Cancel</Button>

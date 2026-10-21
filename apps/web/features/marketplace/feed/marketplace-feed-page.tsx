@@ -15,6 +15,7 @@ import { queryKeys } from '@/lib/query/keys';
 import { PageHead } from '@/components/shell/page-head';
 import { MarketplaceControls, categoryIcons } from '../marketplace-controls';
 import { isService } from '@/features/reference/flow';
+import { MyOfferBadge } from '@/features/offers/my-offer';
 
 type FeedItem = components['schemas']['FeedItemDto'];
 type MarketplaceFilterQuery = Record<string, string | number | boolean | string[] | undefined>;
@@ -246,7 +247,7 @@ export function MarketplaceFeedPage() {
                 <article key={item.id} className={`group relative grid min-w-0 gap-3.5 rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-pop)] motion-reduce:transform-none motion-reduce:transition-none ${active ? 'xl:ring-2 xl:ring-lime-600' : ''}`}>
                   <button type="button" aria-label={`Preview ${item.title}`} aria-pressed={active} aria-controls="marketplace-errand-preview" onClick={() => setSelectedId(item.id)} className="absolute inset-0 z-10 hidden cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 xl:block" />
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-tint-2 px-2.5 py-1.5 text-[11px] font-extrabold text-green-900"><Icon aria-hidden="true" className="size-3.5" />{item.category.name}</span>{item.boosted && <span className="inline-flex items-center gap-1 rounded-full bg-amber-bg px-2 py-1.5 text-[10px] font-extrabold text-amber"><Sparkles aria-hidden="true" className="size-3" />Boosted</span>}</div>
+                    <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-tint-2 px-2.5 py-1.5 text-[11px] font-extrabold text-green-900"><Icon aria-hidden="true" className="size-3.5" />{item.category.name}</span>{item.boosted && <span className="inline-flex items-center gap-1 rounded-full bg-amber-bg px-2 py-1.5 text-[10px] font-extrabold text-amber"><Sparkles aria-hidden="true" className="size-3" />Boosted</span>}{item.myOffer ? <MyOfferBadge offer={item.myOffer} /> : null}</div>
                     <button type="button" aria-label={`${item.saved ? 'Unsave' : 'Save'} ${item.title}`} aria-pressed={item.saved} disabled={saveMutation.isPending && saveMutation.variables?.errandId === item.id} onClick={() => saveMutation.mutate({ errandId: item.id, saved: item.saved })} className={`relative z-20 grid size-10 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-50 motion-reduce:transition-none ${item.saved ? 'bg-tint-2 text-green-900' : 'bg-panel text-muted hover:bg-tint-2 hover:text-green-900'}`}><Bookmark aria-hidden="true" className={`size-[17px] ${item.saved ? 'fill-current' : ''}`} /><span className="sr-only">{saveMutation.isPending && saveMutation.variables?.errandId === item.id ? 'Saving…' : item.saved ? 'Saved' : 'Save'}</span></button>
                   </div>
                   <div className="min-w-0"><h2 className="text-base font-extrabold leading-snug tracking-tight text-ink">{item.title}</h2><p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">{item.description}</p></div>
@@ -257,7 +258,9 @@ export function MarketplaceFeedPage() {
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
                     <span className="flex items-center gap-2 text-xs text-ink-2"><span aria-hidden="true" className="grid size-7 place-items-center rounded-full bg-panel text-[11px] font-extrabold text-green-800">{item.requester.firstName.slice(0, 1)}</span>{item.requester.firstName}{item.requester.rating !== null && <span className="inline-flex items-center gap-1 text-[11px] text-muted"><Star aria-hidden="true" className="size-3 fill-amber text-amber" />{item.requester.rating.toFixed(1)}</span>}</span>
-                    <div className="relative z-20 flex items-center gap-2"><Link href={`/marketplace/${item.id}`} className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-xs font-bold text-ink-2 hover:bg-panel">View details<ChevronRight aria-hidden="true" className="size-3.5" /></Link><Link href={`/marketplace/${item.id}/offer`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-xs font-bold text-white transition-colors hover:bg-green-900 motion-reduce:transition-none">Send offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link></div>
+                    <div className="relative z-20 flex items-center gap-2"><Link href={`/marketplace/${item.id}`} className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-xs font-bold text-ink-2 hover:bg-panel">View details<ChevronRight aria-hidden="true" className="size-3.5" /></Link>{item.myOffer
+                      ? <Link href={`/offers/${item.myOffer.id}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-line px-4 text-xs font-bold text-ink transition-colors hover:bg-panel motion-reduce:transition-none">View your offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link>
+                      : <Link href={`/marketplace/${item.id}/offer`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-xs font-bold text-white transition-colors hover:bg-green-900 motion-reduce:transition-none">Send offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link>}</div>
                   </div>
                 </article>
               );
@@ -266,7 +269,7 @@ export function MarketplaceFeedPage() {
           {selected && <aside id="marketplace-errand-preview" aria-label="Errand preview" tabIndex={0} className="sticky top-4 hidden h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto rounded-[var(--r-lg)] bg-surface shadow-[var(--shadow)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 xl:flex xl:flex-col">
             <div className="flex items-center justify-between gap-3 border-b border-line bg-tint/60 px-5 py-4"><span className="inline-flex items-center gap-2 text-xs font-extrabold text-green-900"><Package aria-hidden="true" className="size-4" />Quick look</span><span className="text-[11px] text-muted">{selected.category.name}</span></div>
             <div key={selected.id} className="flex flex-1 flex-col gap-5 p-5">
-              <div className="min-w-0"><h2 className="break-words text-lg font-extrabold leading-6 tracking-tight text-ink">{selected.title}</h2><p className="mt-2 line-clamp-3 break-words text-sm leading-relaxed text-muted">{selected.description}</p></div>
+              <div className="min-w-0">{selected.myOffer ? <MyOfferBadge offer={selected.myOffer} className="mb-2" /> : null}<h2 className="break-words text-lg font-extrabold leading-6 tracking-tight text-ink">{selected.title}</h2><p className="mt-2 line-clamp-3 break-words text-sm leading-relaxed text-muted">{selected.description}</p></div>
               <ErrandRoute item={selected} />
               <dl className="divide-y divide-line text-xs">
                 <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Suggested budget</dt><dd className="text-lg font-extrabold text-ink tabular-nums">{money(selected.suggestedBudgetMinor)}</dd></div>
@@ -277,7 +280,9 @@ export function MarketplaceFeedPage() {
                 <div className="flex min-w-0 items-center justify-between gap-4 py-3"><dt className="text-muted">Expires</dt><dd className="text-right font-bold text-ink"><time dateTime={selected.expiresAt}>{dateLabel(selected.expiresAt)}</time></dd></div>
               </dl>
               <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
-                <Button asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
+                {selected.myOffer
+                  ? <Button asChild variant="ghost" className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/offers/${selected.myOffer.id}`}>View your offer<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>
+                  : <Button asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-4" /></Link></Button>}
                 <Button variant="ghost" asChild className="min-w-0 gap-1.5 px-3 text-xs"><Link href={`/marketplace/${selected.id}`}>View details<ChevronRight aria-hidden="true" className="size-4" /></Link></Button>
               </div>
             </div>

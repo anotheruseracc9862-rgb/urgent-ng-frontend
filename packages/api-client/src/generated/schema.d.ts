@@ -6584,7 +6584,7 @@ export interface components {
         NegotiationEventDto: {
             id: string;
             /** @enum {string} */
-            type: "INITIAL_OFFER" | "COUNTER_OFFER" | "ACCEPT" | "REJECT" | "WITHDRAW" | "SYSTEM_EVENT";
+            type: "INITIAL_OFFER" | "COUNTER_OFFER" | "OFFER_EDIT" | "ACCEPT" | "REJECT" | "WITHDRAW" | "SYSTEM_EVENT";
             actorUserId: string;
             amountMinor: number | null;
             durationMinutes: number | null;
@@ -7502,6 +7502,18 @@ export interface components {
             firstName: string;
             ratingCount: number;
         };
+        MyOfferDto: {
+            /**
+             * @description Whose move it is. RUNNER: a counter came in and the runner is next.
+             * @enum {string}
+             */
+            awaitingParty: "RUNNER" | "REQUESTER" | "NONE";
+            /** @description The errand changed and the runner must confirm the offer still stands. */
+            needsReconfirmation: boolean;
+            id: string;
+            amountMinor: number;
+            durationMinutes: number;
+        };
         FeedItemDto: {
             category: components["schemas"]["FeedCategoryDto"];
             pickup: components["schemas"]["PublicAreaDto"] | null;
@@ -7514,6 +7526,8 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
+            /** @description The viewer's own active offer on this errand, or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             id: string;
             title: string;
             description: string;
@@ -7556,6 +7570,8 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
+            /** @description The viewer's own active offer on this errand, or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             instructions: string | null;
             itemSize: components["schemas"]["ItemSize"] | null;
             itemValueMinor: number | null;
@@ -7586,6 +7602,8 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
+            /** @description The viewer's own active offer on this errand, or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             /** @description The saved errand may have closed since; the status tells. */
             status: components["schemas"]["ErrandStatus"];
             /** Format: date-time */

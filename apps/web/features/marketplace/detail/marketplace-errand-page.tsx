@@ -1,6 +1,7 @@
 'use client';
 
 import { isService } from '@/features/reference/flow';
+import { MyOfferBadge, MyOfferCard } from '@/features/offers/my-offer';
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
@@ -124,17 +125,21 @@ export function MarketplaceErrandPage({ errandId }: { errandId: string }) {
       <PageHead
         eyebrow={`Errand details · ${current.category.name}`}
         title={<span className="block max-w-[760px] break-words">{current.title}</span>}
-        actions={canOffer ? <Button asChild><Link href={`/marketplace/${errandId}/offer`}><Tag aria-hidden="true" />Send an offer</Link></Button> : undefined}
+        actions={current.myOffer
+          ? <Button asChild variant="ghost"><Link href={`/offers/${current.myOffer.id}`}>View your offer</Link></Button>
+          : canOffer ? <Button asChild><Link href={`/marketplace/${errandId}/offer`}><Tag aria-hidden="true" />Send an offer</Link></Button> : undefined}
       />
       <div className="flex flex-wrap items-center gap-2 px-1.5 text-xs">
         <span className="rounded-full bg-tint-2 px-3 py-1.5 font-bold text-green-900">Open for offers</span>
         {current.priority === 'URGENT' ? <span className="rounded-full bg-amber-bg px-3 py-1.5 font-bold text-amber">Urgent</span> : null}
         {current.boosted ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-bg px-3 py-1.5 font-bold text-amber"><Sparkles aria-hidden="true" className="size-3.5" />Boosted</span> : null}
+        {current.myOffer ? <MyOfferBadge offer={current.myOffer} className="px-3" /> : null}
         <span className="text-muted">Posted <time dateTime={current.postedAt}>{dateLabel(current.postedAt)}</time></span>
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,1fr)]">
         <div className="grid min-w-0 content-start gap-4">
+          {current.myOffer ? <MyOfferCard offer={current.myOffer} /> : null}
           <section aria-labelledby="errand-details-title" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-[18px] shadow-[var(--shadow)] sm:p-[22px]">
             <h2 id="errand-details-title" className="font-extrabold text-ink">Details</h2>
             <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-2">{current.description}</p>
