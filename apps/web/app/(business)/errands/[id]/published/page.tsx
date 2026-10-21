@@ -1,11 +1,7 @@
-import type { Metadata } from 'next';
-import { ErrandPublishedPage } from '@/features/errands/published/errand-published-page';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Your Errand Is Live — Urgent.ng',
-};
-
+/** The "posted" screen is gone: posting goes straight to the errand. Old links and bookmarks still land there. */
 export default async function ErrandPublishedRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <ErrandPublishedPage errandId={id} />;
+  redirect(`/errands/${encodeURIComponent(id)}`);
 }

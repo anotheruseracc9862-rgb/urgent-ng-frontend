@@ -13,6 +13,8 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { errandsApi, type Errand } from '../api';
 import { CONFIRM_COPY, PLACE_COPY, flowOf } from '@/features/reference/flow';
+import { InfoDisclosure, InfoNote } from '@/components/shared/info-disclosure';
+import { markErrandJustPosted } from '../detail/errand-posted-banner';
 
 const money = (minor: number | null) =>
   minor === null ? 'Not set' : new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(minor / 100);
@@ -86,7 +88,9 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
     mutationFn: (key: string) => errandsApi.publish(errandId, { prohibitedItemsConfirmed: true }, key),
     onSuccess: (publishedErrand) => {
       queryClient.setQueryData(queryKeys.errands.detail(errandId), publishedErrand);
-      router.replace(`/errands/${errandId}/published`);
+      // Straight to the errand, where offers will arrive, with a one-time confirmation on it.
+      markErrandJustPosted(errandId);
+      router.replace(`/errands/${errandId}`);
       router.refresh();
     },
   });
@@ -189,9 +193,10 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
               <div><dt className="text-xs font-bold uppercase tracking-wide text-muted">Photos</dt><dd className="mt-1 text-sm font-semibold text-ink">{currentErrand.photos.length} attached</dd></div>
             </dl>
           </section>
-          <Alert variant="info"><strong>Payment is made directly to the runner.</strong> Urgent.ng does not handle the errand payment. Agree the amount before work starts.</Alert>
+          <InfoNote><strong className="text-ink">Payment is made directly to the runner.</strong> Urgent.ng does not handle the errand payment. Agree the amount before work starts.</InfoNote>
         </div>
         <aside className="grid min-w-0 content-start gap-4 lg:sticky lg:top-6">
+          <InfoDisclosure title="What runners see and what stays private" className="order-2 lg:order-1">
           <section className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Runners see now</h2>
             <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>Title, category and approximate areas</li><li>{service ? 'Timing and suggested budget' : 'Timing, item size and suggested budget'}</li><li>Photos you attached</li></ul>
@@ -200,7 +205,9 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
             <h2 className="font-extrabold text-ink">Shared after acceptance</h2>
             <ul className="mt-3 grid gap-2 text-sm text-ink-2"><li>{service ? 'Exact address and landmark' : 'Exact addresses and landmarks'}</li><li>{service ? 'Contact at the address' : 'Pickup and drop-off contacts'}</li><li>Your phone number</li></ul>
           </section>
-          <label className="flex items-start gap-3 rounded-[var(--r-lg)] bg-tint p-4 text-sm text-ink sm:p-[22px]">
+          </InfoDisclosure>
+          <div className="order-1 grid gap-4 lg:order-2">
+          <label className="flex items-start gap-3 rounded-[var(--r-lg)] border border-line bg-surface p-4 text-sm font-semibold text-ink sm:p-[22px]">
             <input
               type="checkbox"
               className="mt-0.5 size-4 accent-green-800"
@@ -218,6 +225,7 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
             >
               {publish.isPending ? 'Posting…' : 'Post errand'}
             </Button>
+          </div>
           </div>
         </aside>
       </div>

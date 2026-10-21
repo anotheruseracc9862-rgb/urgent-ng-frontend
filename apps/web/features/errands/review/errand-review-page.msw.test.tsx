@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Errand } from '../api';
 import { listen, server } from '@/test/msw/server';
+import { wasErrandJustPosted } from '../detail/errand-posted-banner';
 import { ErrandReviewPage } from './errand-review-page';
 
 const errandId = 'errand-review-1';
@@ -105,6 +106,8 @@ describe('errand review and publish', () => {
     await waitFor(() => expect(publishCount).toBe(1));
     expect(idempotencyKeys).toHaveLength(1);
     expect(idempotencyKeys[0]).toMatch(/^[0-9a-f-]{36}$/i);
+    // Posting goes straight to the errand, which shows its one-time confirmation.
+    await waitFor(() => expect(wasErrandJustPosted(errandId)).toBe(true));
   });
 
   it('names fields the backend reports as incomplete without showing the request ID', async () => {

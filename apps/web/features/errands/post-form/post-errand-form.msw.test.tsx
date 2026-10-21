@@ -208,10 +208,104 @@ describe('post errand form', () => {
     expect(screen.queryByText('Pickup contact')).not.toBeInTheDocument();
   });
 
+  describe('switching the category of a posted errand', () => {
+    const pickupCategory = { id: 'd4d4d4d4-27a1-4a23-a67b-6e69c03ce543', key: 'pickup', name: 'Pickup', requiresPickup: true, requiresDestination: false, flow: 'TRANSIT' as const, isPopular: true };
+    const shopping = { id: 'e5e5e5e5-27a1-4a23-a67b-6e69c03ce544', key: 'shopping_purchase', name: 'Shopping & Purchase', requiresPickup: false, requiresDestination: true, flow: 'TRANSIT' as const, isPopular: true };
+    const shoppingErrand: Errand = {
+      ...openErrand,
+      category: { id: shopping.id, key: shopping.key, name: shopping.name, flow: 'TRANSIT' },
+      destination: { area: 'Lekki', lga: null, state: 'Lagos', accessLevel: 'EXACT', exact: { lat: 6.4474, lng: 3.4723 }, addressText: '12 Admiralty Way', landmark: null } as unknown as Errand['destination'],
+    };
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    it('waits, saying what to add, instead of saving a change the server would refuse', async () => {
+      const user = userEvent.setup();
+      const patches: Array<Record<string, unknown>> = [];
+      server.use(
+        http.get('*/api/v1/reference/categories', () => envelope([shopping, pickupCategory])),
+        http.get(`*/api/v1/errands/${openErrand.id}`, () => envelope(shoppingErrand)),
+        http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+        http.patch(`*/api/v1/errands/${openErrand.id}`, async ({ request }) => {
+          patches.push((await request.json()) as Record<string, unknown>);
+          return envelope({ ...shoppingErrand, category: { id: pickupCategory.id, key: 'pickup', name: 'Pickup', flow: 'TRANSIT' }, destination: null, version: 2 });
+        }),
+      );
+
+      renderForm(openErrand.id);
+      await screen.findByDisplayValue('Collect a parcel');
+      await chooseCategory(user, 'Pickup');
+
+      expect(await screen.findByText(/To switch to Pickup, add the pickup location below/)).toBeInTheDocument();
+      expect(screen.getByText(/Nothing changes until you do/)).toBeInTheDocument();
+      expect(screen.getByText('Not saved yet')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add the pickup location to continue' })).toBeDisabled();
+      await sleep(1800);
+      expect(patches).toHaveLength(0);
+
+      // Adding the place lets the whole switch save in one go.
+      await user.type(await screen.findByLabelText('Latitude'), '6.5244');
+      await user.type(screen.getByLabelText('Longitude'), '3.3792');
+      await user.click(screen.getByRole('button', { name: 'Set manual coordinates' }));
+
+      await waitFor(() => expect(patches).toHaveLength(1), { timeout: 4000 });
+      expect(patches[0]).toMatchObject({ categoryId: pickupCategory.id, destination: null, pickup: { point: { lat: 6.5244, lng: 3.3792 } } });
+      await waitFor(() => expect(screen.queryByText(/Nothing changes until you do/)).not.toBeInTheDocument());
+    });
+
+    it('saves at once when the new category needs nothing that is missing', async () => {
+      const user = userEvent.setup();
+      const patches: Array<Record<string, unknown>> = [];
+      const deliveryErrand: Errand = {
+        ...openErrand,
+        category: { id: delivery.id, key: delivery.key, name: delivery.name, flow: 'TRANSIT' },
+        pickup: { area: 'Yaba', lga: null, state: 'Lagos', accessLevel: 'EXACT', exact: { lat: 6.5, lng: 3.4 }, addressText: null, landmark: null } as unknown as Errand['pickup'],
+        destination: { area: 'Ikeja', lga: null, state: 'Lagos', accessLevel: 'EXACT', exact: { lat: 6.6, lng: 3.35 }, addressText: null, landmark: null } as unknown as Errand['destination'],
+      };
+      server.use(
+        http.get('*/api/v1/reference/categories', () => envelope([delivery, pickupCategory])),
+        http.get(`*/api/v1/errands/${openErrand.id}`, () => envelope(deliveryErrand)),
+        http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+        http.patch(`*/api/v1/errands/${openErrand.id}`, async ({ request }) => {
+          patches.push((await request.json()) as Record<string, unknown>);
+          return envelope({ ...deliveryErrand, version: 2 });
+        }),
+      );
+
+      renderForm(openErrand.id);
+      await screen.findByDisplayValue('Collect a parcel');
+      await chooseCategory(user, 'Pickup');
+
+      await waitFor(() => expect(patches).toHaveLength(1), { timeout: 4000 });
+      expect(patches[0]).toMatchObject({ categoryId: pickupCategory.id, destination: null });
+      expect(screen.queryByText(/Nothing changes until you do/)).not.toBeInTheDocument();
+    });
+  });
+
+  it('says plainly that the server had a problem, not "unexpected error"', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('*/api/v1/reference/categories', () => envelope([category])),
+      http.get(`*/api/v1/errands/${draft.id}`, () => envelope(draft)),
+      http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+      http.patch(`*/api/v1/errands/${draft.id}`, () => HttpResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' }, requestId: 'r' }, { status: 500 })),
+    );
+    renderForm(draft.id);
+    const description = await screen.findByLabelText('Describe the task');
+    await user.type(description, ' more');
+    expect(await screen.findByText(/Something went wrong on our side, and your last change was not saved/, {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(screen.queryByText(/unexpected error/i)).not.toBeInTheDocument();
+  });
+
   it('warns that material edits to an open errand require offer reconfirmation', async () => {
     const user = userEvent.setup();
     let patchBody: unknown;
-    const transitErrand: Errand = { ...openErrand, category: { id: delivery.id, key: delivery.key, name: delivery.name, flow: 'TRANSIT' } };
+    // A posted errand is always complete: both places a delivery needs.
+    const transitErrand: Errand = {
+      ...openErrand,
+      category: { id: delivery.id, key: delivery.key, name: delivery.name, flow: 'TRANSIT' },
+      pickup: { area: 'Yaba', lga: null, state: 'Lagos', accessLevel: 'EXACT', exact: { lat: 6.5, lng: 3.4 }, addressText: null, landmark: null } as unknown as Errand['pickup'],
+      destination: { area: 'Ikeja', lga: null, state: 'Lagos', accessLevel: 'EXACT', exact: { lat: 6.6, lng: 3.35 }, addressText: null, landmark: null } as unknown as Errand['destination'],
+    };
     server.use(
       http.get('*/api/v1/reference/categories', () => envelope([delivery])),
       http.get(`*/api/v1/errands/${openErrand.id}`, () => envelope(transitErrand)),

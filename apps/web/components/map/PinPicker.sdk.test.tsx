@@ -9,7 +9,10 @@ const fake = vi.hoisted(() => {
   const mapCenters: Array<{ lat: number; lng: number }> = [];
   let mapCount = 0;
   let markerPosition = { lat: () => 6.6, lng: () => 3.5 };
+  // Each address lookup waits here until the test answers it, in any order.
+  const lookups: Array<{ location: { lat: number; lng: number }; resolve: (address: string | null) => void; reject: () => void }> = [];
   return {
+    lookups,
     listeners,
     markerListeners,
     mapCenters,
@@ -46,15 +49,31 @@ vi.mock('@/lib/google-maps', () => ({
       },
     },
     places: {},
+    geocoding: {
+      Geocoder: class {
+        geocode({ location }: { location: { lat: number; lng: number } }) {
+          return new Promise((resolve, reject) => {
+            fake.lookups.push({
+              location,
+              resolve: (address) => resolve({ results: address ? [{ formatted_address: address }] : [] }),
+              reject: () => reject(new Error('REQUEST_DENIED')),
+            });
+          });
+        }
+      },
+    },
   }),
 }));
-vi.mock('./PlaceSearch', () => ({ PlaceSearch: () => null }));
+vi.mock('./PlaceSearch', () => ({
+  PlaceSearch: ({ text }: { text?: string }) => <input aria-label="Search box" readOnly value={text ?? ''} />,
+}));
 
 beforeEach(() => {
   fake.listeners.clear();
   fake.markerListeners.clear();
   fake.mapCenters.length = 0;
   fake.resetMapCount();
+  fake.lookups.length = 0;
   vi.stubGlobal('google', { maps: { SymbolPath: { CIRCLE: 0 } } });
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -76,6 +95,82 @@ describe('PinPicker with the Google Maps SDK', () => {
     fake.setMarkerPosition(6.61, 3.51);
     act(() => fake.markerListeners.get('dragend')!());
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ lat: 6.61, lng: 3.51, source: 'MAP_PIN' }));
+  });
+
+  describe('the address of a pin', () => {
+    const open = async (onChange: (value: PinValue) => void, value: PinValue | null = null) => {
+      render(<MapProvider><PinPicker label="Service address" value={value} onChange={onChange} /></MapProvider>);
+      await screen.findByRole('application', { name: 'Service address map' });
+      await waitFor(() => expect(fake.listeners.has('click')).toBe(true));
+    };
+    const clickMap = (lat: number, lng: number) => act(() => fake.listeners.get('click')!({ latLng: { lat: () => lat, lng: () => lng } }));
+
+    it('shows the street address of a clicked point in the search box and reports it with the pin', async () => {
+      const onChange = vi.fn<(value: PinValue) => void>();
+      await open(onChange);
+      clickMap(6.52, 3.38);
+      expect(fake.lookups).toHaveLength(1);
+      expect(fake.lookups[0].location).toEqual({ lat: 6.52, lng: 3.38 });
+
+      await act(async () => fake.lookups[0].resolve('12 Admiralty Way, Lekki Phase 1, Lagos'));
+
+      expect(screen.getByLabelText('Search box')).toHaveValue('12 Admiralty Way, Lekki Phase 1, Lagos');
+      expect(onChange).toHaveBeenLastCalledWith({ lat: 6.52, lng: 3.38, source: 'MAP_PIN', addressText: '12 Admiralty Way, Lekki Phase 1, Lagos' });
+    });
+
+    it('looks up a dragged marker too', async () => {
+      const onChange = vi.fn<(value: PinValue) => void>();
+      await open(onChange);
+      fake.setMarkerPosition(6.61, 3.51);
+      act(() => fake.markerListeners.get('dragend')!());
+      await act(async () => fake.lookups[0].resolve('Allen Avenue, Ikeja'));
+      expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ lat: 6.61, lng: 3.51, addressText: 'Allen Avenue, Ikeja' }));
+    });
+
+    it('ignores an answer for a pin that has since been moved', async () => {
+      const onChange = vi.fn<(value: PinValue) => void>();
+      await open(onChange);
+      clickMap(6.52, 3.38);
+      clickMap(6.7, 3.6);
+      await act(async () => fake.lookups[1].resolve('The newer place'));
+      await act(async () => fake.lookups[0].resolve('The older place'));
+
+      expect(screen.getByLabelText('Search box')).toHaveValue('The newer place');
+      expect(onChange).not.toHaveBeenCalledWith(expect.objectContaining({ addressText: 'The older place' }));
+    });
+
+    it('clears the earlier address while the new one is looked up, rather than leave a wrong one', async () => {
+      const onChange = vi.fn<(value: PinValue) => void>();
+      await open(onChange, { lat: 6.5, lng: 3.4, source: 'GEOCODED_ADDRESS', addressText: 'Old address' });
+      expect(screen.getByLabelText('Search box')).toHaveValue('Old address');
+      clickMap(6.8, 3.7);
+      expect(screen.getByLabelText('Search box')).toHaveValue('');
+      expect(onChange).toHaveBeenLastCalledWith({ lat: 6.8, lng: 3.7, source: 'MAP_PIN' });
+    });
+
+    it('stops asking for addresses once Google refuses, and still places every pin', async () => {
+      const onChange = vi.fn<(value: PinValue) => void>();
+      await open(onChange);
+      clickMap(6.52, 3.38);
+      await act(async () => fake.lookups[0].reject());
+      clickMap(6.6, 3.5);
+
+      expect(fake.lookups).toHaveLength(1);
+      expect(onChange).toHaveBeenLastCalledWith({ lat: 6.6, lng: 3.5, source: 'MAP_PIN' });
+    });
+
+    it('keeps the pin and says nothing when no address is found or the lookup fails', async () => {
+      const onChange = vi.fn<(value: PinValue) => void>();
+      await open(onChange);
+      clickMap(6.52, 3.38);
+      await act(async () => fake.lookups[0].resolve(null));
+      clickMap(6.53, 3.39);
+      await act(async () => fake.lookups[1].reject());
+
+      expect(onChange).toHaveBeenCalledTimes(2);
+      expect(screen.getByLabelText('Search box')).toHaveValue('');
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 
   it('keeps the Google map instance when values and callbacks change', async () => {

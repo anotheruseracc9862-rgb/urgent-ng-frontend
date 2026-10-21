@@ -46,7 +46,9 @@ describe('journey steps on an assignment', () => {
     expect(currentStep()).toContain('Accept job');
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    // The one button is the phone pill that opens the full list; the page has nothing else to press.
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByRole('button')).toHaveTextContent('Step 3 of 7: Accept job');
     expect(screen.queryByText(/sees/i)).not.toBeInTheDocument();
   });
 

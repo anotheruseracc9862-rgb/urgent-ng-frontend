@@ -8,11 +8,15 @@ export interface PlaceSelection extends Coordinates {
   label: string;
 }
 
-export function PlaceSearch({ onSelect, onError }: {
+export function PlaceSearch({ onSelect, onError, text }: {
   onSelect: (place: PlaceSelection) => void;
   onError: (error: Error) => void;
+  /** Text to show in the search box, for example the address of a pin the person placed on the map. */
+  text?: string;
 }) {
   const holder = useRef<HTMLDivElement>(null);
+  const element = useRef<google.maps.places.PlaceAutocompleteElement | null>(null);
+  const textRef = useRef(text);
   const { libraries } = useMapProvider();
 
   useEffect(() => {
@@ -44,11 +48,19 @@ export function PlaceSearch({ onSelect, onError }: {
     };
     search.addEventListener('gmp-select', onPlaceSelect);
     holder.current.replaceChildren(search);
+    element.current = search;
+    if (textRef.current) search.value = textRef.current;
     return () => {
       search.removeEventListener('gmp-select', onPlaceSelect);
       search.remove();
+      element.current = null;
     };
   }, [libraries, onError, onSelect]);
+
+  useEffect(() => {
+    textRef.current = text;
+    if (element.current && text !== undefined && element.current.value !== text) element.current.value = text;
+  }, [text]);
 
   return <div ref={holder} className="min-h-11 rounded-[var(--r-sm)] border border-line bg-surface focus-within:ring-2 focus-within:ring-green-700" />;
 }

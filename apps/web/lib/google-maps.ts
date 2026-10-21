@@ -4,6 +4,7 @@ export interface GoogleMapsLibraries {
   maps: google.maps.MapsLibrary;
   marker: google.maps.MarkerLibrary;
   places: google.maps.PlacesLibrary;
+  geocoding: google.maps.GeocodingLibrary;
 }
 
 let librariesPromise: Promise<GoogleMapsLibraries> | undefined;
@@ -19,7 +20,8 @@ export function loadGoogleMaps(): Promise<GoogleMapsLibraries> {
     importLibrary('maps'),
     importLibrary('marker'),
     importLibrary('places'),
-  ]).then(([maps, marker, places]) => ({ maps, marker, places }));
+    importLibrary('geocoding'),
+  ]).then(([maps, marker, places, geocoding]) => ({ maps, marker, places, geocoding }));
 
   return librariesPromise;
 }

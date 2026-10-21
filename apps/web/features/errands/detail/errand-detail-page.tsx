@@ -33,6 +33,7 @@ import { errandsApi, type Errand, type ErrandOffer, type OfferSort } from '../ap
 import { availableActions } from '@/features/assignments/available-actions';
 import { useRatingAction } from '@/features/ratings/use-rating-action';
 import { PLACE_COPY, flowOf } from '@/features/reference/flow';
+import { ErrandPostedBanner } from './errand-posted-banner';
 
 type Status = components['schemas']['ErrandStatus'];
 type PublicProfile = components['schemas']['PublicProfileDto'];
@@ -374,6 +375,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           ) : null}
         </>}
       />
+      <ErrandPostedBanner errandId={errandId} status={errand.status} />
       <ErrandJourney errand={errand} />
 
       {actionErrorMessage ? <Alert variant={selectionConflict ? 'info' : 'danger'} role={selectionConflict ? 'status' : 'alert'}><div className="flex flex-wrap items-center justify-between gap-3"><div><p>{actionErrorMessage}</p></div><Button type="button" size="sm" variant="ghost" onClick={() => { extend.reset(); duplicate.reset(); selectRunner.reset(); void errandQuery.refetch(); void offersQuery.refetch(); }}>Refresh errand</Button></div></Alert> : null}
@@ -399,7 +401,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
               {offersQuery.isLoading ? <div className="mt-4 grid gap-3"><Skeleton className="h-28 rounded-[var(--r)]" /><Skeleton className="h-28 rounded-[var(--r)]" /></div> : null}
               {offersQuery.error ? <div className="mt-4"><ApiErrorMessage error={offersQuery.error} fallback="We could not load offers." /><Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => void offersQuery.refetch()}>Try again</Button></div> : null}
               {!offersQuery.isLoading && !offersQuery.error && offersQuery.data?.length === 0 ? (
-                <div className="py-8 text-center"><span className="mx-auto grid size-11 place-items-center rounded-full bg-panel text-muted"><Clock3 aria-hidden="true" className="size-5" /></span><p className="mt-3 font-bold text-ink">No offers yet</p><p className="mt-1 text-sm text-muted">Nearby runners can send offers while this errand is open.</p></div>
+                <div className="py-8 text-center"><span className="mx-auto grid size-11 place-items-center rounded-full bg-panel text-muted"><Clock3 aria-hidden="true" className="size-5" /></span><p className="mt-3 font-bold text-ink">No offers yet</p><p className="mt-1 text-sm text-muted">Offers appear here as they arrive. You choose who does the errand.</p></div>
               ) : null}
               {offersQuery.data?.length ? <div className="mt-4 grid gap-3">{offersQuery.data.map((offer) => <OfferCard key={offer.id} offer={offer} onSelect={setOfferToSelect} selecting={selectRunner.isPending} />)}</div> : null}
             </section>

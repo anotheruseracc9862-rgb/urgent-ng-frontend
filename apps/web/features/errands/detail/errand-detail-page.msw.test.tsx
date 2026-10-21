@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { components } from '@urgent/api-client';
 import { listen, server } from '@/test/msw/server';
+import { markErrandJustPosted, wasErrandJustPosted } from './errand-posted-banner';
 import { ErrandDetailPage } from './errand-detail-page';
 
 type Errand = components['schemas']['ErrandDto'];
@@ -168,6 +169,19 @@ describe('requester errand detail', () => {
     await user.click(screen.getByRole('button', { name: /Confirm selection · ₦4,500/ }));
     await waitFor(() => expect(selectedOffer).toEqual({ offerId: 'offer-selectable', expectedOfferVersion: 4 }));
     expect(idempotencyKey).toBeTruthy();
+  });
+
+  it('confirms a fresh post on the errand page itself, once', async () => {
+    markErrandJustPosted(errandId);
+    server.use(
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope(errand)),
+      http.get(`*/api/v1/errands/${errandId}/offers`, () => envelope([])),
+      http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+    );
+    renderDetail();
+    expect(await screen.findByRole('status', { name: 'Errand posted' })).toHaveTextContent('Nearby runners were notified');
+    expect(await screen.findByText('No offers yet')).toBeInTheDocument();
+    expect(wasErrandJustPosted(errandId)).toBe(false);
   });
 
   it('does not render exact addresses when the owner endpoint denies access', async () => {

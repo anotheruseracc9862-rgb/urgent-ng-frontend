@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 import { Button, Input, Skeleton } from '@urgent/ui';
 import { useGeolocation } from '@/lib/use-geolocation';
-import type { Coordinates, GeolocationState } from '@/lib/geolocation';
+import { COARSE_ACCURACY_METERS, type Coordinates, type GeolocationState } from '@/lib/geolocation';
 import { useMapProvider } from './MapProvider';
 import { PlaceSearch, type PlaceSelection } from './PlaceSearch';
 
@@ -17,9 +18,14 @@ export interface PinValue extends Coordinates {
 }
 
 function geolocationMessage(state: GeolocationState): string {
+  if (state.status === 'locating') return 'Finding your location… If your phone asks, choose Allow.';
   if (state.status === 'denied') return 'Location access was denied. Search for an address or place the pin manually.';
-  if (state.status === 'unavailable') return 'Location is unavailable. Search for an address or place the pin manually.';
+  if (state.status === 'timeout') return 'Finding your location took too long. Try again, or search for an address or place the pin manually.';
+  if (state.status === 'unavailable') return 'We could not get your location. Check that Location Services is on for your browser, then try again, or search for an address.';
   if (state.status === 'stale') return 'Your location is more than two minutes old. Update it or place the pin manually.';
+  if (state.status === 'available' && state.accuracyMeters !== undefined && state.accuracyMeters > COARSE_ACCURACY_METERS) {
+    return `Approximate location found (within about ${Math.round(state.accuracyMeters / 1000)} km). Drag the pin to the exact spot.`;
+  }
   return '';
 }
 
@@ -35,11 +41,18 @@ export function PinPicker({ label, value, onChange, deviceLocationEnabled = true
   const markerRef = useRef<google.maps.Marker | null>(null);
   const { libraries, error } = useMapProvider();
   const geolocation = useGeolocation();
+  const locating = geolocation.state.status === 'locating';
   const lastAppliedGpsTimestamp = useRef<number | null>(null);
   const [searchError, setSearchError] = useState('');
   const [latitude, setLatitude] = useState(value ? String(value.lat) : '');
   const [longitude, setLongitude] = useState(value ? String(value.lng) : '');
   const [addressText, setAddressText] = useState(value?.addressText ?? '');
+  // The address of a pin placed on the map, shown in the search box.
+  const [searchText, setSearchText] = useState(value?.addressText ?? '');
+  const geocodeRequest = useRef(0);
+  // Set once Google refuses address lookups (the key lacks the Geocoding API), so each new pin does not repeat the error.
+  const geocodingDenied = useRef(false);
+  const librariesRef = useRef(libraries);
   const [landmark, setLandmark] = useState(value?.landmark ?? '');
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
@@ -53,19 +66,44 @@ export function PinPicker({ label, value, onChange, deviceLocationEnabled = true
     onChangeRef.current = onChange;
     addressTextRef.current = addressText;
     landmarkRef.current = landmark;
-  }, [addressText, landmark, onChange, value]);
+    librariesRef.current = libraries;
+  }, [addressText, landmark, libraries, onChange, value]);
 
   const selectPoint = useCallback((point: Coordinates, source: PinValue['source'], address?: string) => {
+    // A pin put somewhere new makes any earlier address wrong, so it is dropped until the new one is found.
+    const keepEarlierAddress = source === 'MANUAL' && addressTextRef.current;
     const selected: PinValue = {
       ...point,
       source,
-      ...(address ? { addressText: address } : addressTextRef.current ? { addressText: addressTextRef.current } : {}),
+      ...(address ? { addressText: address } : keepEarlierAddress ? { addressText: addressTextRef.current } : {}),
       ...(landmarkRef.current ? { landmark: landmarkRef.current } : {}),
     };
     setLatitude(String(point.lat));
     setLongitude(String(point.lng));
-    if (address) setAddressText(address);
+    if (address) {
+      setAddressText(address);
+      setSearchText(address);
+    } else if (source !== 'MANUAL') {
+      setAddressText('');
+      setSearchText('');
+    }
+    const request = ++geocodeRequest.current;
     onChangeRef.current(selected);
+
+    // For a pin on the map or a GPS fix, look up the street address and show it in the search box.
+    const geocoding = librariesRef.current?.geocoding;
+    if (address || source === 'MANUAL' || !geocoding || geocodingDenied.current) return;
+    void new geocoding.Geocoder().geocode({ location: point, region: 'NG' }).then(({ results }) => {
+      const found = results[0]?.formatted_address;
+      // A newer pin was placed while this lookup ran, or no address exists here: leave things as they are.
+      if (request !== geocodeRequest.current || !found) return;
+      setAddressText(found);
+      setSearchText(found);
+      onChangeRef.current({ ...selected, addressText: found });
+    }, (error: unknown) => {
+      const denied = (error as { code?: string } | null)?.code === 'REQUEST_DENIED' || String((error as Error | null)?.message).includes('REQUEST_DENIED');
+      if (denied) geocodingDenied.current = true;
+    });
   }, []);
   const selectPointRef = useRef(selectPoint);
   useEffect(() => {
@@ -146,7 +184,7 @@ export function PinPicker({ label, value, onChange, deviceLocationEnabled = true
       <legend className="text-sm font-extrabold text-ink">{label}</legend>
       {libraries ? (
         <>
-          <PlaceSearch onSelect={handlePlaceSelect} onError={handleSearchError} />
+          <PlaceSearch onSelect={handlePlaceSelect} onError={handleSearchError} text={searchText} />
           <div ref={mapElement} className="h-64 overflow-hidden rounded-[var(--r)] border border-line xl:h-72" role="application" aria-label={`${label} map`} />
         </>
       ) : error ? (
@@ -155,9 +193,11 @@ export function PinPicker({ label, value, onChange, deviceLocationEnabled = true
         </div>
       ) : <Skeleton className="h-64 rounded-[var(--r)] xl:h-72" aria-label="Loading map" />}
       {searchError ? <p className="text-sm text-red" role="alert">{searchError}</p> : null}
-      {geolocation.state.status !== 'none' ? <p className="text-xs text-muted" role="status">{geolocationMessage(geolocation.state)}</p> : null}
+      {geolocationMessage(geolocation.state) ? <p className="text-xs text-muted" role="status">{geolocationMessage(geolocation.state)}</p> : null}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="soft" className="w-fit" disabled={!deviceLocationEnabled || consentLoading} onClick={geolocation.request}>Use my location</Button>
+        <Button type="button" variant="soft" className="w-fit" disabled={!deviceLocationEnabled || consentLoading || locating} aria-busy={locating} onClick={geolocation.request}>
+          {locating ? <><Loader2 aria-hidden="true" className="animate-spin" />Finding your location…</> : 'Use my location'}
+        </Button>
         {!libraries ? (
           <Button type="button" variant="ghost" className="w-fit" onClick={updateManualPoint} disabled={!latitude || !longitude}>Set manual coordinates</Button>
         ) : null}

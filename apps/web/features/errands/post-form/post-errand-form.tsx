@@ -21,6 +21,7 @@ import { queryKeys } from '@/lib/query/keys';
 import type { Category, ParticipantLocation } from '@/lib/api/types';
 import { useCategories, requiredLocations } from '@/features/reference/hooks';
 import { FLOW_GROUP_LABEL, PLACE_COPY, flowOf } from '@/features/reference/flow';
+import { InfoDisclosure, InfoNote } from '@/components/shared/info-disclosure';
 import { errandsApi, type Errand, type UpdateErrand } from '../api';
 import { isScheduledTimeInRange, SCHEDULE_MAX_DAYS_AHEAD, SCHEDULE_MIN_LEAD_HOURS } from '../schemas';
 
@@ -138,10 +139,13 @@ function contactInput(value: ErrandForm['pickupContact']) {
 
 const contactPhoneInvalid = (value: ErrandForm['pickupContact']) => value.phone.trim() !== '' && !isLocalPhone(value.phone);
 
+/** About 1 cm. The server stores a point and sends back its own rounding, so exact equality would read a saved pin as changed. */
+const SAME_POINT_DEGREES = 1e-7;
+
 function sameLocation(left: PinValue | null, right: PinValue | null): boolean {
   if (left === null || right === null) return left === right;
-  return left.lat === right.lat
-    && left.lng === right.lng
+  return Math.abs(left.lat - right.lat) <= SAME_POINT_DEGREES
+    && Math.abs(left.lng - right.lng) <= SAME_POINT_DEGREES
     && left.addressText === right.addressText
     && left.landmark === right.landmark;
 }
@@ -175,12 +179,28 @@ function diffForm(current: ErrandForm, baseline: ErrandForm, expectedVersion: nu
   return patch;
 }
 
+/**
+ * The places a posted errand still needs under its chosen category. An open errand must always be
+ * complete, so a switch to a category that takes a place the errand does not have waits, on screen,
+ * until that place is added. Saving it sooner would only be refused.
+ */
+function missingPlaces(form: ErrandForm, categories: Category[]): string[] {
+  const category = categories.find((candidate) => candidate.id === form.categoryId);
+  if (!category) return [];
+  const needs = requiredLocations(category);
+  return [
+    ...(needs.pickup && !form.pickup ? ['the pickup location'] : []),
+    ...(needs.destination && !form.destination ? [needs.service ? 'the service address' : 'the drop-off location'] : []),
+  ];
+}
+
 function isEmptyPatch(patch: UpdateErrand): boolean {
   return Object.keys(patch).length === 1;
 }
 
 function fieldError(error: unknown): string {
   if (!isApiError(error)) return 'We could not save the draft. Please try again.';
+  if (error.status >= 500) return 'Something went wrong on our side, and your last change was not saved. Try again in a moment.';
   if (error.code === 'ERRAND_INVALID_STATE') {
     const status = error.details.from ?? error.details.status;
     if (typeof status === 'string' && !['DRAFT', 'OPEN'].includes(status)) {
@@ -292,6 +312,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   useEffect(() => {
     if (!errandId || !baseline) return;
     if (form.timeMode === 'SCHEDULED' && !isScheduledTimeInRange(form.scheduledAt)) return;
+    if (initialErrand?.status === 'OPEN' && missingPlaces(form, categories).length > 0) return;
     const patch = diffForm(form, baseline, version);
     if (isEmptyPatch(patch)) return;
     // A failed save is not retried on its own; the person edits again or chooses "Try again".
@@ -300,7 +321,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
       if (!isSaving) saveDraft(patch);
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [baseline, errandId, form, isSaving, saveDraft, version]);
+  }, [baseline, categories, errandId, form, initialErrand?.status, isSaving, saveDraft, version]);
 
   const selectedCategory = categories.find((category) => category.id === form.categoryId);
   const locations = selectedCategory ? requiredLocations(selectedCategory) : null;
@@ -313,7 +334,10 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   const warnsAboutOffers = initialErrand?.status === 'OPEN' && Boolean(baseline && hasMaterialChanges(form, baseline));
   const saveError = create.error ?? save.error;
   const saveMessage = saveError ? fieldError(saveError) : '';
-  const savedMessage = save.isPending ? 'Saving draft…' : hasUnsavedChanges ? 'Unsaved changes are being saved…' : save.isSuccess ? 'Draft saved' : '';
+  // One short word while a save is under way, so the line neither flips between two messages nor wraps.
+  const waitingFor = initialErrand?.status === 'OPEN' ? missingPlaces(form, categories) : [];
+  const switchingCategory = Boolean(initialErrand && selectedCategory && form.categoryId !== initialErrand.category.id);
+  const savedMessage = waitingFor.length > 0 ? 'Not saved yet' : save.isPending || hasUnsavedChanges ? 'Saving…' : save.isSuccess ? 'Draft saved' : '';
 
   const update = <K extends keyof ErrandForm>(key: K, value: ErrandForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -368,6 +392,12 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
       />
       {saveMessage ? <Alert variant="danger" role="alert"><div className="grid gap-2"><p>{saveMessage}</p><Button type="button" variant="ghost" onClick={retrySave} disabled={create.isPending || save.isPending || dateInvalid}>Try again</Button></div></Alert> : null}
       {validationError ? <Alert variant="danger" role="alert">{validationError}</Alert> : null}
+      {waitingFor.length > 0 ? (
+        <Alert variant="info" role="status">
+          {switchingCategory ? `To switch to ${selectedCategory?.name}, add ${waitingFor.join(' and ')} below.` : `Add ${waitingFor.join(' and ')} below to keep this errand posted.`}
+          {' '}Nothing changes until you do.
+        </Alert>
+      ) : null}
       {warnsAboutOffers ? <Alert variant="warn" role="status">Changing the category, timing, size, value or location asks existing runners to reconfirm their offers before you can select one.</Alert> : null}
       <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <form className="grid min-w-0 gap-5 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" onSubmit={(event) => { event.preventDefault(); if (!errandId) startDraft(); }}>
@@ -389,7 +419,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                   const items = categories.filter((category) => flowOf(category) === group);
                   return items.length ? (
                     <SelectGroup key={group}>
-                      <SelectLabel>{FLOW_GROUP_LABEL[group]}</SelectLabel>
+                      <SelectLabel className="text-green-800">{FLOW_GROUP_LABEL[group]}</SelectLabel>
                       {items.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
                     </SelectGroup>
                   ) : null;
@@ -448,11 +478,11 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                 {service ? null : <ContactFields label="Pickup contact" value={form.pickupContact} onChange={(value) => update('pickupContact', value)} />}
                 <ContactFields label={PLACE_COPY[flow].contact} value={form.dropoffContact} onChange={(value) => update('dropoffContact', value)} />
               </div>
-              <p className="rounded-[var(--r)] border border-line bg-panel p-3 text-sm text-muted">Exact addresses and contacts are shared only with the runner you select, after they accept. Payment is made directly to the runner; Urgent.ng does not handle it.</p>
+              <InfoNote>Exact addresses and contacts are shared only with the runner you select, after they accept. Payment is made directly to the runner; Urgent.ng does not handle it.</InfoNote>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
                 <span className="text-xs text-muted" role="status">{savedMessage || 'Draft autosaves after you pause.'}</span>
-                {dateInvalid || phoneInvalid || save.isPending || hasUnsavedChanges
-                  ? <Button type="button" disabled>{dateInvalid ? 'Fix scheduled time to review' : phoneInvalid ? 'Fix contact phone to review' : 'Save changes to review'}</Button>
+                {dateInvalid || phoneInvalid || waitingFor.length > 0 || save.isPending || hasUnsavedChanges
+                  ? <Button type="button" disabled>{dateInvalid ? 'Fix scheduled time to review' : phoneInvalid ? 'Fix contact phone to review' : waitingFor.length > 0 ? `Add ${waitingFor[0]} to continue` : 'Save changes to review'}</Button>
                   : <Link href={`/errands/${errandId}/review`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--r)] bg-green-800 px-4 text-sm font-bold text-white hover:bg-green-900">Review and post</Link>}
               </div>
             </>
@@ -464,6 +494,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
           )}
         </form>
         <aside className="grid content-start gap-4 lg:sticky lg:top-6">
+          <InfoDisclosure title="Tips and what runners see">
           <section className="rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">
             <h2 className="font-extrabold text-ink">Tips for faster offers</h2>
             <ul className="mt-3 grid gap-2 pl-5 text-sm text-ink-2"><li>{service ? 'Say what needs doing and how big the job is.' : 'Name the item and exact task.'}</li><li>Add a photo if it helps.</li><li>Set a fair budget; offers may differ.</li><li>Keep chat inside Urgent.ng.</li></ul>
@@ -472,6 +503,7 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
             <h2 className="font-extrabold text-ink">What runners see</h2>
             <p className="mt-2 text-sm text-muted">Title, approximate area, distance and budget. Exact addresses and contacts are shown only to the runner you select, after acceptance.</p>
           </section>
+          </InfoDisclosure>
         </aside>
       </div>
     </div>

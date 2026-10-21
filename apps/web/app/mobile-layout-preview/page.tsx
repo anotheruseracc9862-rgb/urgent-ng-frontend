@@ -9,7 +9,6 @@ import { MyErrandsPage } from '@/features/errands/my-errands-page';
 import { ErrandDetailPage } from '@/features/errands/detail/errand-detail-page';
 import { PostErrandForm } from '@/features/errands/post-form/post-errand-form';
 import { ErrandReviewPage } from '@/features/errands/review/errand-review-page';
-import { ErrandPublishedPage } from '@/features/errands/published/errand-published-page';
 import { CancelErrandPage } from '@/features/errands/cancel/cancel-errand-page';
 import { ShareManagementPage } from '@/features/safety/share/share-management-page';
 import { MyOffersPage } from '@/features/offers/list/my-offers-page';
@@ -25,7 +24,7 @@ export default function MobileLayoutPreview() {
   const pages: Record<string, React.ReactNode> = {
     errands: <MyErrandsPage />, detail: <ErrandDetailPage errandId="sample" />,
     new: <PostErrandForm />, edit: <PostErrandForm errandId="sample" />,
-    review: <ErrandReviewPage errandId="sample" />, published: <ErrandPublishedPage errandId="sample" />,
+    review: <ErrandReviewPage errandId="sample" />,
     cancel: <CancelErrandPage errandId="sample" />, share: <ShareManagementPage errandId="sample" />,
     offers: <MyOffersPage />, negotiation: <OfferJourney offerId="offer-1"><OfferNegotiationPage offerId="offer-1" /></OfferJourney>,
     submit: <SubmitOfferPage errandId="sample" />,
