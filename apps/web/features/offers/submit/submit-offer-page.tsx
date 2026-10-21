@@ -18,6 +18,7 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '../api';
 import { markOfferJustSent } from '../negotiation/offer-sent-banner';
+import { MyOfferCard, myOfferStatus } from '../my-offer';
 
 const money = (minor: number | null) =>
   minor === null
@@ -93,11 +94,29 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
   const currentEligibility = eligibility.data;
   const showLimit = currentLimit.isAtLimit || currentLimit.remaining <= 0;
   const allowed = currentEligibility.canOffer && !showLimit;
+  if (currentErrand.myOffer && !submit.isSuccess) {
+    // One offer per errand. A runner who got here by a link or the back button is shown theirs, not a form that would be refused.
+    const { ended } = myOfferStatus(currentErrand.myOffer);
+    return (
+      <main className="grid min-w-0 content-start gap-4 pb-10">
+        <PageHead eyebrow="Runner view · Send an offer" title={<span className="block max-w-[760px] break-words">{currentErrand.title}</span>} />
+        <Alert variant={ended ? 'warn' : 'info'} role="status">
+          {ended
+            ? 'You already made an offer on this errand, and it has ended. Only one offer is allowed on an errand.'
+            : 'You already have an offer on this errand. Open it to edit it or answer a counter.'}
+        </Alert>
+        <MyOfferCard offer={currentErrand.myOffer} />
+        <Button asChild variant="ghost" className="w-fit"><Link href={`/marketplace/${errandId}`}>Back to the errand</Link></Button>
+      </main>
+    );
+  }
   const submitError = isApiError(submit.error)
     ? submit.error.code === 'OFFER_ALREADY_EXISTS'
       ? 'You already have an offer on this errand. Open it from My offers to edit or respond.'
       : submit.error.code === 'OFFER_NOT_ELIGIBLE'
-        ? 'You are not eligible to send an offer right now. Check your runner eligibility below.'
+        ? (Array.isArray(submit.error.details.reasons) && submit.error.details.reasons.some((reason) => String(reason).startsWith('PREVIOUS_OFFER'))
+          ? submit.error.message
+          : 'You are not eligible to send an offer right now. Check your runner eligibility below.')
         : submit.error.message
     : submit.error instanceof Error ? submit.error.message : null;
 

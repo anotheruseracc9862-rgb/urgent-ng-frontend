@@ -7504,6 +7504,11 @@ export interface components {
         };
         MyOfferDto: {
             /**
+             * @description An ended offer is shown too: one offer per errand is allowed, so the card must not offer another.
+             * @enum {string}
+             */
+            status: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            /**
              * @description Whose move it is. RUNNER: a counter came in and the runner is next.
              * @enum {string}
              */
@@ -7526,7 +7531,7 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
-            /** @description The viewer's own active offer on this errand, or null. */
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
             myOffer: components["schemas"]["MyOfferDto"] | null;
             id: string;
             title: string;
@@ -7570,7 +7575,7 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
-            /** @description The viewer's own active offer on this errand, or null. */
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
             myOffer: components["schemas"]["MyOfferDto"] | null;
             instructions: string | null;
             itemSize: components["schemas"]["ItemSize"] | null;
@@ -7602,7 +7607,7 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
-            /** @description The viewer's own active offer on this errand, or null. */
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
             myOffer: components["schemas"]["MyOfferDto"] | null;
             /** @description The saved errand may have closed since; the status tells. */
             status: components["schemas"]["ErrandStatus"];
