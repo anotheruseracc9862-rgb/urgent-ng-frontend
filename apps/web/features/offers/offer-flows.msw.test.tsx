@@ -77,6 +77,63 @@ describe('Phase 4 offer and assignment flows', () => {
     expect(navigation.push).toHaveBeenCalledWith('/offers/offer-created-1');
   });
 
+  describe('how long an estimate may be', () => {
+    const errandId = 'marketplace-errand-2';
+    const categoryRows = [
+      { id: 'c1', key: 'delivery', name: 'Delivery', requiresPickup: true, requiresDestination: true, flow: 'TRANSIT', maxOfferMinutes: 1440, isPopular: true },
+      { id: 'c2', key: 'home_cleaning', name: 'Home Cleaning', requiresPickup: false, requiresDestination: true, flow: 'SERVICE', maxOfferMinutes: 20160, isPopular: true },
+    ];
+    const useErrand = (key: 'delivery' | 'home_cleaning') => {
+      const service = key === 'home_cleaning';
+      server.use(
+        http.get(`*/api/v1/marketplace/errands/${errandId}`, () => envelope({
+          id: errandId, title: service ? 'Clean my flat' : 'Pick up a cake',
+          category: { id: service ? 'c2' : 'c1', key, name: service ? 'Home Cleaning' : 'Delivery', flow: service ? 'SERVICE' : 'TRANSIT' },
+          pickup: service ? null : { area: 'Ikeja' }, destination: { area: 'Magodo' }, distance: null, suggestedBudgetMinor: 500000,
+        })),
+        http.get('*/api/v1/reference/categories', () => envelope(categoryRows)),
+        http.get('*/api/v1/runner/offer-limit', () => envelope({ used: 2, limit: 10, remaining: 8, resetsAt: '2026-10-15T00:00:00.000Z', isPro: false, isAtLimit: false })),
+        http.get('*/api/v1/runner/eligibility', () => envelope({ canOffer: true, canBrowseFeed: true, reasons: [] })),
+      );
+    };
+
+    it('lets a runner quote a service in days, and says how long it may be', async () => {
+      const user = userEvent.setup();
+      let body: unknown;
+      useErrand('home_cleaning');
+      server.use(http.post(`*/api/v1/errands/${errandId}/offers`, async ({ request }) => {
+        body = await request.json();
+        return envelope({ id: 'offer-service-1' });
+      }));
+
+      renderWithQuery(<SubmitOfferPage errandId={errandId} />);
+      await user.type(await screen.findByLabelText(/Your price/), '15000');
+      expect(await screen.findByLabelText('Days')).toBeInTheDocument();
+      expect(screen.getByText('From 1 minute up to 14 days.')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: '3 days' }));
+      expect(screen.getByText('About 3 days')).toBeInTheDocument();
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(screen.getByRole('button', { name: 'Send offer' }));
+
+      await waitFor(() => expect(body).toMatchObject({ amountMinor: 1500000, durationMinutes: 3 * 1440 }));
+    });
+
+    it('keeps a delivery to a day: no days field', async () => {
+      useErrand('delivery');
+      renderWithQuery(<SubmitOfferPage errandId={errandId} />);
+      await screen.findByLabelText(/Your price/);
+      expect(screen.queryByLabelText('Days')).not.toBeInTheDocument();
+      expect(screen.getByText('From 1 minute up to 1 day.')).toBeInTheDocument();
+    });
+
+    it('works from the built-in limit for a service while the category list is still loading', async () => {
+      useErrand('home_cleaning');
+      server.use(http.get('*/api/v1/reference/categories', async () => { await new Promise((resolve) => setTimeout(resolve, 400)); return envelope(categoryRows); }));
+      renderWithQuery(<SubmitOfferPage errandId={errandId} />);
+      expect(await screen.findByLabelText('Days')).toBeInTheDocument();
+    });
+  });
+
   it('shows the daily reset and Runner Pro option instead of the offer form at the limit', async () => {
     const errandId = 'marketplace-errand-limit';
     server.use(

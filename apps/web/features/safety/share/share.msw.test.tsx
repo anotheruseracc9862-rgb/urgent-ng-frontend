@@ -137,4 +137,10 @@ it('shows a service as work at one address, with no pickup and no delivery wordi
   expect(screen.queryByText('Pickup area')).not.toBeInTheDocument();
   expect(screen.queryByText('Drop-off area')).not.toBeInTheDocument();
   expect(screen.queryByText(/Item picked up/)).not.toBeInTheDocument();
+  // Nothing to follow: no map, no "no pin yet" explanation, just where the work is.
+  expect(screen.getByRole('heading', { name: 'Where' })).toBeInTheDocument();
+  expect(screen.queryByText(/No recent location is available/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Approximate location')).not.toBeInTheDocument();
+  expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Send concern' })).toBeInTheDocument();
 });

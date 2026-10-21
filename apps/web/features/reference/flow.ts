@@ -16,6 +16,12 @@ export function flowOf(source?: { flow?: CategoryFlow | null } | CategoryFlow | 
 
 export const isService = (source?: Parameters<typeof flowOf>[0]): boolean => flowOf(source) === 'SERVICE';
 
+/**
+ * The longest estimated time a runner may quote, used until the category's own limit has loaded. The server
+ * decides the real limit (a configuration value) and sends it with each category.
+ */
+export const DEFAULT_MAX_OFFER_MINUTES: Record<CategoryFlow, number> = { TRANSIT: 24 * 60, SERVICE: 14 * 24 * 60 };
+
 /** The five milestones of a running errand. */
 export const EXECUTION_STEPS: Record<CategoryFlow, readonly [string, string, string, string, string]> = {
   TRANSIT: ['Accepted', 'Started', 'Picked up', 'Delivered', 'Done'],

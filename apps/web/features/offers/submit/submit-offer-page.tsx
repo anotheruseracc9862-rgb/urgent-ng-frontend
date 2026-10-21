@@ -1,6 +1,7 @@
 'use client';
 
-import { isService } from '@/features/reference/flow';
+import { DEFAULT_MAX_OFFER_MINUTES, flowOf, isService } from '@/features/reference/flow';
+import { useCategories } from '@/features/reference/hooks';
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { useApiMutation } from '@/lib/query/mutations';
@@ -12,7 +13,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
 import { Alert, Button, MoneyInput } from '@urgent/ui';
 import { ContactSharingNotice } from '@/components/forms/contact-sharing-notice';
-import { DurationInput } from '@/components/forms/duration-input';
+import { DurationInput, formatDuration } from '@/components/forms/duration-input';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '../api';
@@ -57,6 +58,7 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
     queryKey: queryKeys.runner.eligibility(),
     queryFn: offersApi.runnerEligibility,
   });
+  const categories = useCategories();
   const submit = useApiMutation({ affects: ['offers', 'runner'],
     mutationFn: () => offersApi.submit(errandId, {
       amountMinor: amountMinor ?? 0,
@@ -81,6 +83,9 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
   }
 
   const currentErrand = errand.data;
+  // How long an estimate may be depends on the kind of errand: a delivery within a day, a service for days.
+  const maxMinutes = (Array.isArray(categories.data) ? categories.data : []).find((category) => category.key === currentErrand.category.key)?.maxOfferMinutes
+    ?? DEFAULT_MAX_OFFER_MINUTES[flowOf(currentErrand.category)];
   const currentLimit = limit.data;
   const currentEligibility = eligibility.data;
   const showLimit = currentLimit.isAtLimit || currentLimit.remaining <= 0;
@@ -157,7 +162,7 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
             className="grid gap-4 min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]"
             onSubmit={(event) => {
               event.preventDefault();
-              if (amountMinor === null || amountMinor < 100 || duration === null || duration < 1 || duration > 1440) return;
+              if (amountMinor === null || amountMinor < 100 || duration === null || duration < 1 || duration > maxMinutes) return;
               submit.mutate();
             }}
           >
@@ -173,8 +178,8 @@ export function SubmitOfferPage({ errandId }: { errandId: string }) {
               </div>
               <div className="grid min-w-0 content-start gap-1.5">
                 <span id="offer-duration-label" className="text-xs font-bold text-ink-2">Estimated time</span>
-                <DurationInput id="offer-duration" value={duration} onChange={setDuration} />
-                <p className="text-xs text-muted">From 1 minute up to 24 hours.</p>
+                <DurationInput id="offer-duration" value={duration} onChange={setDuration} maxMinutes={maxMinutes} />
+                <p className="text-xs text-muted">From 1 minute up to {formatDuration(maxMinutes)}.</p>
               </div>
             </div>
             <label className="grid gap-1.5"><span className="text-xs font-bold text-ink-2">Message <span className="font-normal text-muted">(optional)</span></span>

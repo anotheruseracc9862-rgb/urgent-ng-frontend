@@ -13,6 +13,7 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
 import { JourneyHere } from '@/features/journey/journey-context';
+import { isService } from '@/features/reference/flow';
 
 // The map code loads only when there is a pin to show.
 const RoundedLiveLocationMap = dynamic(
@@ -36,16 +37,28 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
     queryFn: () => offersApi.assignment(assignmentId),
     retry: false,
   });
+  // A service happens at one address: there is no runner to follow, and the server has no location for it.
+  const service = isService(assignment.data?.data.errand.category);
   const location = useQuery({
     queryKey: queryKeys.assignments.liveLocation(assignmentId),
     queryFn: () => offersApi.liveLocation(assignmentId),
     retry: false,
     refetchInterval: polling,
     refetchIntervalInBackground: false,
+    enabled: assignment.data !== undefined && !service,
   });
 
-  if (assignment.isPending || location.isPending) {
+  if (assignment.isPending || (!service && location.isPending && !assignment.error)) {
     return <PageLoading title="Live tracking" eyebrow="Requester" width="max-w-5xl" />;
+  }
+  if (service) {
+    return (
+      <main className="grid min-w-0 content-start gap-4 pb-10">
+        <PageHead eyebrow="Live tracking" title="Nothing to follow" description="This job happens at one address, so there is no route to track." />
+        <Alert variant="info" role="status">Open the assignment to see where the work has got to. Messages with the runner stay open.</Alert>
+        <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}`}>Back to assignment</Link></Button>
+      </main>
+    );
   }
   if (assignment.error || !assignment.data || location.error || !location.data) {
     const error = assignment.error ?? location.error;

@@ -130,8 +130,9 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
   const submitTerms = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const durationMinutes = duration ?? 0;
-    if (amountMinor === null || amountMinor < 100 || durationMinutes < 1 || durationMinutes > 1440) {
-      setNotice('Enter a positive whole-naira amount and an estimated time between 1 minute and 24 hours. The current system limits are checked when you submit.');
+    const maxMinutes = offer.maxDurationMinutes;
+    if (amountMinor === null || amountMinor < 100 || durationMinutes < 1 || durationMinutes > maxMinutes) {
+      setNotice(`Enter a positive whole-naira amount and an estimated time between 1 minute and ${formatDuration(maxMinutes)}. The current system limits are checked when you submit.`);
       return;
     }
     const terms: OfferTerms = {
@@ -207,7 +208,7 @@ export function OfferNegotiationPage({ offerId }: { offerId: string }) {
             <form className="grid min-w-0 gap-3 border-t border-line-2 pt-4" onSubmit={submitTerms}>
               <h3 className="text-sm font-extrabold text-ink">{formAction === 'edit' ? 'Edit your offer' : 'Make a counter-offer'}</h3>
               <div className="grid gap-1.5"><label className="text-xs font-bold text-ink-2" htmlFor="offer-amount">Amount</label><MoneyInput id="offer-amount" allowKobo={false} required value={amountMinor} onChange={setAmountMinor} autoComplete="off" /></div>
-              <div className="grid gap-1.5"><span id="offer-duration-label" className="text-xs font-bold text-ink-2">Estimated duration</span><DurationInput id="offer-duration" value={duration} onChange={setDuration} /></div>
+              <div className="grid gap-1.5"><span id="offer-duration-label" className="text-xs font-bold text-ink-2">Estimated duration</span><DurationInput id="offer-duration" value={duration} onChange={setDuration} maxMinutes={offer.maxDurationMinutes} /></div>
               <ContactSharingNotice />
               <label className="grid gap-1.5"><span className="text-xs font-bold text-ink-2">Message (optional)</span><textarea maxLength={500} value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-20 w-full rounded-[var(--r)] border border-line bg-surface p-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-lime-600" /></label>
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">

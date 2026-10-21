@@ -47,8 +47,9 @@ export function SharedErrandPage({ token }: { token: string }) {
     <header className="flex flex-wrap items-center justify-between gap-3"><Link href="/" className="text-2xl font-extrabold">Urgent.ng</Link><span className="rounded-full bg-lime/20 px-4 py-2 text-sm">Trusted contact · Read-only</span></header>
     <div><h1 className="text-3xl font-bold">Shared errand progress</h1><p className="mt-2 text-muted">Exact addresses, phone numbers and private messages are never shown here.</p></div>
     <div className="grid gap-5 md:grid-cols-[1.5fr_1fr]"><div className="space-y-5">
-      <section className={panel}><h2 className="text-xl font-semibold">Approximate location</h2>
-        {showPoint ? <><MapProvider><RoundedLiveLocationMap point={{ lat: live.lat as number, lng: live.lng as number }} /></MapProvider><p>{stale ? 'Location may be out of date.' : 'Approximate runner location.'}</p><p className="text-sm text-muted">Position captured {dateText(live.capturedAt!)}</p></> : <p>No recent location is available. A pin appears only while the runner shares a recent position.</p>}
+      <section className={panel}><h2 className="text-xl font-semibold">{service ? 'Where' : 'Approximate location'}</h2>
+        {/* A service is at one address, so there is no runner to follow and no map: just the area. */}
+        {service ? null : showPoint ? <><MapProvider><RoundedLiveLocationMap point={{ lat: live.lat as number, lng: live.lng as number }} /></MapProvider><p>{stale ? 'Location may be out of date.' : 'Approximate runner location.'}</p><p className="text-sm text-muted">Position captured {dateText(live.capturedAt!)}</p></> : <p>No recent location is available. A pin appears only while the runner shares a recent position.</p>}
         <dl className="space-y-3">{service ? null : <div><dt className="text-sm text-muted">Pickup area</dt><dd>{data.pickup?.area || 'Not available'}</dd></div>}<div><dt className="text-sm text-muted">{service ? 'Service area' : 'Drop-off area'}</dt><dd>{data.destination?.area || 'Not available'}</dd></div></dl>
       </section>
       <section className={panel}><h2 className="text-xl font-semibold">{statusLabels[data.status] || 'Errand update'}</h2><p>{service ? 'Expected finish' : 'Expected delivery'}: {data.expectedDeliveryAt ? dateText(data.expectedDeliveryAt) : 'Not available yet'}</p>

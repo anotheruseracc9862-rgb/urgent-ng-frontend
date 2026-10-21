@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { listen, server } from '@/test/msw/server';
 import { LiveTrackingPage } from './live-tracking-page';
 
@@ -46,6 +46,28 @@ afterEach(() => {
   server.resetHandlers();
 });
 afterAll(() => server.close());
+
+describe('live tracking for a service', () => {
+  it('says there is nothing to follow, and never asks for a location', async () => {
+    const asked = vi.fn();
+    server.use(
+      http.get('*/api/v1/assignments/live-track-1', () => envelope({
+        id: 'live-track-1', errandId: 'errand-1', offerId: 'o', requesterId: 'requester-1', runnerId: 'runner-1', status: 'ACCEPTED',
+        agreedAmountMinor: 100000, currency: 'NGN', selectedAt: '2026-01-01T09:00:00.000Z', acceptanceDeadline: '2026-01-01T09:30:00.000Z',
+        version: 1, role: 'REQUESTER',
+        errand: { id: 'errand-1', title: 'Clean my flat', status: 'IN_PROGRESS', accessLevel: 'EXACT', category: { id: 'c', key: 'home_cleaning', name: 'Home Cleaning', flow: 'SERVICE' } },
+      })),
+      http.get('*/api/v1/assignments/live-track-1/location', () => { asked(); return HttpResponse.json({ error: { code: 'LOCATION_NOT_AVAILABLE', message: 'x' }, requestId: 'r' }, { status: 404 }); }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><LiveTrackingPage assignmentId="live-track-1" /></QueryClientProvider>);
+
+    expect(await screen.findByText('Nothing to follow')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to assignment' })).toHaveAttribute('href', '/assignments/live-track-1');
+    expect(screen.queryByText(/We could not load live tracking/)).not.toBeInTheDocument();
+    expect(asked).not.toHaveBeenCalled();
+  });
+});
 
 describe('requester live tracking', () => {
   it('does not render a pin for an expired location', async () => {

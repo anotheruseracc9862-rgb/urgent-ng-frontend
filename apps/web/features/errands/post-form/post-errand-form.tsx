@@ -483,7 +483,10 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
                 <span className="text-xs text-muted" role="status">{savedMessage || 'Draft autosaves after you pause.'}</span>
                 {dateInvalid || phoneInvalid || waitingFor.length > 0 || save.isPending || hasUnsavedChanges
                   ? <Button type="button" disabled>{dateInvalid ? 'Fix scheduled time to review' : phoneInvalid ? 'Fix contact phone to review' : waitingFor.length > 0 ? `Add ${waitingFor[0]} to continue` : 'Save changes to review'}</Button>
-                  : <Link href={`/errands/${errandId}/review`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--r)] bg-green-800 px-4 text-sm font-bold text-white hover:bg-green-900">Review and post</Link>}
+                  : initialErrand && initialErrand.status !== 'DRAFT'
+                    // A posted errand has nothing left to review or post: its edits are already saved.
+                    ? <Link href={`/errands/${errandId}`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--r)] bg-green-800 px-4 text-sm font-bold text-white hover:bg-green-900">Done</Link>
+                    : <Link href={`/errands/${errandId}/review`} className="inline-flex min-h-11 items-center justify-center rounded-[var(--r)] bg-green-800 px-4 text-sm font-bold text-white hover:bg-green-900">Review and post</Link>}
               </div>
             </>
           ) : (

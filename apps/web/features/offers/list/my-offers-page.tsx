@@ -1,5 +1,6 @@
 'use client';
 
+import { estimateLabel } from '@/components/forms/duration-input';
 import { RunnerWorkSwitch } from '@/components/runner/work-switch';
 import { persistedQuery } from '@/lib/query/persisted-query';
 import Link from 'next/link';
@@ -141,7 +142,7 @@ export function MyOffersPage() {
                           <div className="min-w-0">
                             <h3 className="break-words text-sm font-bold text-ink group-hover:text-green-900">{offer.errandTitle}</h3>
                             <p className="mt-1 break-words text-xs leading-relaxed text-muted">{[offer.pickupArea, offer.destinationArea].filter(Boolean).join(' → ') || 'Approximate locations unavailable'}</p>
-                            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted"><span className="inline-flex items-center gap-1"><Clock3 aria-hidden="true" className="size-3" />{offer.durationMinutes} min</span><span>Sent <time dateTime={offer.createdAt}>{sentLabel(offer.createdAt)}</time></span></p>
+                            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted"><span className="inline-flex items-center gap-1"><Clock3 aria-hidden="true" className="size-3" />{estimateLabel(offer.durationMinutes)}</span><span>Sent <time dateTime={offer.createdAt}>{sentLabel(offer.createdAt)}</time></span></p>
                             {offer.closeReason ? <p className="mt-2 text-xs text-ink-2">Closed: {reasonLabel(offer.closeReason)}</p> : null}
                           </div>
                           <div className="col-start-2 flex min-w-0 flex-wrap items-center justify-between gap-2 max-sm:col-span-2 max-sm:col-start-1 sm:col-start-3 sm:row-start-1 sm:max-w-64 sm:flex-col sm:items-end">

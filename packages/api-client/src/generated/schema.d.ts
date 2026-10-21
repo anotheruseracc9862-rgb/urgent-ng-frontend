@@ -5091,6 +5091,8 @@ export interface components {
              * @enum {string}
              */
             flow: "TRANSIT" | "SERVICE";
+            /** @description The longest time, in minutes, a runner may quote on an errand in this category. */
+            maxOfferMinutes: number;
             id: string;
             /** @description Stable key, for example `delivery`. */
             key: string;
@@ -6504,7 +6506,8 @@ export interface components {
             prohibitedItemsConfirmed: boolean;
         };
         CancelErrandDto: {
-            reason: components["schemas"]["ErrandCancellationReason"];
+            /** @description Why the requester is cancelling. Optional for a draft or an open errand (no runner involved yet), where it defaults to REQUESTER_CANCELLED. Required once a runner is selected. */
+            reason?: components["schemas"]["ErrandCancellationReason"];
             note?: string;
         };
         OfferDto: {
@@ -6533,7 +6536,7 @@ export interface components {
         SubmitOfferDto: {
             /** @description Offered amount in kobo. Bounds come from OFFER_MIN_AMOUNT / OFFER_MAX_AMOUNT. */
             amountMinor: number;
-            /** @description Estimated duration in minutes (5-1440 by default). */
+            /** @description Estimated duration in minutes. The longest allowed depends on the errand: 1440 (24 hours) for a delivery-style errand, 20160 (14 days) for a service. See maxOfferMinutes on the category. */
             durationMinutes: number;
             /** @description The runner confirms they are available. Must be true; the server records the time. */
             availabilityConfirmed: boolean;
@@ -6613,6 +6616,8 @@ export interface components {
             message: string | null;
             assignmentId: string | null;
             errandTitle: string;
+            /** @description The longest estimated time either side may propose on this errand, in minutes. */
+            maxDurationMinutes: number;
             /** @description Counter-offers made so far, by both sides together. */
             roundsUsed: number;
             /** @description Counter-offers this negotiation allows. After that the only moves are accept or decline. */

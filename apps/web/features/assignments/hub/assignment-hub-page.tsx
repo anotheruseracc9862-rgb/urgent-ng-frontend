@@ -115,7 +115,7 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
   const flow = flowOf(errand.category);
   const service = flow === 'SERVICE';
   const badge = stageBadge(errand.status, current.status === 'PENDING_ACCEPTANCE', flow);
-  const can = availableActions(current.role, current.status, errand.status);
+  const can = availableActions(current.role, current.status, errand.status, errand.category);
   const canArrive = isRunner && current.status === 'ACCEPTED' && errand.status === 'IN_PROGRESS' && timeline.isSuccess && !hasArrived;
   const notStarted = errand.status === 'ACCEPTED';
   const prompt = paymentPrompt(current.role, payment.data);

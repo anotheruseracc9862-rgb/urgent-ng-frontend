@@ -52,7 +52,7 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
   const flow = flowOf(errand.category);
   const service = flow === 'SERVICE';
   const badgeLabel = (service ? SERVICE_BADGE_LABEL[errand.status] : undefined) ?? BADGE_LABEL[errand.status] ?? errand.status.replaceAll('_', ' ');
-  const can = availableActions('REQUESTER', errand.status === 'RUNNER_SELECTED' ? 'PENDING_ACCEPTANCE' : 'ACCEPTED', errand.status);
+  const can = availableActions('REQUESTER', errand.status === 'RUNNER_SELECTED' ? 'PENDING_ACCEPTANCE' : 'ACCEPTED', errand.status, errand.category);
   const link = 'relative z-10 inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
   const soft = 'relative z-10 inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-[12.5px] font-bold text-ink hover:bg-tint-2';
 

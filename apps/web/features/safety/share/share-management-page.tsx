@@ -41,7 +41,7 @@ export function ShareManagementPage({ errandId }: { errandId: string }) {
   const url = secret && typeof window !== 'undefined' ? `${window.location.origin}/shared/${encodeURIComponent(secret.token)}` : '';
   return <main className="mx-auto w-full max-w-3xl space-y-6">
     <Link href="/dashboard" className="flex w-fit min-h-11 items-center text-sm font-bold text-green-800 max-sm:hidden">← Dashboard</Link>
-    <header><p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Trusted contact</p><h1 className="mt-1 text-3xl font-extrabold">Share errand progress</h1><p className="mt-3 text-sm text-muted max-sm:hidden">A read-only safety view for someone you trust. Approximate location only.</p></header>
+    <header><p className="text-xs font-extrabold uppercase tracking-wide text-green-800">Trusted contact</p><h1 className="mt-1 text-3xl font-extrabold">Share errand progress</h1><p className="mt-3 text-sm text-muted max-sm:hidden">A read-only safety view for someone you trust: the progress and the general area, never an exact address.</p></header>
     <section className="space-y-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)]">
       <h2 className="text-xl font-semibold">Trusted link</h2>
       <p>Anyone with a link can see progress. Exact addresses, phone numbers and private messages are not shared. Links expire at the time shown or when the errand ends.</p>

@@ -34,6 +34,8 @@ import { availableActions } from '@/features/assignments/available-actions';
 import { useRatingAction } from '@/features/ratings/use-rating-action';
 import { PLACE_COPY, flowOf } from '@/features/reference/flow';
 import { ErrandPostedBanner } from './errand-posted-banner';
+import { estimateLabel } from '@/components/forms/duration-input';
+import { CancelErrandButton } from '../cancel/cancel-errand-dialog';
 
 type Status = components['schemas']['ErrandStatus'];
 type PublicProfile = components['schemas']['PublicProfileDto'];
@@ -241,7 +243,7 @@ function OfferCard({ offer, onSelect, selecting }: { offer: ErrandOffer; onSelec
           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
             {offer.runnerRating !== null ? <span className="inline-flex items-center gap-1"><Star aria-hidden="true" className="size-3 fill-amber text-amber" />{offer.runnerRating.toFixed(1)}</span> : <span>New to ratings</span>}
             <span>{offer.runnerCompletedErrands} completed</span>
-            <span>{offer.durationMinutes} min ETA</span>
+            <span>{estimateLabel(offer.durationMinutes)} ETA</span>
             {offer.distanceBucket ? <span>{offer.distanceBucket} away</span> : null}
           </p>
           {offer.message ? <p className="mt-2 break-words text-sm text-ink-2">{offer.message}</p> : null}
@@ -359,12 +361,12 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           {errand.status === 'DRAFT' ? <>
             <Button asChild><Link href={`/errands/${errandId}/edit`}>Edit draft</Link></Button>
             <Button asChild variant="ghost"><Link href={`/errands/${errandId}/review`}>Review and publish</Link></Button>
-            <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Delete draft</Link></Button>
+            <CancelErrandButton errandId={errandId} status="DRAFT" flow={flowOf(errand.category)} />
           </> : null}
           {errand.status === 'OPEN' ? <>
             <Button asChild variant="ghost"><Link href={`/errands/${errandId}/edit`}>Edit</Link></Button>
             <Button asChild variant="ghost"><Link href={`/boosts?errandId=${errandId}`}>Boost</Link></Button>
-            <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Cancel</Link></Button>
+            <CancelErrandButton errandId={errandId} status="OPEN" offerCount={errand.offerCount} flow={flowOf(errand.category)} />
           </> : null}
           {errand.status === 'RUNNER_SELECTED' ? <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Cancel</Link></Button> : null}
           {['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP', 'DELIVERED', 'COMPLETED', 'DISPUTED'].includes(errand.status) && assignment ? (
@@ -466,7 +468,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           {offerToSelect ? (
             <div className="rounded-[var(--r)] bg-panel p-3 text-sm">
               <p className="font-extrabold text-ink">{errand.title}</p>
-              <p className="mt-1 text-ink-2">{offerToSelect.durationMinutes} min estimated time · {money(offerToSelect.amountMinor)}</p>
+              <p className="mt-1 text-ink-2">{estimateLabel(offerToSelect.durationMinutes)} estimated time · {money(offerToSelect.amountMinor)}</p>
             </div>
           ) : null}
           {selectRunner.error ? (

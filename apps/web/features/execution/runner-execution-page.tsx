@@ -202,7 +202,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
               <Button asChild variant="ghost" className="w-fit"><Link href={`/assignments/${assignmentId}`}>View assignment</Link></Button>
             </section>
           )}
-          <RunnerLocationSharing assignmentId={assignmentId} />
+          {service ? null : <RunnerLocationSharing assignmentId={assignmentId} />}
           {timeline.error ? <Alert variant="danger" role="alert">We could not load the activity.</Alert> : null}
           {timeline.data ? <AssignmentTimeline events={timeline.data} title="Activity" /> : null}
         </div>

@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -68,27 +68,88 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('cancel errand page', () => {
-  it('shows the open-stage consequence and submits a valid requester reason', async () => {
+  it('asks nothing of an open errand, which has no runner yet: one tap, and the server records the reason', async () => {
     const user = userEvent.setup();
     let body: unknown;
     server.use(
       http.get(`*/api/v1/errands/${errandId}`, () => envelope(openErrand)),
       http.post(`*/api/v1/errands/${errandId}/cancel`, async ({ request }) => {
         body = await request.json();
-        return envelope({ ...openErrand, status: 'CANCELLED', cancellationReason: 'SAFETY_CONCERN' });
+        return envelope({ ...openErrand, status: 'CANCELLED', cancellationReason: 'REQUESTER_CANCELLED' });
       }),
     );
 
     renderCancel();
     expect(await screen.findByText('The errand and its offers will close. No runner has been selected.')).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText('Reason'), 'SAFETY_CONCERN');
-    await user.type(screen.getByLabelText(/Note/), 'The pickup location changed unexpectedly.');
+    expect(screen.queryByRole('radiogroup', { name: 'Reason' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Why are you cancelling?')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel errand' }));
 
-    await waitFor(() => expect(body).toEqual({
-      reason: 'SAFETY_CONCERN',
-      note: 'The pickup location changed unexpectedly.',
-    }));
+    await waitFor(() => expect(body).toEqual({}));
+  });
+
+  it('keeps the note optional and tucked away, and sends it when written', async () => {
+    const user = userEvent.setup();
+    let body: unknown;
+    server.use(
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope(openErrand)),
+      http.post(`*/api/v1/errands/${errandId}/cancel`, async ({ request }) => {
+        body = await request.json();
+        return envelope({ ...openErrand, status: 'CANCELLED' });
+      }),
+    );
+
+    renderCancel();
+    await screen.findByText('The errand and its offers will close. No runner has been selected.');
+    const summary = screen.getByText('Add a note').closest('summary')!;
+    expect(summary.closest('details')!.open).toBe(false);
+    await user.click(summary);
+    await user.type(screen.getByLabelText('Note'), 'Found someone myself.');
+    await user.click(screen.getByRole('button', { name: 'Cancel errand' }));
+
+    await waitFor(() => expect(body).toEqual({ note: 'Found someone myself.' }));
+  });
+
+  it('deletes a draft without a question', async () => {
+    const user = userEvent.setup();
+    let body: unknown;
+    server.use(
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope({ ...openErrand, status: 'DRAFT' })),
+      http.post(`*/api/v1/errands/${errandId}/cancel`, async ({ request }) => {
+        body = await request.json();
+        return envelope({ ...openErrand, status: 'CANCELLED' });
+      }),
+    );
+
+    renderCancel();
+    expect(await screen.findByRole('heading', { name: 'Delete this draft' })).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Reason' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete draft' }));
+    await waitFor(() => expect(body).toEqual({}));
+  });
+
+  it.each(['RUNNER_SELECTED', 'ACCEPTED', 'IN_PROGRESS'] as const)('still asks why once a runner is involved (%s), with My plans changed already chosen', async (status) => {
+    const user = userEvent.setup();
+    let body: unknown;
+    server.use(
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope({ ...openErrand, status })),
+      http.post(`*/api/v1/errands/${errandId}/cancel`, async ({ request }) => {
+        body = await request.json();
+        return envelope({ ...openErrand, status: 'CANCELLED' });
+      }),
+    );
+
+    renderCancel();
+    const group = await screen.findByRole('radiogroup', { name: 'Reason' });
+    expect(within(group).getAllByRole('radio')).toHaveLength(5);
+    expect(within(group).getByRole('radio', { name: 'My plans changed' })).toBeChecked();
+
+    // The default is a single tap away from sending.
+    await user.click(within(group).getByRole('radio', { name: 'Safety concern' }));
+    expect(within(group).getByRole('radio', { name: 'Safety concern' })).toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Cancel errand' }));
+
+    await waitFor(() => expect(body).toEqual({ reason: 'SAFETY_CONCERN' }));
   });
 
   it('does not offer plain cancellation after pickup', async () => {

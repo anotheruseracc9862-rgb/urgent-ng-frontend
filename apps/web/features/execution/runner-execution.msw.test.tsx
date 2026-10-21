@@ -160,6 +160,16 @@ describe('runner execution steps', () => {
     expect(screen.getByRole('button', { name: 'Finish work' })).toBeDisabled();
   });
 
+  it('offers live location sharing on a delivery but not on a service, which happens at one address', async () => {
+    renderPage(false, { status: 'IN_PROGRESS' });
+    expect(await screen.findByText('Live location')).toBeInTheDocument();
+    cleanup();
+
+    renderPage(false, { flow: 'SERVICE', status: 'IN_PROGRESS' });
+    expect(await screen.findByRole('heading', { name: 'Step 2 of 3 · Start the work' })).toBeInTheDocument();
+    expect(screen.queryByText('Live location')).not.toBeInTheDocument();
+  });
+
   it('keeps photos optional for a delivery', async () => {
     renderPage(false, { status: 'IN_PROGRESS' });
     expect(await screen.findByRole('button', { name: 'Confirm pickup' })).toBeEnabled();

@@ -5,7 +5,7 @@ import { PageHead } from '@/components/shell/page-head';
 import { ArrowLeft } from 'lucide-react';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
@@ -95,7 +95,13 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
     },
   });
 
-  if (errand.isPending) {
+  // Only a draft is reviewed. A posted errand (a stale link, the back button after posting) goes to its own page.
+  const notDraft = errand.data !== undefined && errand.data.status !== 'DRAFT';
+  useEffect(() => {
+    if (notDraft) router.replace(`/errands/${errandId}`);
+  }, [errandId, notDraft, router]);
+
+  if (errand.isPending || notDraft) {
     return <PageLoading title="Review your errand" eyebrow="Post an errand · Step 2 of 2" />;
   }
   if (errand.error || !errand.data) {
@@ -138,14 +144,6 @@ export function ErrandReviewPage({ errandId }: { errandId: string }) {
         title="Review your errand"
         description="Check what runners will see. Exact addresses stay hidden until a runner accepts."
       />
-      {currentErrand.status !== 'DRAFT' ? (
-        <Alert variant="info" role="status">
-          <div className="grid gap-2">
-            <p>This errand is already posted or no longer a draft.</p>
-            <Link href={`/errands/${errandId}`} className="font-bold underline">View errand</Link>
-          </div>
-        </Alert>
-      ) : null}
       {publish.error ? (
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">

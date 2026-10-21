@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -171,6 +171,30 @@ describe('requester errand detail', () => {
     expect(idempotencyKey).toBeTruthy();
   });
 
+  it('cancels an open errand from a dialog on the page itself, with no cancel page and no reason to give', async () => {
+    const user = userEvent.setup();
+    let body: unknown;
+    server.use(
+      http.get(`*/api/v1/errands/${errandId}`, () => envelope({ ...errand, offerCount: 2 })),
+      http.get(`*/api/v1/errands/${errandId}/offers`, () => envelope([])),
+      http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+      http.post(`*/api/v1/errands/${errandId}/cancel`, async ({ request }) => {
+        body = await request.json();
+        return envelope({ ...errand, status: 'CANCELLED' });
+      }),
+    );
+    renderDetail();
+
+    const cancel = await screen.findByRole('button', { name: 'Cancel' });
+    expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
+    await user.click(cancel);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('2 offers on it will close');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel errand' }));
+
+    await waitFor(() => expect(body).toEqual({}));
+  });
+
   it('confirms a fresh post on the errand page itself, once', async () => {
     markErrandJustPosted(errandId);
     server.use(
@@ -338,7 +362,7 @@ describe('requester errand detail', () => {
 
     expect(await screen.findByRole('link', { name: 'Edit draft' })).toHaveAttribute('href', `/errands/${errandId}/edit`);
     expect(screen.getByRole('link', { name: 'Review and publish' })).toHaveAttribute('href', `/errands/${errandId}/review`);
-    expect(screen.getByRole('link', { name: 'Delete draft' })).toHaveAttribute('href', `/errands/${errandId}/cancel`);
+    expect(screen.getByRole('button', { name: 'Delete draft' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Boost' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Extend deadline' })).not.toBeInTheDocument();
   });

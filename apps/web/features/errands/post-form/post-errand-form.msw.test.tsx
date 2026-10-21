@@ -208,6 +208,30 @@ describe('post errand form', () => {
     expect(screen.queryByText('Pickup contact')).not.toBeInTheDocument();
   });
 
+  describe('the last button', () => {
+    const place = (area: string) => ({ area, lga: null, state: 'Lagos', accessLevel: 'EXACT', exact: { lat: 6.5, lng: 3.4 }, addressText: null, landmark: null }) as unknown as Errand['pickup'];
+    const deliveryRef = { id: delivery.id, key: delivery.key, name: delivery.name, flow: 'TRANSIT' as const };
+
+    it('says Review and post for a draft, and Done for a posted errand, which has nothing left to post', async () => {
+      const complete = { pickup: place('Yaba'), destination: place('Ikeja'), category: deliveryRef };
+      server.use(
+        http.get('*/api/v1/reference/categories', () => envelope([delivery])),
+        http.get('*/api/v1/errands/errand-draft', () => envelope({ ...draft, id: 'errand-draft', ...complete })),
+        http.get('*/api/v1/errands/errand-open', () => envelope({ ...openErrand, id: 'errand-open', ...complete })),
+        http.get('*/api/v1/me/consents', () => envelope({ consents: [] })),
+      );
+
+      renderForm('errand-draft');
+      expect(await screen.findByRole('link', { name: 'Review and post' })).toHaveAttribute('href', '/errands/errand-draft/review');
+      cleanup();
+
+      renderForm('errand-open');
+      const done = await screen.findByRole('link', { name: 'Done' });
+      expect(done).toHaveAttribute('href', '/errands/errand-open');
+      expect(screen.queryByRole('link', { name: 'Review and post' })).not.toBeInTheDocument();
+    });
+  });
+
   describe('switching the category of a posted errand', () => {
     const pickupCategory = { id: 'd4d4d4d4-27a1-4a23-a67b-6e69c03ce543', key: 'pickup', name: 'Pickup', requiresPickup: true, requiresDestination: false, flow: 'TRANSIT' as const, isPopular: true };
     const shopping = { id: 'e5e5e5e5-27a1-4a23-a67b-6e69c03ce544', key: 'shopping_purchase', name: 'Shopping & Purchase', requiresPickup: false, requiresDestination: true, flow: 'TRANSIT' as const, isPopular: true };

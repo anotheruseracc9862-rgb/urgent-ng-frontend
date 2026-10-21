@@ -4,6 +4,17 @@ import { availableActions } from './available-actions';
 const on = (role: 'REQUESTER' | 'RUNNER', assignment: string, errand: string) =>
   Object.entries(availableActions(role, assignment, errand)).filter(([, allowed]) => allowed).map(([name]) => name).sort();
 
+describe('a service has nobody to follow', () => {
+  it('never offers live tracking, at any stage, and leaves everything else as it is', () => {
+    for (const stage of ['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP', 'DELIVERED']) {
+      expect(availableActions('REQUESTER', 'ACCEPTED', stage, 'SERVICE').trackRunner).toBe(false);
+      expect(availableActions('REQUESTER', 'ACCEPTED', stage, { flow: 'SERVICE' }).trackRunner).toBe(false);
+      expect(availableActions('REQUESTER', 'ACCEPTED', stage, 'TRANSIT').trackRunner).toBe(true);
+    }
+    expect(availableActions('REQUESTER', 'ACCEPTED', 'IN_PROGRESS', 'SERVICE')).toMatchObject({ cancel: true, shareProgress: true, paymentTerms: true, dispute: true });
+  });
+});
+
 describe('available assignment actions', () => {
   it('before the errand starts: change, cancel, no-show and payment terms are all open', () => {
     expect(on('RUNNER', 'ACCEPTED', 'ACCEPTED')).toEqual(['cancel', 'changeRequest', 'continueErrand', 'dispute', 'noShow', 'paymentTerms', 'reportProblems', 'shareProgress']);

@@ -3,15 +3,17 @@
 import { PageLoading } from '@/components/shell/page-loading';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
-import { CANCEL_BLOCKED, flowOf } from '@/features/reference/flow';
+import { flowOf } from '@/features/reference/flow';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronDown } from 'lucide-react';
 import { Alert, Button, Skeleton, Textarea } from '@urgent/ui';
 import type { components } from '@urgent/api-client';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { errandsApi } from '../api';
+import { cancellationError, consequence } from './cancel-copy';
 
 type Errand = components['schemas']['ErrandDto'];
 type CancelReason = 'REQUESTER_CANCELLED' | 'DUPLICATE_ERRAND' | 'NO_RUNNER_AVAILABLE' | 'SAFETY_CONCERN' | 'OTHER';
@@ -25,33 +27,6 @@ const REASONS: Array<{ value: CancelReason; label: string }> = [
 ];
 
 const CANCELLABLE = ['DRAFT', 'OPEN', 'RUNNER_SELECTED', 'ACCEPTED', 'IN_PROGRESS'];
-
-function consequence(status: Errand['status'], service: boolean) {
-  switch (status) {
-    case 'DRAFT': return 'The draft is closed and will no longer appear in your active drafts.';
-    case 'OPEN': return 'The errand and its offers will close. No runner has been selected.';
-    case 'RUNNER_SELECTED': return 'The selected runner will be notified. The selection and cancellation reason will be recorded.';
-    case 'ACCEPTED': return 'The accepted runner will be notified and the reason will be recorded.';
-    case 'IN_PROGRESS': return 'This is recorded as a late cancellation and may affect account reliability.';
-    case 'PICKED_UP': return service ? 'Cancellation is not available once the work has started. Open a dispute if something is wrong.' : 'Cancellation is not available after pickup. Open a dispute if something is wrong.';
-    case 'DELIVERED': return service ? 'Cancellation is not available once the work is finished. Confirm completion or open a dispute.' : 'Cancellation is not available after delivery. Confirm completion or open a dispute.';
-    case 'DISPUTED': return 'This errand is already under review. Continue in the assignment hub.';
-    default: return 'This errand is already closed.';
-  }
-}
-
-function cancellationError(error: unknown, flow?: Parameters<typeof flowOf>[0]) {
-  const blocked = CANCEL_BLOCKED[flowOf(flow)];
-  if (!isApiError(error)) return 'We could not cancel this errand. Please try again.';
-  if (error.code === 'ERRAND_EXPIRED') return 'This errand expired before it could be cancelled. Refresh to see its current status.';
-  if (error.code === 'ERRAND_INVALID_STATE') {
-    const action = error.details.suggestedAction;
-    if (action === 'OPEN_DISPUTE') return blocked.startedShort;
-    if (action === 'COMPLETE_OR_DISPUTE') return blocked.finishedShort;
-    return 'The errand changed status before cancellation could finish. Refresh to see the available actions.';
-  }
-  return error.message;
-}
 
 function LocationSummary({ location }: { location: Errand['pickup'] }) {
   if (!location) return null;
@@ -68,7 +43,8 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
     queryFn: () => errandsApi.get(errandId),
   });
   const cancel = useApiMutation({ affects: ['errands'],
-    mutationFn: () => errandsApi.cancel(errandId, { reason, ...(note.trim() ? { note: note.trim() } : {}) }),
+    // No reason is sent before a runner is involved: the server records the requester changing their mind.
+    mutationFn: (askReason: boolean) => errandsApi.cancel(errandId, { ...(askReason ? { reason } : {}), ...(note.trim() ? { note: note.trim() } : {}) }),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.errands.detail(errandId), updated);
       void queryClient.invalidateQueries({ queryKey: queryKeys.errands.lists() });
@@ -97,6 +73,8 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
 
   const errand = errandQuery.data;
   const allowed = CANCELLABLE.includes(errand.status);
+  // A draft or an open errand has no runner yet, so nobody needs to be told why. Later, someone does.
+  const askReason = !['DRAFT', 'OPEN'].includes(errand.status);
   const blockedAction = cancel.error && isApiError(cancel.error) ? cancel.error.details.suggestedAction : null;
   const assignmentHref = errand.assignment ? `/assignments/${errand.assignment.id}` : null;
 
@@ -105,7 +83,7 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
       <header>
         <p className="text-xs font-extrabold uppercase tracking-wider text-green-800">{errand.id} · {errand.category.name}</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">{errand.status === 'DRAFT' ? 'Delete this draft' : 'Cancel this errand'}</h1>
-        <p className="mt-1 text-sm text-muted max-sm:hidden">What happens depends on the current stage. The reason is recorded with the errand.</p>
+        <p className="mt-1 text-sm text-muted max-sm:hidden">{askReason ? 'What happens depends on the current stage. The reason is recorded with the errand.' : 'No runner has been selected, so this takes one tap.'}</p>
       </header>
 
       <section className="rounded-[var(--r-lg)] border border-line bg-tint p-4 sm:p-5">
@@ -128,23 +106,34 @@ export function CancelErrandPage({ errandId }: { errandId: string }) {
       {allowed ? (
         <form
           className="grid gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-[var(--shadow)] sm:p-5"
-          onSubmit={(event) => { event.preventDefault(); cancel.mutate(); }}
+          onSubmit={(event) => { event.preventDefault(); cancel.mutate(askReason); }}
         >
-          <div>
-            <h2 className="font-extrabold text-ink">Why are you cancelling?</h2>
-            <p className="mt-1 text-sm text-muted">Choose the closest reason. You can add a short note for context.</p>
-          </div>
-          <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="cancel-reason">
-            Reason
-            <select id="cancel-reason" required value={reason} onChange={(event) => setReason(event.target.value as CancelReason)} className="min-h-11 rounded-[var(--r)] border border-line bg-surface px-3 text-sm">
-              {REASONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink" htmlFor="cancel-note">
-            Note <span className="font-normal text-muted">Optional</span>
-            <Textarea id="cancel-note" maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add context for the cancellation" />
-            <span className="text-xs font-normal text-muted">{note.length}/500</span>
-          </label>
+          {askReason ? (
+            <fieldset className="grid gap-3">
+              <legend className="font-extrabold text-ink">Why are you cancelling?</legend>
+              <p className="-mt-1 text-sm text-muted">Pick the closest one. The runner is told.</p>
+              <div role="radiogroup" aria-label="Reason" className="flex flex-wrap gap-2">
+                {REASONS.map((item) => (
+                  <label key={item.value} className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-bold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-green-700 motion-reduce:transition-none ${reason === item.value ? 'border-green-800 bg-green-800 text-white' : 'border-line bg-surface text-ink hover:bg-panel'}`}>
+                    <input type="radio" name="cancel-reason" value={item.value} checked={reason === item.value} onChange={() => setReason(item.value)} className="sr-only" />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
+            <h2 className="font-extrabold text-ink">{errand.status === 'DRAFT' ? 'Delete this draft?' : 'Cancel this errand?'}</h2>
+          )}
+          <details className="group">
+            <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 text-sm font-bold text-green-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 [&::-webkit-details-marker]:hidden">
+              Add a note <span className="font-normal text-muted">Optional</span>
+              <ChevronDown aria-hidden="true" className="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+            </summary>
+            <div className="mt-2 grid gap-2">
+              <Textarea id="cancel-note" aria-label="Note" maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add context for the cancellation" />
+              <span className="text-xs text-muted">{note.length}/500</span>
+            </div>
+          </details>
           <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-4">
             <Button asChild variant="ghost"><Link href={`/errands/${errandId}`}>Keep errand</Link></Button>
             <Button type="submit" variant="danger" isLoading={cancel.isPending}>{errand.status === 'DRAFT' ? 'Delete draft' : 'Cancel errand'}</Button>
