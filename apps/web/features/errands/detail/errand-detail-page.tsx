@@ -36,6 +36,7 @@ import { PLACE_COPY, flowOf } from '@/features/reference/flow';
 import { ErrandPostedBanner } from './errand-posted-banner';
 import { estimateLabel } from '@/components/forms/duration-input';
 import { CancelErrandButton } from '../cancel/cancel-errand-dialog';
+import { MessageLink } from '@/features/messaging/message-link';
 
 type Status = components['schemas']['ErrandStatus'];
 type PublicProfile = components['schemas']['PublicProfileDto'];
@@ -372,6 +373,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           {['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP', 'DELIVERED', 'COMPLETED', 'DISPUTED'].includes(errand.status) && assignment ? (
             <Button asChild><Link href={`/assignments/${assignment.id}`}>Open assignment hub<ExternalLink aria-hidden="true" className="ml-2 size-4" /></Link></Button>
           ) : null}
+          {assignment ? <MessageLink conversationId={assignment.conversationId} /> : null}
           {errand.status === 'EXPIRED' || errand.status === 'CANCELLED' ? (
             <Button type="button" disabled={duplicate.isPending} onClick={() => duplicate.mutate()}>{duplicate.isPending ? 'Creating draft…' : 'Repost as draft'}</Button>
           ) : null}

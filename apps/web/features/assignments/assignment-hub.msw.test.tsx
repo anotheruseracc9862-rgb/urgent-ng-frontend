@@ -201,3 +201,14 @@ describe('assignment hub: rating a completed errand', () => {
     expect(screen.queryByRole('link', { name: 'View your rating' })).not.toBeInTheDocument();
   });
 });
+
+describe('assignment hub: messages', () => {
+  it('shows a message link once messages are open, and none before', async () => {
+    renderPage({ ...baseAssignment, conversationId: 'conversation-1' });
+    expect(await screen.findByRole('link', { name: /Message/ })).toHaveAttribute('href', '/messages/conversation-1');
+    cleanup();
+    renderPage({ ...baseAssignment, conversationId: null });
+    await screen.findByText('Collect a parcel');
+    expect(screen.queryByRole('link', { name: /Message/ })).not.toBeInTheDocument();
+  });
+});

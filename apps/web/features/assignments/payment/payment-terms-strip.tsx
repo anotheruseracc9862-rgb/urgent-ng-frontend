@@ -11,6 +11,7 @@ import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
 import type { AssignmentRole } from '../available-actions';
 import { paymentPrompt } from './payment-prompt';
+import { PAYMENT_TIMING_LABEL, flowOf } from '@/features/reference/flow';
 
 type PaymentMethod = NonNullable<components['schemas']['PaymentAgreementDto']['paymentMethod']>;
 type PaymentTiming = NonNullable<components['schemas']['PaymentAgreementDto']['paymentTiming']>;
@@ -27,6 +28,8 @@ export function PaymentTermsStrip({ assignmentId, role }: { assignmentId: string
   const client = useQueryClient();
   const key = queryKeys.assignments.paymentAgreement(assignmentId);
   const agreement = useQuery({ queryKey: key, queryFn: () => offersApi.paymentAgreement(assignmentId), retry: false });
+  const assignment = useQuery({ queryKey: queryKeys.assignments.detail(assignmentId), queryFn: () => offersApi.assignment(assignmentId), retry: false });
+  const flow = flowOf(assignment.data?.data.errand.category);
   const [methodDraft, setMethodDraft] = useState<PaymentMethod | ''>('');
   const [timingDraft, setTimingDraft] = useState<PaymentTiming | ''>('');
   const update = useApiMutation({
@@ -68,7 +71,7 @@ export function PaymentTermsStrip({ assignmentId, role }: { assignmentId: string
         </Select>
         <Select value={timing || undefined} onValueChange={(value) => setTimingDraft(value as PaymentTiming)}>
           <SelectTrigger aria-label="Payment timing" className="min-w-0 bg-surface"><SelectValue placeholder="When" /></SelectTrigger>
-          <SelectContent>{timings.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}</SelectContent>
+          <SelectContent>{timings.map((item) => <SelectItem key={item} value={item}>{PAYMENT_TIMING_LABEL[flow][item] ?? label(item)}</SelectItem>)}</SelectContent>
         </Select>
       </div>
       {update.error ? <p role="alert" className="text-xs font-semibold text-red">{isApiError(update.error) ? update.error.message : 'We could not update the payment terms.'}</p> : null}

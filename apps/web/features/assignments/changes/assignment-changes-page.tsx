@@ -15,6 +15,7 @@ import { offersApi, type ChangeRequest } from '@/features/offers/api';
 import { JourneyHere } from '@/features/journey/journey-context';
 import { LagosDateTimeField } from '@/components/forms/lagos-date-time-field';
 import { availableActions } from '../available-actions';
+import { CHANGE_TYPE_LABEL, flowOf } from '@/features/reference/flow';
 
 type ChangeType = components['schemas']['CreateChangeRequestDto']['type'];
 
@@ -62,14 +63,14 @@ function changePayload(
   return fields.other.trim() ? { note: fields.other.trim() } : null;
 }
 
-function RequestSummary({ request, now }: { request: ChangeRequest; now: number }) {
+function RequestSummary({ request, now, typeLabel }: { request: ChangeRequest; now: number; typeLabel: (value: string) => string }) {
   const amountMinor = request.type === 'AMOUNT' && typeof request.payload.amountMinor === 'number'
     ? request.payload.amountMinor
     : null;
   return (
     <li className="grid gap-2 rounded-[var(--r-sm)] bg-panel p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-extrabold text-ink">{label(request.type)} <span className="font-semibold text-muted">· {label(request.status)}</span></p>
+        <p className="text-sm font-extrabold text-ink">{typeLabel(request.type)} <span className="font-semibold text-muted">· {label(request.status)}</span></p>
         {request.status === 'PENDING' ? <p className="text-xs font-bold text-amber">Expires in {countdown(request.expiresAt, now)}</p> : null}
       </div>
       {amountMinor !== null ? <p className="text-sm text-ink-2">Proposed fee: {money(amountMinor, 'NGN')}</p> : null}
@@ -138,6 +139,8 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
   const pending = requests.data.find((request) => request.status === 'PENDING');
   const canPropose = availableActions(current.role, current.status, current.errand.status).changeRequest;
   const isScheduled = Boolean(current.errand.scheduledAt);
+  const flow = flowOf(current.errand.category);
+  const typeLabel = (value: string) => CHANGE_TYPE_LABEL[flow][value] ?? label(value);
   const payload = changePayload(type, { amountMinor, lat, lng, address, landmark, scheduledAt, other }, isScheduled);
 
   const history = (
@@ -153,7 +156,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
         {pending ? <span className="rounded-full bg-amber-bg px-2.5 py-1 text-[11px] font-bold text-amber">1 pending</span> : null}
       </div>
       {requests.data.length
-        ? <ul className="grid gap-2">{requests.data.map((request) => <RequestSummary key={request.id} request={request} now={now} />)}</ul>
+        ? <ul className="grid gap-2">{requests.data.map((request) => <RequestSummary key={request.id} request={request} now={now} typeLabel={typeLabel} />)}</ul>
         : <p className="text-xs leading-relaxed text-muted">No changes have been requested. The agreed terms stay in effect until both parties accept a change.</p>}
       {pending ? (
         <div className="flex flex-wrap gap-2 border-t border-line-2 pt-3">
@@ -203,7 +206,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
                 <label className="text-xs font-bold text-ink-2" htmlFor="change-type">Change type</label>
                 <Select value={type} onValueChange={(value) => setType(value as ChangeType)}>
                   <SelectTrigger id="change-type"><SelectValue /></SelectTrigger>
-                  <SelectContent>{changeTypes.filter((option) => option !== 'TIME' || isScheduled).map((option) => <SelectItem key={option} value={option}>{label(option)}</SelectItem>)}</SelectContent>
+                  <SelectContent>{changeTypes.filter((option) => (option !== 'TIME' || isScheduled) && (flow !== 'SERVICE' || option !== 'PICKUP')).map((option) => <SelectItem key={option} value={option}>{typeLabel(option)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               {type === 'AMOUNT' ? (

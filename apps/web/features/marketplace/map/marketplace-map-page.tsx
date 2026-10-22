@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Skeleton } from '@urgent/ui';
 import { ArrowRight, ChevronRight, Expand, LockKeyhole, MapPin, Minus, Package, Plus, X } from 'lucide-react';
 import { queryKeys } from '@/lib/query/keys';
+import { MyOfferBadge } from '@/features/offers/my-offer';
 import { marketplaceApi, type MapPoint, type MarketplaceFilters } from '../api';
 import { MarketplaceControls } from '../marketplace-controls';
 import { useMapProvider } from '@/components/map/MapProvider';
@@ -196,11 +197,14 @@ export function MarketplaceMapPage() {
                 {selected.map((point) => (
                   <article key={point.id} className="grid gap-3 border-b border-line pb-4 last:border-0 last:pb-0">
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-green-900"><span className="rounded-full bg-tint-2 px-2.5 py-1.5 capitalize">{point.categoryKey.replaceAll('_', ' ')}</span>{point.boosted && <span className="rounded-full bg-amber-bg px-2.5 py-1.5 text-amber">Boosted</span>}</div>
+                    {point.myOffer ? <MyOfferBadge offer={point.myOffer} /> : null}
                     <h2 className="break-words text-base font-extrabold leading-snug tracking-tight text-ink">{point.title}</h2>
                     <p className="inline-flex flex-wrap items-center gap-1.5 text-xs text-muted"><MapPin aria-hidden="true" className="size-3.5" />{point.area}<span aria-hidden="true">·</span>{point.distance?.label ?? 'Distance unavailable'}</p>
                     <p className="text-xl font-extrabold tracking-tight text-ink">{money(point.suggestedBudgetMinor)}</p>
                     <div className="grid grid-cols-2 gap-2">
-                      <Button asChild size="sm" className="min-w-0 gap-1 px-3 text-xs"><Link href={`/marketplace/${point.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link></Button>
+                      {point.myOffer
+                        ? <Button asChild size="sm" variant="ghost" className="min-w-0 gap-1 px-3 text-xs"><Link href={`/offers/${point.myOffer.id}`}>View your offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link></Button>
+                        : <Button asChild size="sm" className="min-w-0 gap-1 px-3 text-xs"><Link href={`/marketplace/${point.id}/offer`}>Send offer<ArrowRight aria-hidden="true" className="size-3.5" /></Link></Button>}
                       <Button asChild variant="ghost" size="sm" className="min-w-0 gap-1 px-3 text-xs"><Link href={`/marketplace/${point.id}`}>View details<ChevronRight aria-hidden="true" className="size-3.5" /></Link></Button>
                     </div>
                   </article>

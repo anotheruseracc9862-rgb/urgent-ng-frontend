@@ -148,3 +148,15 @@ export const DISPUTE_TYPE_ORDER: Record<CategoryFlow, readonly string[]> = {
   TRANSIT: ['ITEM_NOT_DELIVERED', 'ITEM_DAMAGED', 'ITEM_MISSING', 'WRONG_ITEM', 'UNAUTHORIZED_CHANGE', 'SAFETY_INCIDENT', 'OTHER'],
   SERVICE: ['SERVICE_NOT_DONE', 'POOR_QUALITY', 'PROPERTY_DAMAGE', 'UNAUTHORIZED_CHANGE', 'SAFETY_INCIDENT', 'OTHER'],
 };
+
+/** When the runner is paid. The stored values keep their pickup/delivery names; a service reads them as the work. */
+export const PAYMENT_TIMING_LABEL: Record<CategoryFlow, Record<string, string>> = {
+  TRANSIT: { BEFORE_PICKUP: 'Before pickup', AT_PICKUP: 'At pickup', AFTER_PICKUP: 'After pickup', AT_DELIVERY: 'At delivery', AFTER_DELIVERY: 'After delivery', OTHER: 'Other' },
+  SERVICE: { BEFORE_PICKUP: 'Before the work starts', AT_PICKUP: 'When the work starts', AFTER_PICKUP: 'During the work', AT_DELIVERY: 'When the work is finished', AFTER_DELIVERY: 'After the work is finished', OTHER: 'Other' },
+};
+
+/** The change a person can ask for after acceptance. A service has one address, so it has no pickup to change. */
+export const CHANGE_TYPE_LABEL: Record<CategoryFlow, Record<string, string>> = {
+  TRANSIT: { AMOUNT: 'Amount', PICKUP: 'Pickup location', DESTINATION: 'Drop-off location', TIME: 'Time', OTHER: 'Other' },
+  SERVICE: { AMOUNT: 'Amount', DESTINATION: 'Service address', TIME: 'Time', OTHER: 'Other' },
+};

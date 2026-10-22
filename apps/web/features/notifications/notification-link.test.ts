@@ -10,6 +10,7 @@ describe('notificationHref', () => {
   it.each([
     ['message.new', { conversationId: 'c1' }, '/messages/c1'],
     ['assignment.accepted', { assignmentId: 'a1', errandId: 'e1' }, '/assignments/a1'],
+    ['assignment.chat_open', { assignmentId: 'a1', errandId: 'e1', conversationId: 'c1' }, '/messages/c1'],
     ['execution.delivered', { assignmentId: 'a1' }, '/assignments/a1'],
     ['change_request.created', { assignmentId: 'a1' }, '/assignments/a1'],
     ['offer.new', { offerId: 'o1', errandId: 'e1' }, '/offers/o1'],

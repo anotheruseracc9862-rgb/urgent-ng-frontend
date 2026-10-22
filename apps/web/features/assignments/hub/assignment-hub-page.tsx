@@ -2,6 +2,7 @@
 
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
+import { MessageLink } from '@/features/messaging/message-link';
 import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
@@ -129,6 +130,7 @@ export function AssignmentHubPage({ assignmentId }: { assignmentId: string }) {
         eyebrow={`Assignment · ${isRunner ? 'Runner' : 'Requester'} view`}
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
         description={`Payment is arranged directly with the ${isRunner ? 'requester' : 'runner'}. Urgent.ng never holds the money.`}
+        actions={<MessageLink conversationId={current.conversationId} />}
       />
       <JourneyHere />
 

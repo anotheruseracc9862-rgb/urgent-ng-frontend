@@ -2,6 +2,7 @@
 
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
+import { MessageLink } from '@/features/messaging/message-link';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -135,6 +136,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
         eyebrow="Run the errand · Runner view"
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
         description={service ? 'Each step is visible to the requester. Before and after photos are required.' : 'Each step is visible to the requester. Photos are optional evidence.'}
+        actions={<MessageLink conversationId={assignment.data.data.conversationId} />}
       />
       <JourneyHere />
 

@@ -88,8 +88,19 @@ export function PushOptInPrompt({ compact = false }: { compact?: boolean }) {
     },
   });
 
+  // The browser already allows notifications but this device was never registered (storage cleared, or an
+  // earlier registration failed). The person has already said yes, so register quietly instead of asking again.
+  const allowedButUnregistered = hydrated && CONFIGURED && 'Notification' in window && Notification.permission === 'granted' && !pushEnabledHere();
+  const quietTried = React.useRef(false);
+  React.useEffect(() => {
+    if (!allowedButUnregistered || quietTried.current) return;
+    quietTried.current = true;
+    register.mutate();
+  }, [allowedButUnregistered, register]);
+
   // Once push is on there is nothing left to ask, so the prompt goes away at once, not at the next reload.
-  if (dismissed || hidden || register.isSuccess) return null;
+  // It stays hidden while the quiet registration runs; if that fails, the prompt shows with the reason.
+  if (dismissed || hidden || register.isSuccess || (allowedButUnregistered && !register.isError)) return null;
 
   return (
     <section aria-label="Push notification option" className="grid gap-3 rounded-[var(--r-lg)] bg-tint p-4 sm:p-[22px]">

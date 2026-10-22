@@ -13,6 +13,7 @@ import { Alert, Button, Select, SelectContent, SelectItem, SelectTrigger, Select
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
+import { PAYMENT_TIMING_LABEL, flowOf } from '@/features/reference/flow';
 import { JourneyHere } from '@/features/journey/journey-context';
 
 type PaymentMethod = NonNullable<components['schemas']['PaymentAgreementDto']['paymentMethod']>;
@@ -111,7 +112,7 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
               <label className="text-xs font-bold text-ink-2" htmlFor="payment-timing">Payment timing</label>
               <Select value={timing || undefined} onValueChange={(value) => setTimingDraft(value as PaymentTiming)}>
                 <SelectTrigger id="payment-timing" className="min-w-0"><SelectValue placeholder="Choose timing" /></SelectTrigger>
-                <SelectContent>{timings.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}</SelectContent>
+                <SelectContent>{timings.map((item) => <SelectItem key={item} value={item}>{PAYMENT_TIMING_LABEL[flowOf(assignment.data.data.errand.category)][item] ?? label(item)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>

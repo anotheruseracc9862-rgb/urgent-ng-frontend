@@ -6325,6 +6325,8 @@ export interface components {
             agreedAmountMinor: number;
             /** Format: date-time */
             acceptedAt: string | null;
+            /** @description The conversation with the runner once they accept and messages are open. */
+            conversationId: string | null;
         };
         /** @enum {string} */
         ErrandCancellationReason: "REQUESTER_CANCELLED" | "RUNNER_CANCELLED" | "RUNNER_REJECTED_ASSIGNMENT" | "NO_RUNNER_AVAILABLE" | "SAFETY_CONCERN" | "DUPLICATE_ERRAND" | "USER_ACCOUNT_RESTRICTED" | "ADMIN_CANCELLED" | "OTHER";
@@ -7271,6 +7273,8 @@ export interface components {
             role: "REQUESTER" | "RUNNER";
             /** @description The latest non-deleted dispute for this assignment, or null. Visible only to its parties. */
             disputeId?: string | null;
+            /** @description The conversation between the two parties once the runner has accepted and messages are open, otherwise null. */
+            conversationId?: string | null;
             /** @description The errand as this caller may see it. Exact locations and contacts only for the requester, and for the runner while the assignment is ACCEPTED. */
             errand: components["schemas"]["AssignedErrandDto"];
         };
@@ -7551,6 +7555,8 @@ export interface components {
             priority: components["schemas"]["ErrandPriority"];
             suggestedBudgetMinor: number | null;
             distance: components["schemas"]["DistanceBucketDto"] | null;
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             id: string;
             title: string;
             categoryKey: string;

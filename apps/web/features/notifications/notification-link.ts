@@ -10,7 +10,7 @@ function dataId(notification: Notification, key: string): string | undefined {
 export function notificationHref(notification: Notification): string {
   const type = notification.type;
   const conversationId = dataId(notification, 'conversationId');
-  if ((type.startsWith('message.') || type.startsWith('conversation.')) && conversationId) {
+  if ((type.startsWith('message.') || type.startsWith('conversation.') || type === 'assignment.chat_open') && conversationId) {
     return `/messages/${conversationId}`;
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CANCEL_BLOCKED, CONFIRM_COPY, DISPUTE_TYPE_ORDER, DOING_NOW, EXECUTION_STEPS, FLOW_GROUP_LABEL, PLACE_COPY, STATUS_LINE, STEP_COPY,
+  CANCEL_BLOCKED, CHANGE_TYPE_LABEL, CONFIRM_COPY, PAYMENT_TIMING_LABEL, DISPUTE_TYPE_ORDER, DOING_NOW, EXECUTION_STEPS, FLOW_GROUP_LABEL, PLACE_COPY, STATUS_LINE, STEP_COPY,
   flowOf, isService, type CategoryFlow, type RunnerStep,
 } from './flow';
 
@@ -70,5 +70,15 @@ describe('what differs between the flows', () => {
     expect(DISPUTE_TYPE_ORDER.SERVICE).toEqual(expect.arrayContaining(['SERVICE_NOT_DONE', 'POOR_QUALITY', 'PROPERTY_DAMAGE']));
     expect(DISPUTE_TYPE_ORDER.SERVICE.some((type) => type.startsWith('ITEM_'))).toBe(false);
     expect(DISPUTE_TYPE_ORDER.TRANSIT.some((type) => type.startsWith('SERVICE_'))).toBe(false);
+  });
+
+  it('words payment timing and changeable places for the flow', () => {
+    expect(PAYMENT_TIMING_LABEL.TRANSIT.AT_DELIVERY).toBe('At delivery');
+    expect(PAYMENT_TIMING_LABEL.SERVICE.AT_DELIVERY).toBe('When the work is finished');
+    expect(Object.keys(PAYMENT_TIMING_LABEL.SERVICE)).toEqual(Object.keys(PAYMENT_TIMING_LABEL.TRANSIT));
+    // A service has one address, so no pickup to change.
+    expect(CHANGE_TYPE_LABEL.SERVICE.PICKUP).toBeUndefined();
+    expect(CHANGE_TYPE_LABEL.SERVICE.DESTINATION).toBe('Service address');
+    expect(CHANGE_TYPE_LABEL.TRANSIT.PICKUP).toBe('Pickup location');
   });
 });
