@@ -1244,6 +1244,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/verifications/{attemptId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminVerification_attempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/verifications/{attemptId}/submission": {
         parameters: {
             query?: never;
@@ -5687,6 +5703,8 @@ export interface components {
             /** @enum {string} */
             status: "DRAFT" | "OPEN" | "RUNNER_SELECTED" | "ACCEPTED" | "IN_PROGRESS" | "PICKED_UP" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "DISPUTED";
             category: string;
+            /** @enum {string} */
+            categoryFlow: "TRANSIT" | "SERVICE";
             requesterId: string;
             requesterName: string;
             offerCount: number;
@@ -5748,6 +5766,8 @@ export interface components {
             errandId: string;
             errandTitle: string;
             /** @enum {string} */
+            categoryFlow: "TRANSIT" | "SERVICE";
+            /** @enum {string} */
             status: "PENDING_ACCEPTANCE" | "ACCEPTED" | "DECLINED" | "TIMED_OUT" | "CANCELLED" | "COMPLETED";
             /** @enum {string} */
             errandStatus: "DRAFT" | "OPEN" | "RUNNER_SELECTED" | "ACCEPTED" | "IN_PROGRESS" | "PICKED_UP" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "DISPUTED";
@@ -5768,6 +5788,9 @@ export interface components {
             kind: string;
             type: string | null;
             errandId: string | null;
+            assignmentId: string | null;
+            /** @enum {string|null} */
+            categoryFlow: "TRANSIT" | "SERVICE" | null;
             errandTitle: string | null;
             assignedTo: string | null;
             /** Format: date-time */
@@ -5780,6 +5803,15 @@ export interface components {
             escalatedAt: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        AdminChatPageMetaDto: {
+            hasNextPage: boolean;
+            nextCursor?: string;
+        };
+        AdminDisputeChatDto: {
+            conversationId: string | null;
+            messages: components["schemas"]["AnyObjectDto"][];
+            meta: components["schemas"]["AdminChatPageMetaDto"];
         };
         AssignCaseDto: {
             /**
@@ -12831,6 +12863,65 @@ export interface operations {
             };
         };
     };
+    AdminVerification_attempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["VerificationRowDto"];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Error (see `error.code`) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /**
+             * @description Error (see `error.code`)
+             *
+             *     Error (see `error.code`)
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
     AdminVerification_submission: {
         parameters: {
             query?: never;
@@ -14983,6 +15074,7 @@ export interface operations {
                 cursor?: string;
                 /** @description Number of items per page */
                 limit?: number;
+                errandId?: string;
                 status?: "PENDING_ACCEPTANCE" | "ACCEPTED" | "DECLINED" | "TIMED_OUT" | "CANCELLED" | "COMPLETED";
                 runnerId?: string;
                 requesterId?: string;
@@ -15263,6 +15355,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Number of items per page */
                 limit?: number;
+                errandId?: string;
+                assignmentId?: string;
                 /** @description Only cases assigned to you. */
                 mine?: boolean;
                 /** @description Only cases past their response or resolution deadline. */
@@ -15394,14 +15488,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Success */
+            /** @description Oldest-first messages. Continue with data.meta.nextCursor; each page requires a reason and is audited. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["AnyObjectDto"];
+                        data: components["schemas"]["AdminDisputeChatDto"];
                         meta?: {
                             [key: string]: unknown;
                         };
@@ -15836,6 +15930,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Number of items per page */
                 limit?: number;
+                errandId?: string;
+                assignmentId?: string;
                 /** @description Only cases assigned to you. */
                 mine?: boolean;
                 /** @description Only cases past their response or resolution deadline. */
@@ -16700,7 +16796,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Success */
+            /** @description Oldest-first messages. Continue with meta.nextCursor; each page requires a reason and is audited. */
             200: {
                 headers: {
                     [name: string]: unknown;

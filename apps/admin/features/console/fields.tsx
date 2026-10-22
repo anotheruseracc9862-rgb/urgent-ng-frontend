@@ -6,7 +6,7 @@ import type { Schema } from "./contracts";
 import { labelFor } from "./access";
 
 /** Native, labelled controls are shared by action forms and server-side query filters. */
-export function SchemaField({ name, schema, value, required = false, onChange }: { name: string; schema: Schema; value: unknown; required?: boolean; onChange: (value: unknown) => void }) {
+export function SchemaField({ name, schema, value, required = false, emptyLabel = 'Leave unchanged / use default', onChange }: { name: string; schema: Schema; value: unknown; required?: boolean; emptyLabel?: string; onChange: (value: unknown) => void }) {
   const id = useId();
   const label = labelFor(name);
   const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
@@ -29,7 +29,7 @@ export function SchemaField({ name, schema, value, required = false, onChange }:
   const longText = ["reasonText", "note", "notes", "body", "message", "summary", "resolution", "description"].includes(name);
   const common = { id, required, "aria-describedby": schema.description ? `${id}-help` : undefined };
   return <label className="field" htmlFor={id}>{label}{required ? " *" : ""}
-    {schema.enum || type === "boolean" ? <select {...common} value={str} onChange={e => onChange(e.target.value === "" ? undefined : type === "boolean" ? e.target.value === "true" : e.target.value)}><option value="">{required ? "Choose an option" : "Leave unchanged / use default"}</option>{(schema.enum ?? [true, false]).map(option => <option key={String(option)} value={String(option)}>{typeof option === "boolean" ? option ? "Yes" : "No" : labelFor(String(option))}</option>)}</select>
+    {schema.enum || type === "boolean" ? <select {...common} value={str} onChange={e => onChange(e.target.value === "" ? undefined : type === "boolean" ? e.target.value === "true" : e.target.value)}><option value="">{required ? "Choose an option" : emptyLabel}</option>{(schema.enum ?? [true, false]).map(option => <option key={String(option)} value={String(option)}>{typeof option === "boolean" ? option ? "Yes" : "No" : labelFor(String(option))}</option>)}</select>
       : longText ? <Textarea {...common} value={str} minLength={schema.minLength} maxLength={schema.maxLength} onChange={e => onChange(e.target.value || undefined)} rows={3} />
       : <Input {...common} type={type === "number" || type === "integer" ? "number" : schema.format === "date-time" ? "datetime-local" : schema.format === "email" || name === "email" ? "email" : "text"} value={schema.format === "date-time" && str.endsWith("Z") ? str.slice(0, 16) : str} min={schema.minimum} max={schema.maximum} step={type === "integer" || schema.integer ? 1 : type === "number" ? "any" : undefined} minLength={schema.minLength} maxLength={schema.maxLength} pattern={schema.pattern} onChange={e => onChange(e.target.value === "" ? undefined : type === "number" || type === "integer" ? Number(e.target.value) : e.target.value)} />}
     {schema.description && <small id={`${id}-help`}>{schema.description}</small>}

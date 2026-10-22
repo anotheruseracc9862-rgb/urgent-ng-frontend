@@ -19,9 +19,21 @@ export interface Resource {
 
 const action = (label: string, path: string, method = 'POST', scope: 'record' | 'collection' = 'record'): NonNullable<Resource['actions']>[number] => ({ label, path, method, scope });
 const related = (label: string, path: string, sensitive = false) => ({ label, path, ...(sensitive ? { sensitive } : {}) });
+const queueColumns: Record<string, string[]> = {
+  users: ['name', 'status', 'verified', 'activeRestrictions', 'createdAt', 'lastLoginAt'],
+  verifications: ['userName', 'status', 'attemptNumber', 'failureReason', 'startedAt', 'completedAt'],
+  errands: ['title', 'status', 'category', 'requesterName', 'offerCount', 'expiresAt'],
+  assignments: ['errandTitle', 'status', 'errandStatus', 'runnerName', 'agreedAmountMinor', 'acceptedAt'],
+  disputes: ['errandTitle', 'status', 'type', 'assignedTo', 'slaDueAt', 'overdue'],
+  reports: ['errandTitle', 'status', 'type', 'assignedTo', 'slaDueAt', 'overdue'],
+  categories: ['name', 'key', 'flow', 'active', 'isPopular', 'sortOrder'],
+  orders: ['data.userName', 'data.type', 'data.status', 'data.amountMinor', 'data.reference', 'createdAt'],
+  refunds: ['data.status', 'data.amountMinor', 'data.reason', 'data.requestedById', 'data.approvedBy', 'createdAt'],
+};
 function resource(slug: string, title: string, group: string, list: string | undefined, options: Partial<Resource> = {}): Resource {
   const permission = list ? endpoint('GET', list).permissions[0] : undefined;
-  return { slug, title, group, description: title + ' workspace. Results and pagination come from the server.', columns: list ? endpoint('GET', list).responseColumns ?? [] : [], ...(list ? { list } : {}), ...(permission ? { permission } : {}), ...options };
+  const columns = [...new Set([...(queueColumns[slug] ?? []), ...(list ? endpoint('GET', list).responseColumns ?? [] : [])])];
+  return { slug, title, group, description: title + ' workspace. Results and pagination come from the server.', columns, ...(list ? { list } : {}), ...(permission ? { permission } : {}), ...options };
 }
 
 /** Curated workspaces, never an endpoint explorer. All permissions come from contracts. */
@@ -31,7 +43,7 @@ export const resources: Resource[] = [
     related: [related('Contact', '/users/{id}/contact', true), related('Consents', '/users/{id}/consents'), related('Enforcement', '/users/{id}/enforcement'), related('Ladder', '/users/{id}/ladder'), related('Verifications', '/users/{id}/verifications'), related('Badges', '/users/{id}/badges'), related('Pro subscription', '/users/{id}/pro'), related('Entitlements', '/users/{id}/entitlements')],
     actions: [action('Deactivate', '/users/{id}/deactivate'), action('Reactivate', '/users/{id}/reactivate'), action('Revoke sessions', '/users/{id}/revoke-sessions'), action('Suspend', '/users/{id}/suspend'), action('Grant verification attempts', '/users/{id}/verification/grant-attempts'), action('Revoke verification', '/users/{id}/verification/revoke'), action('Recompute badges', '/users/{id}/badges/recompute'), action('Grant Pro', '/users/{id}/pro/grant'), action('End Pro', '/users/{id}/pro/end'), action('Grant entitlement', '/users/{id}/entitlements')],
   }),
-  resource('verifications', 'Verification queue', 'Trust', '/verifications', { idKey: 'id', related: [related('Submission', '/verifications/{attemptId}/submission', true)], actions: [action('Approve', '/verifications/{attemptId}/approve'), action('Reject', '/verifications/{attemptId}/reject')] }),
+  resource('verifications', 'Verification queue', 'Trust', '/verifications', { idKey: 'id', detail: '/verifications/{attemptId}', related: [related('Submission', '/verifications/{attemptId}/submission', true)], actions: [action('Approve', '/verifications/{attemptId}/approve'), action('Reject', '/verifications/{attemptId}/reject')] }),
   resource('enforcement', 'Enforcement', 'Trust', '/enforcement', { actions: [action('Apply enforcement', '/enforcement', 'POST', 'collection'), action('Revoke', '/enforcement/{id}/revoke'), action('Decide appeal', '/enforcement/{id}/appeal/decide')] }),
   resource('appeals', 'Appeals', 'Trust', '/enforcement/appeals', { actions: [action('Decide appeal', '/enforcement/{id}/appeal/decide')] }),
   resource('enforcement-reviews', 'Enforcement reviews', 'Trust', '/enforcement/reviews', { actions: [action('Dismiss', '/enforcement/reviews/{id}/dismiss')] }),
@@ -53,7 +65,11 @@ export const resources: Resource[] = [
   resource('subscriptions', 'Subscriptions', 'Billing', '/subscriptions'),
   resource('boosts', 'Boosts', 'Billing', '/boosts', { actions: [action('End', '/boosts/{id}/end'), action('Extend', '/boosts/{id}/extend')] }),
   resource('offer-limits', 'Offer limit lookup', 'Billing', undefined, { lookup: '/offer-limits/{userId}', actions: [action('Reset', '/offer-limits/{userId}/reset')] }),
-  resource('entitlements', 'Entitlement revocation', 'Billing', undefined, { description: 'Find entitlements in the user workspace, then enter the entitlement ID to revoke.', actions: [action('Revoke entitlement', '/entitlements/{id}/revoke', 'POST', 'collection')] }),
+  resource('entitlements', 'User services & entitlements', 'Billing', undefined, {
+    description: 'Look up a user ID to inspect Pro and entitlements. Grant/end actions ask for the user ID; revocation asks for the entitlement ID.',
+    related: [related('Pro subscription', '/users/{id}/pro'), related('Entitlements', '/users/{id}/entitlements')],
+    actions: [action('Grant Pro', '/users/{id}/pro/grant', 'POST', 'collection'), action('End Pro', '/users/{id}/pro/end', 'POST', 'collection'), action('Grant entitlement', '/users/{id}/entitlements', 'POST', 'collection'), action('Revoke entitlement', '/entitlements/{id}/revoke', 'POST', 'collection')],
+  }),
   resource('pricing', 'Pricing products', 'Configuration', '/pricing/products', { related: [related('Price versions', '/pricing/products/{id}/versions')], actions: [action('Set future price', '/pricing/products/{id}/prices')] }),
   resource('config', 'Configuration', 'Configuration', '/config', { idKey: 'key', related: [related('History', '/config/{key}/history')], actions: [action('Set value', '/config/{key}', 'PUT')] }),
   resource('flags', 'Feature flags', 'Configuration', '/flags', { idKey: 'key', actions: [action('Set flag', '/flags/{key}', 'PUT')] }),
