@@ -24,6 +24,23 @@ beforeAll(() => listen());
 afterEach(() => { cleanup(); server.resetHandlers(); nav.replace.mockClear(); });
 afterAll(() => server.close());
 
+describe('cancelling an errand that is boosted', () => {
+  it('says the boost ends and is not refunded, before the person confirms', async () => {
+    const user = userEvent.setup();
+    renderButton({ boosted: true });
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByText("This errand is boosted. Cancelling ends the boost, and it isn't refunded.")).toBeInTheDocument();
+  });
+
+  it('says nothing about a boost when there is none, or for a draft', async () => {
+    const user = userEvent.setup();
+    renderButton();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await screen.findByRole('dialog');
+    expect(screen.queryByText(/boosted/i)).toBeNull();
+  });
+});
+
 describe('cancelling a draft or an open errand in place', () => {
   it('asks once, in a dialog, and sends no reason: there is no page to go to', async () => {
     const user = userEvent.setup();

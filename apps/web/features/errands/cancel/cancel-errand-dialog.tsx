@@ -8,16 +8,19 @@ import { useApiMutation } from '@/lib/query/mutations';
 import { queryKeys } from '@/lib/query/keys';
 import { errandsApi } from '../api';
 import { cancellationError, consequence } from './cancel-copy';
+import { BOOST_CANCEL_NOTICE } from '@/features/billing/boost-notice';
 
 /**
  * Cancel a draft or an open errand with one confirmation, in place. No runner is involved yet, so no
  * reason is asked for (the server records the requester changing their mind) and no page is needed.
  * Once a runner is involved the reason matters and the cancel page asks for it.
  */
-export function CancelErrandButton({ errandId, status, offerCount = 0, flow }: {
+export function CancelErrandButton({ errandId, status, offerCount = 0, flow, boosted = false }: {
   errandId: string;
   status: 'DRAFT' | 'OPEN';
   offerCount?: number;
+  /** A boost is running on the errand: cancelling ends it, and it is not refunded. */
+  boosted?: boolean;
   flow?: 'TRANSIT' | 'SERVICE';
 }) {
   const router = useRouter();
@@ -49,6 +52,7 @@ export function CancelErrandButton({ errandId, status, offerCount = 0, flow }: {
             <DialogTitle>{draft ? 'Delete this draft?' : 'Cancel this errand?'}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
+          {boosted && !draft ? <Alert variant="warn" role="note">{BOOST_CANCEL_NOTICE}</Alert> : null}
           {cancel.error ? <Alert variant="danger" role="alert">{cancellationError(cancel.error, flow)}</Alert> : null}
           <DialogFooter className="gap-2 sm:space-x-0">
             <Button type="button" variant="ghost" disabled={cancel.isPending} onClick={() => setOpen(false)}>{draft ? 'Keep draft' : 'Keep errand'}</Button>

@@ -10,15 +10,18 @@ import { errandsApi } from '@/features/errands/api';
 import { queryKeys } from '@/lib/query/keys';
 import { useApiMutation } from '@/lib/query/mutations';
 import { billingApi, productFor, type Order } from './api';
-import { BoostBadge } from './boost-badge';
+import { BoostBadge, BoostResults, boostEndsLabel, boostLengthLabel } from './boost-badge';
+import { BOOST_TERMS_NOTICE } from './boost-notice';
 import type { components } from '@urgent/api-client';
 import { billingErrorMessage } from './messages';
 import { useIntentKey } from './use-intent-key';
 import { useContinueToCheckout } from './use-checkout';
 
-function BoostRow({ errandId, title, boost, boostedOrder, price, selected }: {
+function BoostRow({ errandId, title, boost, wouldEndAt, boostedOrder, price, selected }: {
   errandId: string;
   title: string;
+  /** When a boost bought now would end (the boost length, or the errand's own deadline if sooner). */
+  wouldEndAt: string | null;
   /** The boost running now, from the errand itself. This, and not an old paid order, says whether it is boosted. */
   boost: components['schemas']['ErrandBoostDto'] | null;
   boostedOrder: Order | undefined;
@@ -52,6 +55,7 @@ function BoostRow({ errandId, title, boost, boostedOrder, price, selected }: {
           {live ? (
             <div className="mt-1.5 grid gap-1">
               <BoostBadge boost={boost} className="w-fit" />
+              <BoostResults boost={boost} />
               <p className="text-xs leading-relaxed text-ok">
                 It is already boosted, so it cannot be boosted again. It ends when the boost period passes or the errand closes{boostedOrder?.paidAt ? `. Paid ${formatDate(boostedOrder.paidAt, 'medium')}` : ''}.
               </p>
@@ -59,7 +63,14 @@ function BoostRow({ errandId, title, boost, boostedOrder, price, selected }: {
           ) : pending ? (
             <p className="mt-1 text-xs leading-relaxed text-muted">A boost payment is waiting to be confirmed.</p>
           ) : (
-            <p className="mt-1 text-xs leading-relaxed text-muted">Shown higher in the runner feed{price ? ` for ${price}, VAT included` : ''}.</p>
+            <div className="mt-1 grid gap-1">
+              <p className="text-xs leading-relaxed text-muted">Shown higher in the runner feed{price ? ` for ${price}, VAT included` : ''}.</p>
+              {wouldEndAt ? (
+                <p className="text-xs leading-relaxed text-ink-2">
+                  <span className="font-bold">Would run {boostLengthLabel(wouldEndAt)}</span>, until {boostEndsLabel(wouldEndAt)}. The price is the same however long it runs.
+                </p>
+              ) : null}
+            </div>
           )}
           {buy.error ? (
             <p role="alert" className="mt-2 text-xs font-bold text-danger">
@@ -109,6 +120,8 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
         description={`A boost lifts an open errand in the runner feed${product?.periodDays ? ` for ${product.periodDays} days` : ''}. Only open errands without a selected runner can be boosted.`}
       />
 
+      <Alert variant="info" role="note">{BOOST_TERMS_NOTICE}</Alert>
+
       {open.error ? (
         <Alert variant="danger" role="alert">
           <p>We could not load your open errands.</p>
@@ -149,6 +162,7 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
                 errandId={errand.id}
                 title={errand.title}
                 boost={errand.boost}
+                wouldEndAt={errand.boostWouldEndAt ?? null}
                 boostedOrder={boostOrders.get(errand.id)}
                 price={price}
                 selected={errand.id === errandId}

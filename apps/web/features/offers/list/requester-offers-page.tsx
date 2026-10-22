@@ -1,7 +1,6 @@
 'use client';
 
 import { estimateLabel } from '@/components/forms/duration-input';
-import { persistedQuery } from '@/lib/query/persisted-query';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
@@ -59,7 +58,6 @@ export function RequesterOffersPage() {
     }),
     getNextPageParam: (page) => page.meta?.nextCursor ?? undefined,
     placeholderData: keepPreviousData,
-    ...persistedQuery('standard'),
   });
 
   const offers = list.data?.pages.flatMap((page) => page.data) ?? [];

@@ -10,6 +10,7 @@ import { isApiError } from '@/lib/api/client';
 import { authApi } from '@/lib/api/auth';
 import type { LoginSession, RegisteredDevice } from '@/lib/api/types';
 import { useSession } from '@/lib/auth/client';
+import { ChangePasswordCard } from './change-password-card';
 import { queryKeys } from '@/lib/query/keys';
 
 function ErrorPanel({ error, onRetry }: { error: unknown; onRetry: () => void }) {
@@ -155,6 +156,8 @@ export function SecuritySettingsPage() {
       />
 
       {errors.map((error, index) => <ErrorPanel key={index} error={error} onRetry={retry} />)}
+
+      <ChangePasswordCard />
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <section aria-labelledby="security-sessions-heading" className="min-w-0 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">

@@ -45,7 +45,13 @@ function install() {
       { code: 'BOOST', name: 'Boost', orderType: 'BOOST', priceMinor: 100000, vatMinor: 6977, currency: 'NGN', periodDays: null },
     ])),
     http.get('*/subscriptions/pro', () => envelope(store.pro)),
-    http.get('*/errands/mine', () => envelope([{ id: 'e1', title: 'Collect parcel', status: 'OPEN' }])),
+    // The errand says whether a boost is running, as the real list does.
+    http.get('*/errands/mine', () => envelope([{
+      id: 'e1', title: 'Collect parcel', status: 'OPEN',
+      boost: store.boostedErrands.has('e1')
+        ? { expiresAt: new Date(Date.now() + 3_600_000).toISOString(), startedAt: new Date().toISOString(), openedByCount: 0, offersSinceCount: 0 }
+        : null,
+    }])),
     http.get('*/billing/orders', () => envelope([...store.orders.values()])),
     http.get('*/billing/orders/:id', ({ params }) => envelope(store.orders.get(String(params.id)))),
     http.post('*/billing/orders/:id/verify', ({ params }) => {
@@ -159,7 +165,8 @@ describe('Boost purchase', () => {
     checkout.unmount();
 
     const boosts = mount(<BoostsPage errandId="e1" />);
-    expect(await screen.findByText('Boosted')).toBeTruthy();
+    expect((await screen.findAllByText(/^Boosted/)).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Boost this errand' })).toBeNull();
     boosts.unmount();
 
     // The backend still refuses a second purchase if one is attempted directly.

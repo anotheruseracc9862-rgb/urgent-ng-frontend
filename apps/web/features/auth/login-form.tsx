@@ -12,7 +12,6 @@ import { e164ToLocalPhone, isLocalPhone } from '@urgent/utils';
 import { authApi, toIdentifier } from '@/lib/api/auth';
 import { isApiError, safeRedirect } from '@/lib/api/client';
 import { readPendingIdentifier } from '@/lib/auth/pending-identity';
-import { track } from '@/lib/observability';
 import { AuthHeading, FieldError, FormError, OrDivider, PasswordInput, describeAuthError } from './auth-ui';
 import { GoogleButton } from './google-button';
 import { routeAfterLogin } from './after-login';
@@ -63,7 +62,6 @@ export function LoginForm() {
     setLocked(false);
     try {
       const result = await authApi.login({ ...toIdentifier(data.identifier), password: data.password });
-      track('auth.login_completed');
       await routeAfterLogin(router, result.status, redirect);
     } catch (error) {
       if (isApiError(error) && error.code === 'ACCOUNT_LOCKED') setLocked(true);

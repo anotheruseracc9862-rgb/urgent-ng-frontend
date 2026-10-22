@@ -33,7 +33,8 @@ import { errandsApi, type Errand, type ErrandOffer, type OfferSort } from '../ap
 import { availableActions } from '@/features/assignments/available-actions';
 import { useRatingAction } from '@/features/ratings/use-rating-action';
 import { PLACE_COPY, flowOf } from '@/features/reference/flow';
-import { BoostBadge, boostEndsLabel } from '@/features/billing/boost-badge';
+import { BoostBadge, BoostResults, boostEndsLabel } from '@/features/billing/boost-badge';
+import { BOOST_RUNNING_NOTICE } from '@/features/billing/boost-notice';
 import { ErrandPostedBanner } from './errand-posted-banner';
 import { estimateLabel } from '@/components/forms/duration-input';
 import { CancelErrandButton } from '../cancel/cancel-errand-dialog';
@@ -370,7 +371,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
             {errand.boost
               ? <Button type="button" variant="ghost" disabled aria-label={`Already boosted until ${boostEndsLabel(errand.boost.expiresAt)}`}>Boosted</Button>
               : <Button asChild variant="ghost"><Link href={`/boosts?errandId=${errandId}`}>Boost</Link></Button>}
-            <CancelErrandButton errandId={errandId} status="OPEN" offerCount={errand.offerCount} flow={flowOf(errand.category)} />
+            <CancelErrandButton errandId={errandId} status="OPEN" offerCount={errand.offerCount} flow={flowOf(errand.category)} boosted={Boolean(errand.boost)} />
           </> : null}
           {errand.status === 'RUNNER_SELECTED' ? <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Cancel</Link></Button> : null}
           {['ACCEPTED', 'IN_PROGRESS', 'PICKED_UP', 'DELIVERED', 'COMPLETED', 'DISPUTED'].includes(errand.status) && assignment ? (
@@ -383,6 +384,12 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
         </>}
       />
       <ErrandPostedBanner errandId={errandId} status={errand.status} />
+      {errand.status === 'OPEN' && errand.boost ? (
+        <div className="grid gap-0.5 px-1.5">
+          <BoostResults boost={errand.boost} />
+          <p className="text-xs leading-relaxed text-muted">{BOOST_RUNNING_NOTICE}</p>
+        </div>
+      ) : null}
       <ErrandJourney errand={errand} />
 
       {actionErrorMessage ? <Alert variant={selectionConflict ? 'info' : 'danger'} role={selectionConflict ? 'status' : 'alert'}><div className="flex flex-wrap items-center justify-between gap-3"><div><p>{actionErrorMessage}</p></div><Button type="button" size="sm" variant="ghost" onClick={() => { extend.reset(); duplicate.reset(); selectRunner.reset(); void errandQuery.refetch(); void offersQuery.refetch(); }}>Refresh errand</Button></div></Alert> : null}

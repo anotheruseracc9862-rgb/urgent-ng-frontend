@@ -132,6 +132,15 @@ describe('Runner Pro', () => {
 describe('Boosts', () => {
   const open = [{ id: 'e1', title: 'Collect parcel', status: 'OPEN' }];
 
+  it('says up front what a boost does and does not give back', async () => {
+    server.use(
+      http.get('*/errands/mine', () => envelope(open)),
+      http.get('*/billing/orders', () => envelope([])),
+    );
+    renderWith(<BoostsPage />);
+    expect(await screen.findByText(/isn't refunded once it has started/)).toBeTruthy();
+  });
+
   it('says an errand is already boosted when the backend refuses a second purchase', async () => {
     server.use(
       http.get('*/errands/mine', () => envelope(open)),
@@ -157,14 +166,26 @@ describe('Boosts', () => {
   it('shows a boost that is running as boosted, with when it ends, and offers no second boost', async () => {
     const endsAt = new Date(Date.now() + 5 * 3_600_000).toISOString();
     server.use(
-      http.get('*/errands/mine', () => envelope([{ ...open[0], boost: { expiresAt: endsAt } }])),
+      http.get('*/errands/mine', () => envelope([{ ...open[0], boost: { expiresAt: endsAt, startedAt: new Date().toISOString(), openedByCount: 5, offersSinceCount: 2 } }])),
       http.get('*/billing/orders', () => envelope([order({ type: 'BOOST', status: 'PAID', errandId: 'e1', paidAt: '2026-10-15T09:00:00Z' })])),
     );
     renderWith(<BoostsPage />);
     expect((await screen.findAllByText(/^Boosted/)).length).toBeGreaterThan(0);
-    expect(screen.getByText(/until /)).toBeTruthy();
+    expect(screen.getByText(/· until /)).toBeTruthy();
     expect(screen.getByText(/cannot be boosted again/)).toBeTruthy();
+    expect(screen.getByText(/opened by 5 runners · 2 offers/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Boost this errand' })).toBeNull();
+  });
+
+  it('says how long a boost bought now would run, before the person buys', async () => {
+    const endsAt = new Date(Date.now() + 2 * 3_600_000 + 20_000).toISOString();
+    server.use(
+      http.get('*/errands/mine', () => envelope([{ ...open[0], boost: null, boostWouldEndAt: endsAt }])),
+      http.get('*/billing/orders', () => envelope([])),
+    );
+    renderWith(<BoostsPage />);
+    expect(await screen.findByText(/Would run about 2 hours/)).toBeTruthy();
+    expect(screen.getByText(/The price is the same however long it runs/)).toBeTruthy();
   });
 
   it('offers a boost again once the earlier one has ended, even though its order was paid', async () => {

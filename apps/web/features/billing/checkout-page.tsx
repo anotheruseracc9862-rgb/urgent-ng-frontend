@@ -10,6 +10,7 @@ import { formatDate, formatMoney } from '@urgent/utils';
 import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { billingApi, ORDER_TYPE_LABEL, type Order } from './api';
+import { BOOST_TERMS_NOTICE } from './boost-notice';
 import { clearPendingOrder } from './checkout';
 
 const POLL_MS = 3_000;
@@ -161,6 +162,7 @@ export function CheckoutPage({ orderId }: { orderId: string }) {
           <div className="flex justify-between gap-3"><dt className="text-muted">Item</dt><dd className="font-bold text-ink">{ORDER_TYPE_LABEL[order.type]}</dd></div>
           <div className="flex justify-between gap-3 border-t border-line pt-3"><dt className="text-muted">Total</dt><dd className="font-extrabold text-ink">{formatMoney(order.amountMinor)}</dd></div>
         </dl>
+        {order.type === 'BOOST' ? <p className="text-xs leading-relaxed text-muted">{BOOST_TERMS_NOTICE}</p> : null}
         <div className="flex flex-wrap items-center gap-3">
           {order.status === 'PAID' ? (
             <Link href={nextLink(order).href} className="inline-flex min-h-11 items-center rounded-full bg-lime px-5 text-sm font-bold text-ink hover:bg-lime-600">{nextLink(order).label}</Link>

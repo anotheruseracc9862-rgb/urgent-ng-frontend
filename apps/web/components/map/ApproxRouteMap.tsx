@@ -20,26 +20,18 @@ export function useWideScreen(minWidth = 1024): boolean {
 }
 
 const round = (value: number) => value.toFixed(4);
-const routeKey = (from: Point, to: Point) => `urgent.route:${round(from.lat)},${round(from.lng)}:${round(to.lat)},${round(to.lng)}`;
+const routeKey = (from: Point, to: Point) => `${round(from.lat)},${round(from.lng)}:${round(to.lat)},${round(to.lng)}`;
 const memory = new Map<string, Route>();
 
 /**
- * The road route between two approximate points. One request per pair, then it is kept for the tab, so
- * a refresh or a second card does not pay for it again. Null when the directions service has no answer.
+ * The road route between two approximate points. One request per pair, then it is kept in memory for the page's life,
+ * so a second card or a re-render does not pay for it again. It is not written to browser storage: it holds places.
+ * Null when the directions service has no answer.
  */
 async function roadRoute(from: Point, to: Point): Promise<Route | null> {
   const key = routeKey(from, to);
   const cached = memory.get(key);
   if (cached) return cached;
-  try {
-    const stored = sessionStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored) as Route;
-      memory.set(key, parsed);
-      return parsed;
-    }
-  } catch { /* storage is optional */ }
-
   const { DirectionsService } = await loadRoutes();
   const result = await new DirectionsService().route({ origin: from, destination: to, travelMode: google.maps.TravelMode.DRIVING });
   const leg = result.routes[0]?.legs[0];
@@ -50,7 +42,6 @@ async function roadRoute(from: Point, to: Point): Promise<Route | null> {
     seconds: leg.duration?.value ?? 0,
   };
   memory.set(key, route);
-  try { sessionStorage.setItem(key, JSON.stringify(route)); } catch { /* storage is optional */ }
   return route;
 }
 

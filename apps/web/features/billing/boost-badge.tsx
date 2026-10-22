@@ -24,3 +24,26 @@ export function BoostBadge({ boost, className = '' }: { boost: Boost | null | un
     </span>
   );
 }
+
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+/** How long a boost bought now would run, in words: "about 2 hours", "about 1 hour 30 minutes", "about 24 hours". */
+export function boostLengthLabel(endsAt: string, now: Date = new Date()): string {
+  const minutes = Math.max(1, Math.round((new Date(endsAt).getTime() - now.getTime()) / 60_000));
+  if (minutes < 60) return `about ${plural(minutes, 'minute', 'minutes')}`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (rest < 10 || rest > 50) return `about ${plural(rest > 50 ? hours + 1 : hours, 'hour', 'hours')}`;
+  return `about ${plural(hours, 'hour', 'hours')} ${plural(Math.round(rest / 5) * 5, 'minute', 'minutes')}`;
+}
+
+/** What a running boost has brought so far. Counts only: nobody is named. */
+export function BoostResults({ boost, className = '' }: { boost: Boost | null | undefined; className?: string }) {
+  if (!boost) return null;
+  return (
+    <p className={`text-xs leading-relaxed text-muted ${className}`}>
+      <span className="font-bold text-ink-2">Since boosting:</span>{' '}
+      opened by {plural(boost.openedByCount, 'runner', 'runners')} · {plural(boost.offersSinceCount, 'offer', 'offers')}
+    </p>
+  );
+}

@@ -6348,6 +6348,12 @@ export interface components {
         ErrandBoostDto: {
             /** Format: date-time */
             expiresAt: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** @description Runners who opened the errand since the boost started. A count only. */
+            openedByCount: number;
+            /** @description Offers received since the boost started. */
+            offersSinceCount: number;
         };
         /** @enum {string} */
         ErrandCancellationReason: "REQUESTER_CANCELLED" | "RUNNER_CANCELLED" | "RUNNER_REJECTED_ASSIGNMENT" | "NO_RUNNER_AVAILABLE" | "SAFETY_CONCERN" | "DUPLICATE_ERRAND" | "USER_ACCOUNT_RESTRICTED" | "ADMIN_CANCELLED" | "OTHER";
@@ -6467,6 +6473,11 @@ export interface components {
             destinationApprox: components["schemas"]["LatLngDto"] | null;
             /** @description The boost running on this errand now, or null. */
             boost: components["schemas"]["ErrandBoostDto"] | null;
+            /**
+             * Format: date-time
+             * @description When a boost bought now would end: the boost length, or the errand's own deadline if that is sooner. Null unless the errand is open and not boosted.
+             */
+            boostWouldEndAt: string | null;
             /** Format: date-time */
             publishedAt: string | null;
             /** Format: date-time */

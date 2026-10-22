@@ -349,6 +349,28 @@ describe('requester errand detail', () => {
     expect(screen.getByText('This errand expired before a runner was selected. You can repost it as a new draft.')).toBeInTheDocument();
   });
 
+  it('says what a running boost brings and that it is not refunded, under the status', async () => {
+    server.use(http.get(`*/api/v1/errands/${errandId}`, () => envelope({
+      ...errand,
+      boost: { expiresAt: new Date(Date.now() + 3_600_000).toISOString(), startedAt: new Date().toISOString(), openedByCount: 4, offersSinceCount: 1 },
+    })));
+
+    renderDetail();
+
+    expect(await screen.findByText(/opened by 4 runners · 1 offer/)).toBeInTheDocument();
+    expect(screen.getByText("This boost ends if you cancel or a runner accepts, and it isn't refunded.")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Already boosted until/ })).toBeDisabled();
+  });
+
+  it('says nothing about a boost when there is none', async () => {
+    server.use(http.get(`*/api/v1/errands/${errandId}`, () => envelope({ ...errand, boost: null })));
+
+    renderDetail();
+
+    expect(await screen.findByRole('link', { name: 'Boost' })).toBeInTheDocument();
+    expect(screen.queryByText(/isn't refunded/)).toBeNull();
+  });
+
   it('shows only draft management actions before publishing', async () => {
     server.use(http.get(`*/api/v1/errands/${errandId}`, () => envelope({
       ...errand,
