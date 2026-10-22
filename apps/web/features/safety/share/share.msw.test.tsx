@@ -84,6 +84,8 @@ it('creates with a stable retry key, copies once, revokes and never caches the s
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><ShareManagementPage errandId="e1" /></QueryClientProvider>);
   await screen.findByText(/No links yet/);
+  // Before sending a link, the person is told who sees what and that the choice of who is theirs.
+  expect(screen.getByText(/does not need an account. You are responsible for who you send it to/)).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Create link' }));
   await screen.findByRole('alert');
   await user.click(screen.getByRole('button', { name: 'Create link' }));

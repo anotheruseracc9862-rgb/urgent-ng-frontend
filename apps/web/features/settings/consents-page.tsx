@@ -21,9 +21,9 @@ type Policy = components['schemas']['PolicyVersionDto'];
 const POLICY_INFO: Record<ConsentType, { label: string; description: string; href: string }> = {
   TERMS_OF_SERVICE: { label: 'Terms of Service', description: 'Rules for using Urgent.ng.', href: '/terms' },
   PRIVACY_POLICY: { label: 'Privacy Policy', description: 'How account and service data is handled.', href: '/privacy' },
-  SAFETY_POLICY: { label: 'Safety Policy', description: 'Safety expectations for every errand.', href: '/help' },
-  PROHIBITED_ITEMS_POLICY: { label: 'Prohibited Items Policy', description: 'Items that cannot be requested or carried.', href: '/terms' },
-  OFFLINE_PAYMENT_TERMS: { label: 'Offline Payment Terms', description: 'Payment arrangements between requesters and runners.', href: '/help' },
+  SAFETY_POLICY: { label: 'Safety Policy', description: 'Safety expectations for every errand.', href: '/terms#safety' },
+  PROHIBITED_ITEMS_POLICY: { label: 'Prohibited Items Policy', description: 'Items that cannot be requested or carried.', href: '/terms#prohibited-items' },
+  OFFLINE_PAYMENT_TERMS: { label: 'Offline Payment Terms', description: 'Payment arrangements between requesters and runners.', href: '/terms#payment-terms' },
   LOCATION_SHARING: { label: 'Location sharing', description: 'Share your live location during an active assignment.', href: '/privacy' },
   MARKETING_COMMUNICATIONS: { label: 'Marketing communications', description: 'Receive optional product news and offers.', href: '/privacy' },
 };

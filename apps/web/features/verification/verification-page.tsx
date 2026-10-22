@@ -186,6 +186,9 @@ export function VerificationPage() {
   /** Fields the person has left, and whether Continue was pressed: errors show only then, not while typing. */
   const [guarantorSeen, setGuarantorSeen] = useState<{ name?: boolean; phone?: boolean }>({});
   const [confirmed, setConfirmed] = useState(false);
+  // Two more things the person agrees to before sending: how their identity data is used, and that they hold any licence their work needs.
+  const [dataConsent, setDataConsent] = useState(false);
+  const [licenceDeclared, setLicenceDeclared] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>();
   const [attempt, setAttempt] = useState<VerificationAttempt>();
@@ -260,7 +263,7 @@ export function VerificationPage() {
 
   const startVerification = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!/^\d{11}$/.test(idNumber) || !selfieMediaId || !confirmed || submitting) return;
+    if (!/^\d{11}$/.test(idNumber) || !selfieMediaId || !confirmed || !dataConsent || !licenceDeclared || submitting) return;
     const trimmedGuarantorName = guarantorName.trim();
     const trimmedGuarantorPhone = guarantorPhone.trim();
     if (hasGuarantorProblem) {
@@ -549,7 +552,9 @@ export function VerificationPage() {
                   <div><dt className="text-muted">{idType}</dt><dd className="font-bold tabular-nums text-ink">{idNumber}</dd></div>
                 </dl>
                 <label className="flex items-start gap-3 text-sm leading-6 text-ink-2"><input required type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-1 size-4 accent-lime-700" /><span>I confirm these details are true and agree to the runner conduct rules, including the prohibited-items policy.</span></label>
-                <div className="flex justify-between"><Button type="button" variant="ghost" disabled={submitting} onClick={() => setStep(4)}>Back</Button><Button type="submit" disabled={!confirmed || !selfieMediaId || submitting}>{submitting ? 'Submitting…' : 'Submit for verification'}</Button></div>
+                <label className="flex items-start gap-3 text-sm leading-6 text-ink-2"><input required type="checkbox" checked={dataConsent} onChange={(event) => setDataConsent(event.target.checked)} className="mt-1 size-4 accent-lime-700" /><span>I agree that Urgent.ng and its identity-verification provider may use my ID number, selfie, date of birth and address to check who I am. The ID number is not stored, only a one-way fingerprint of it. See the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-bold underline">Privacy Policy</a>.</span></label>
+                <label className="flex items-start gap-3 text-sm leading-6 text-ink-2"><input required type="checkbox" checked={licenceDeclared} onChange={(event) => setLicenceDeclared(event.target.checked)} className="mt-1 size-4 accent-lime-700" /><span>I hold any licence, permit or qualification that the work I offer legally requires, and I will not take jobs that need one I do not have.</span></label>
+                <div className="flex justify-between"><Button type="button" variant="ghost" disabled={submitting} onClick={() => setStep(4)}>Back</Button><Button type="submit" disabled={!confirmed || !dataConsent || !licenceDeclared || !selfieMediaId || submitting}>{submitting ? 'Submitting…' : 'Submit for verification'}</Button></div>
               </form>
             )}
           </div>

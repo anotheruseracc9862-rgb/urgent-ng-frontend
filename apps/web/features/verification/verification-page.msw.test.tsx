@@ -58,6 +58,31 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('runner verification flow', () => {
+  it('will not submit until all three confirmations are ticked: the details, how the data is used, and the licence declaration', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('*/api/v1/verification', () => envelope(overview)));
+    renderPage();
+    await user.type(await screen.findByLabelText('Home address'), '12 Adeola Odeku Street');
+    await user.type(screen.getByLabelText('Local government area'), 'Eti-Osa');
+    await user.type(screen.getByLabelText('Date of birth'), '1990-01-01');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.type(await screen.findByLabelText('11-digit NIN'), '12345678901');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
+    const submit = screen.getByRole('button', { name: 'Submit for verification' });
+    const [details, data, licence] = screen.getAllByRole('checkbox');
+    expect(submit).toBeDisabled();
+    await user.click(details);
+    await user.click(data);
+    expect(submit).toBeDisabled();
+    await user.click(licence);
+    expect(submit).toBeEnabled();
+    expect(screen.getByText(/The ID number is not stored, only a one-way fingerprint of it/)).toBeInTheDocument();
+    expect(screen.getByText(/I hold any licence, permit or qualification that the work I offer legally requires/)).toBeInTheDocument();
+  });
+
   it.each([
     { phone: '+2348031234567', feeRequired: false },
     { phone: null, feeRequired: true },
@@ -140,7 +165,7 @@ describe('runner verification flow', () => {
     await user.click(screen.getByRole('button', { name: 'Skip' }));
     expect(screen.getByText('NIN')).toBeInTheDocument();
     expect(screen.getByText('12345678901')).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox'));
+    for (const box of screen.getAllByRole('checkbox')) await user.click(box);
     await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
     await waitFor(() => expect(submittedBody).toMatchObject({
@@ -233,7 +258,7 @@ describe('runner verification flow', () => {
     await user.click(screen.getByRole('button', { name: 'Skip' }));
     expect(screen.getByText('BVN')).toBeInTheDocument();
     expect(screen.getByText('22222222222')).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox'));
+    for (const box of screen.getAllByRole('checkbox')) await user.click(box);
     await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
     await waitFor(() => expect(submittedBody).toMatchObject({ bvn: '22222222222', selfieMediaId: 'selfie-media-1' }));
@@ -311,7 +336,7 @@ describe('runner verification flow', () => {
       await user.type(screen.getByLabelText('Full name'), 'Ngozi Okon');
       await user.type(screen.getByLabelText('Phone number'), '08034567890');
       await user.click(screen.getByRole('button', { name: 'Continue' }));
-      await user.click(screen.getByRole('checkbox'));
+      for (const box of screen.getAllByRole('checkbox')) await user.click(box);
       await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
       await waitFor(() => expect(submittedBody).toMatchObject({ guarantor: { fullName: 'Ngozi Okon', phone: '+2348034567890' } }));
@@ -329,7 +354,7 @@ describe('runner verification flow', () => {
       await user.type(screen.getByLabelText('Full name'), 'Lovelace Ada');
       await user.type(screen.getByLabelText('Phone number'), '+2348031234567');
       await user.click(screen.getByRole('button', { name: 'Skip' }));
-      await user.click(screen.getByRole('checkbox'));
+      for (const box of screen.getAllByRole('checkbox')) await user.click(box);
       await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
       await waitFor(() => expect(submittedBody).toBeDefined());

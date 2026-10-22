@@ -45,6 +45,7 @@ export function ShareManagementPage({ errandId }: { errandId: string }) {
     <section className="space-y-4 rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-[var(--shadow)]">
       <h2 className="text-xl font-semibold">Trusted link</h2>
       <p>Anyone with a link can see progress. Exact addresses, phone numbers and private messages are not shared. Links expire at the time shown or when the errand ends.</p>
+      <p className="text-sm text-muted">The person you send it to sees the runner&apos;s rounded location and the errand&apos;s progress, and does not need an account. You are responsible for who you send it to, so share it only with someone you trust.</p>
       {secret ? <div className="space-y-3">
         <p className="font-semibold">Save this link now. It is shown only once.</p>
         <label className="block" htmlFor="trusted-link">Private sharing link</label>

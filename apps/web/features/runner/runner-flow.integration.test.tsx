@@ -195,7 +195,7 @@ describe('F5 runner end-to-end flow', () => {
     await user.click(await screen.findByRole('button', { name: 'Upload selfie' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Skip' }));
-    await user.click(screen.getByRole('checkbox'));
+    for (const box of screen.getAllByRole('checkbox')) await user.click(box);
     await user.click(screen.getByRole('button', { name: 'Submit for verification' }));
     expect(await screen.findByText('You’re verified')).toBeInTheDocument();
     verificationStage.unmount();
