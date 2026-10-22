@@ -21,20 +21,12 @@ export function AssignmentJourney({ assignmentId, children }: { assignmentId: st
     refetchInterval: polling,
   });
   const data = assignment.data?.data;
-  // Payment terms only matter between acceptance and the start of the errand.
-  const payment = useQuery({
-    queryKey: queryKeys.assignments.paymentAgreement(assignmentId),
-    queryFn: () => offersApi.paymentAgreement(assignmentId),
-    retry: false,
-    enabled: data?.status === 'ACCEPTED' && data.errand.status === 'ACCEPTED',
-  });
 
   if (!data) return <>{children}</>;
   const view = buildJourney({
     role: data.role,
     errandStatus: data.errand.status,
     assignment: { status: data.status },
-    payment: payment.data ? { fullyConfirmed: payment.data.fullyConfirmed } : null,
   });
   return <JourneyContext.Provider value={{ view }}>{children}</JourneyContext.Provider>;
 }

@@ -52,10 +52,20 @@ describe('PushOptInPrompt when this browser already has push', () => {
     expect(screen.queryByLabelText('Push notification option')).toBeNull();
   });
 
-  it('still asks when permission was granted but this browser has no registered device (storage cleared, or a new browser)', () => {
+  it('registers quietly, without asking again, when permission was granted but this browser has no registered device', async () => {
     vi.stubGlobal('Notification', { permission: 'granted', requestPermission: mocks.requestPermission });
     renderPrompt();
-    expect(screen.getByLabelText('Push notification option')).toBeTruthy();
+    expect(screen.queryByLabelText('Push notification option')).toBeNull();
+    await waitFor(() => expect(mocks.api).toHaveBeenCalledWith('/me/devices', expect.objectContaining({ method: 'POST' })));
+    expect(localStorage.getItem('urgent.web-push-device-id')).toBe('device-1');
+    expect(screen.queryByLabelText('Push notification option')).toBeNull();
+  });
+
+  it('shows the prompt with the reason when that quiet registration fails', async () => {
+    vi.stubGlobal('Notification', { permission: 'granted', requestPermission: mocks.requestPermission });
+    mocks.api.mockRejectedValue(new Error('Push is down.'));
+    renderPrompt();
+    expect(await screen.findByText('Push is down.')).toBeTruthy();
   });
 
   it('still asks on a browser where it is off, even if it is on for the same person elsewhere: push is per device', () => {

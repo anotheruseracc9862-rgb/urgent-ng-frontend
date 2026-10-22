@@ -154,14 +154,27 @@ describe('Boosts', () => {
     expect(await screen.findByText(/open errand without a selected runner/i)).toBeTruthy();
   });
 
-  it('shows a paid boost as boosted', async () => {
+  it('shows a boost that is running as boosted, with when it ends, and offers no second boost', async () => {
+    const endsAt = new Date(Date.now() + 5 * 3_600_000).toISOString();
     server.use(
-      http.get('*/errands/mine', () => envelope(open)),
+      http.get('*/errands/mine', () => envelope([{ ...open[0], boost: { expiresAt: endsAt } }])),
       http.get('*/billing/orders', () => envelope([order({ type: 'BOOST', status: 'PAID', errandId: 'e1', paidAt: '2026-10-15T09:00:00Z' })])),
     );
     renderWith(<BoostsPage />);
-    expect(await screen.findByText('Boosted')).toBeTruthy();
+    expect((await screen.findAllByText(/^Boosted/)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/until /)).toBeTruthy();
+    expect(screen.getByText(/cannot be boosted again/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Boost this errand' })).toBeNull();
+  });
+
+  it('offers a boost again once the earlier one has ended, even though its order was paid', async () => {
+    server.use(
+      http.get('*/errands/mine', () => envelope([{ ...open[0], boost: null }])),
+      http.get('*/billing/orders', () => envelope([order({ type: 'BOOST', status: 'PAID', errandId: 'e1', paidAt: '2026-10-01T09:00:00Z' })])),
+    );
+    renderWith(<BoostsPage />);
+    expect(await screen.findByRole('button', { name: 'Boost this errand' })).toBeTruthy();
+    expect(screen.queryByText(/^Boosted/)).toBeNull();
   });
 });
 

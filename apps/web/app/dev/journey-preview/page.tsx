@@ -9,7 +9,7 @@ const samples: Array<{ title: string; facts: JourneyFacts }> = [
   { title: 'Requester: waiting for offers', facts: { role: 'REQUESTER', errandStatus: 'OPEN' } },
   { title: 'Runner: negotiating', facts: { role: 'RUNNER', offer: { status: 'ACTIVE' } } },
   { title: 'Runner: you were selected', facts: { role: 'RUNNER', errandStatus: 'RUNNER_SELECTED', assignment: { status: 'PENDING_ACCEPTANCE' } } },
-  { title: 'Requester: payment terms', facts: { role: 'REQUESTER', errandStatus: 'ACCEPTED', assignment: { status: 'ACCEPTED' }, payment: { fullyConfirmed: false } } },
+  { title: 'Requester: accepted, errand about to run', facts: { role: 'REQUESTER', errandStatus: 'ACCEPTED', assignment: { status: 'ACCEPTED' } } },
   { title: 'Runner: on the errand', facts: { role: 'RUNNER', errandStatus: 'PICKED_UP', assignment: { status: 'ACCEPTED' } } },
   { title: 'Requester: confirm delivery', facts: { role: 'REQUESTER', errandStatus: 'DELIVERED', assignment: { status: 'ACCEPTED' } } },
   { title: 'Runner: completed', facts: { role: 'RUNNER', errandStatus: 'COMPLETED', assignment: { status: 'COMPLETED' } } },

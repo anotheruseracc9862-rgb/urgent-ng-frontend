@@ -60,14 +60,14 @@ describe('payment agreement', () => {
     render(<QueryClientProvider client={client}><PaymentAgreementPage assignmentId="payment-assignment" /></QueryClientProvider>);
     const user = userEvent.setup();
 
-    expect(await screen.findByText('Both parties confirmed these terms.')).toBeInTheDocument();
+    expect(await screen.findByText('Both of you confirmed this plan.')).toBeInTheDocument();
     screen.getByRole('combobox', { name: 'Payment method' }).focus();
     await user.keyboard('{Enter}');
     await user.click(await screen.findByRole('option', { name: 'Bank Transfer' }));
-    await user.click(screen.getByRole('button', { name: 'Save payment terms' }));
-    expect(await screen.findByText('Waiting for both parties to confirm the current terms.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save payment plan' }));
+    expect(await screen.findByText('Waiting for both of you to confirm the current plan.')).toBeInTheDocument();
     expect(screen.getByText('You (Runner)').nextSibling).toHaveTextContent('Not confirmed');
     expect(screen.getByText('Other party').nextSibling).toHaveTextContent('Not confirmed');
-    expect(screen.getByText(/Urgent.ng never holds or transfers this money/)).toBeInTheDocument();
+    expect(screen.getByText(/Urgent.ng isn't part of it: we don't hold, collect or enforce payment/)).toBeInTheDocument();
   });
 });

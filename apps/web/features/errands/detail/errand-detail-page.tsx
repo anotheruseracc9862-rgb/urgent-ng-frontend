@@ -33,6 +33,7 @@ import { errandsApi, type Errand, type ErrandOffer, type OfferSort } from '../ap
 import { availableActions } from '@/features/assignments/available-actions';
 import { useRatingAction } from '@/features/ratings/use-rating-action';
 import { PLACE_COPY, flowOf } from '@/features/reference/flow';
+import { BoostBadge, boostEndsLabel } from '@/features/billing/boost-badge';
 import { ErrandPostedBanner } from './errand-posted-banner';
 import { estimateLabel } from '@/components/forms/duration-input';
 import { CancelErrandButton } from '../cancel/cancel-errand-dialog';
@@ -357,7 +358,7 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
       <PageHead
         eyebrow={`Errand · ${errand.category.name}`}
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
-        description={<span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_STYLE[errand.status]}`}>{(flowOf(errand.category) === 'SERVICE' ? SERVICE_STATUS_LABEL[errand.status] : undefined) ?? STATUS_LABEL[errand.status]}</span><span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span></span>}
+        description={<span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS_STYLE[errand.status]}`}>{(flowOf(errand.category) === 'SERVICE' ? SERVICE_STATUS_LABEL[errand.status] : undefined) ?? STATUS_LABEL[errand.status]}</span>{errand.status === 'OPEN' ? <BoostBadge boost={errand.boost} /> : null}<span>Posted {dateLabel(errand.publishedAt ?? errand.createdAt)}</span></span>}
         actions={<>
           {errand.status === 'DRAFT' ? <>
             <Button asChild><Link href={`/errands/${errandId}/edit`}>Edit draft</Link></Button>
@@ -366,7 +367,9 @@ export function ErrandDetailPage({ errandId }: { errandId: string }) {
           </> : null}
           {errand.status === 'OPEN' ? <>
             <Button asChild variant="ghost"><Link href={`/errands/${errandId}/edit`}>Edit</Link></Button>
-            <Button asChild variant="ghost"><Link href={`/boosts?errandId=${errandId}`}>Boost</Link></Button>
+            {errand.boost
+              ? <Button type="button" variant="ghost" disabled aria-label={`Already boosted until ${boostEndsLabel(errand.boost.expiresAt)}`}>Boosted</Button>
+              : <Button asChild variant="ghost"><Link href={`/boosts?errandId=${errandId}`}>Boost</Link></Button>}
             <CancelErrandButton errandId={errandId} status="OPEN" offerCount={errand.offerCount} flow={flowOf(errand.category)} />
           </> : null}
           {errand.status === 'RUNNER_SELECTED' ? <Button asChild variant="danger"><Link href={`/errands/${errandId}/cancel`}>Cancel</Link></Button> : null}

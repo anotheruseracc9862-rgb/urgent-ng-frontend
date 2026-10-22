@@ -11,6 +11,8 @@ const base: RunnerTask = {
   status: 'ACCEPTED',
   errandStatus: 'PICKED_UP',
   errandTitle: 'Collect fabric samples from Balogun market',
+  pickupApprox: { lat: 6.4549, lng: 3.3946 },
+  destinationApprox: { lat: 6.4474, lng: 3.4723 },
   agreedAmountMinor: 300000,
   acceptanceDeadline: new Date(Date.now() + 20 * 60_000).toISOString(),
   acceptedAt: null,

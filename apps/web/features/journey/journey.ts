@@ -1,10 +1,12 @@
 /**
  * Where an errand stands for one person, from the statuses the API already gives us.
  *
- * Seven stages. Requester and runner walk the same stages with different labels:
+ * Six stages. Requester and runner walk the same stages with different labels:
  *
- *   0 Offers  ->  1 Negotiate  ->  2 Select / accept  ->  3 Payment terms
- *             ->  4 Errand runs  ->  5 Confirm delivery  ->  6 Rate
+ *   0 Offers  ->  1 Negotiate  ->  2 Select / accept  ->  3 Errand runs
+ *             ->  4 Confirm delivery  ->  5 Rate
+ *
+ * The payment plan is an optional note between the two people and is not a stage: nothing waits for it.
  *
  * Pure functions only: the data fetching lives in `assignment-journey.tsx`, `offer-journey.tsx`
  * and `errand-journey.tsx`.
@@ -19,7 +21,6 @@ export interface JourneyFacts {
   errandStatus?: string;
   offer?: { status: string } | null;
   assignment?: { status: string } | null;
-  payment?: { fullyConfirmed: boolean } | null;
 }
 
 export interface JourneyStep {
@@ -34,10 +35,10 @@ export interface JourneyView {
 }
 
 const LABELS: Record<JourneyRole, string[]> = {
-  REQUESTER: ['Offers', 'Negotiate', 'Select runner', 'Payment terms', 'Errand runs', 'Confirm', 'Rate'],
-  RUNNER: ['Offer sent', 'Negotiate', 'Accept job', 'Payment terms', 'Run errand', 'Delivered', 'Rate'],
+  REQUESTER: ['Offers', 'Negotiate', 'Select runner', 'Errand runs', 'Confirm', 'Rate'],
+  RUNNER: ['Offer sent', 'Negotiate', 'Accept job', 'Run errand', 'Delivered', 'Rate'],
 };
-const KEYS = ['offers', 'negotiate', 'select', 'payment', 'run', 'confirm', 'rate'];
+const KEYS = ['offers', 'negotiate', 'select', 'run', 'confirm', 'rate'];
 
 /** The stage a person is at, and whether the journey stopped or paused there. */
 function position(facts: JourneyFacts): { stage: number; stopped: boolean } {
@@ -51,14 +52,13 @@ function position(facts: JourneyFacts): { stage: number; stopped: boolean } {
       case 'TIMED_OUT':
         return { stage: 2, stopped: true };
       case 'CANCELLED':
-        return { stage: facts.payment?.fullyConfirmed ? 4 : 3, stopped: true };
+        return { stage: 3, stopped: true };
       case 'COMPLETED':
-        return { stage: 6, stopped: false };
+        return { stage: 5, stopped: false };
       default:
-        if (errandStatus === 'DISPUTED') return { stage: 5, stopped: true };
-        if (errandStatus === 'DELIVERED') return { stage: 5, stopped: false };
-        if (errandStatus === 'IN_PROGRESS' || errandStatus === 'PICKED_UP') return { stage: 4, stopped: false };
-        return { stage: facts.payment?.fullyConfirmed ? 4 : 3, stopped: false };
+        if (errandStatus === 'DISPUTED') return { stage: 4, stopped: true };
+        if (errandStatus === 'DELIVERED') return { stage: 4, stopped: false };
+        return { stage: 3, stopped: false };
     }
   }
 

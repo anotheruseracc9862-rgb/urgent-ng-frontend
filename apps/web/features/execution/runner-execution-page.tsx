@@ -3,6 +3,7 @@
 import { PageLoading } from '@/components/shell/page-loading';
 import { PageHead } from '@/components/shell/page-head';
 import { MessageLink } from '@/features/messaging/message-link';
+import { DirectionsLink } from '@/features/assignments/directions-link';
 import { useApiMutation } from '@/lib/query/mutations';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -20,7 +21,6 @@ import { AssignmentTimeline } from '@/features/assignments/assignment-timeline';
 import { ExecutionProgress } from '@/features/assignments/execution-progress';
 import { availableActions } from '@/features/assignments/available-actions';
 import { ActionRow } from '@/features/assignments/action-row';
-import { paymentPrompt } from '@/features/assignments/payment/payment-prompt';
 import { DOING_NOW, STEP_COPY, flowOf, type RunnerStep } from '@/features/reference/flow';
 
 type Step = RunnerStep;
@@ -55,12 +55,6 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
     queryFn: () => offersApi.assignmentTimeline(assignmentId),
     retry: false,
     enabled: Boolean(assignment.data),
-  });
-  const agreement = useQuery({
-    queryKey: queryKeys.assignments.paymentAgreement(assignmentId),
-    queryFn: () => offersApi.paymentAgreement(assignmentId),
-    retry: false,
-    enabled: assignment.data?.data.status === 'ACCEPTED',
   });
   const [recorded, setRecorded] = useState<Step | null>(null);
   const [note, setNote] = useState('');
@@ -126,7 +120,6 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
 
   const errandId = assignment.data.data.errandId;
   const can = availableActions('RUNNER', assignment.data.data.status, errand.status);
-  const payment = paymentPrompt('RUNNER', agreement.data);
   return (
     <main className="grid min-w-0 content-start gap-4 pb-10">
       <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden">
@@ -136,7 +129,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
         eyebrow="Run the errand · Runner view"
         title={<span className="block max-w-[760px] break-words">{errand.title}</span>}
         description={service ? 'Each step is visible to the requester. Before and after photos are required.' : 'Each step is visible to the requester. Photos are optional evidence.'}
-        actions={<MessageLink conversationId={assignment.data.data.conversationId} />}
+        actions={<><DirectionsLink errand={errand} /><MessageLink conversationId={assignment.data.data.conversationId} /></>}
       />
       <JourneyHere />
 
@@ -213,7 +206,7 @@ export function RunnerExecutionPage({ assignmentId }: { assignmentId: string }) 
           <h2 className="text-sm font-extrabold text-ink">Helpful actions</h2>
           {can.reportProblems ? <ActionRow href={`/assignments/${assignmentId}/problems`} icon={Flag}>Delay, problem or receipt</ActionRow> : null}
           {can.changeRequest ? <ActionRow href={`/assignments/${assignmentId}/changes`} icon={MessageSquare}>Request a change</ActionRow> : null}
-          {can.paymentTerms ? <ActionRow href={`/assignments/${assignmentId}/payment`} icon={Wallet} badge={payment.badge} badgeTone={payment.needsAction ? 'amber' : 'muted'}>Payment terms</ActionRow> : null}
+          {can.paymentTerms ? <ActionRow href={`/assignments/${assignmentId}/payment`} icon={Wallet}>Payment plan (optional)</ActionRow> : null}
           {can.shareProgress ? <ActionRow href={`/errands/${errandId}/share`} icon={Share2}>Trusted-contact link</ActionRow> : null}
           {can.dispute && !can.cancel ? <ActionRow href={`/assignments/${assignmentId}/dispute`} icon={Flag}>Open a dispute</ActionRow> : null}
           {can.cancel ? <ActionRow href={`/assignments/${assignmentId}/cancel`} icon={X} danger>Cancel as runner</ActionRow> : null}

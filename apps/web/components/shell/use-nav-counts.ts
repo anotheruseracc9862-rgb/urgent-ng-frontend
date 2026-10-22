@@ -42,6 +42,7 @@ export function useNavCounts(mode: ShellMode, userId: string): NavCounts {
   if (mode === 'REQUESTER') {
     const requester = summary.data?.asRequester;
     counts.errands = requester ? requester.openErrands + requester.activeErrands : 0;
+    counts.offersToReview = requester?.offersToReview ?? 0;
   } else {
     const runner = summary.data?.asRunner;
     counts.offers = runner?.activeOffers ?? 0;

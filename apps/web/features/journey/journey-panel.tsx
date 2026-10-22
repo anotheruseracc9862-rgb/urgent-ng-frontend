@@ -22,7 +22,7 @@ const hint: Record<StepState, string> = { done: ' (done)', current: ' (now)', st
 
 /**
  * The steps of the errand and where this person is. From `sm` up it is the whole bar. On a phone it is
- * one pill, "Step 2 of 7: Negotiate", and tapping it lists every step. Every page that shows the
+ * one pill, "Step 2 of 6: Negotiate", and tapping it lists every step. Every page that shows the
  * steps (errand, offer, assignment) uses this one component.
  */
 export function JourneyPanel({ view, className = '' }: { view: JourneyView; className?: string }) {

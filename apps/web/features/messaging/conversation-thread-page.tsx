@@ -8,7 +8,6 @@ import Image from 'next/image';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ImagePlus, Info, Send } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@urgent/ui';
-import { PaymentTermsStrip } from '@/features/assignments/payment/payment-terms-strip';
 import { MediaUpload } from '@/components/media/MediaUpload';
 import { api, isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/client';
@@ -206,9 +205,6 @@ export function ConversationThreadPage({ conversationId, onShowDetails }: { conv
             <p role="status" className="rounded-[var(--r-sm)] bg-panel px-3 py-2.5 text-xs leading-relaxed text-muted">
               This errand is complete. Chat closes on <time dateTime={current.chatClosesAt} className="font-bold text-ink-2">{new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeZone: 'Africa/Lagos' }).format(new Date(current.chatClosesAt))}</time>.
             </p>
-          ) : null}
-          {current.assignmentId ? (
-            <PaymentTermsStrip assignmentId={current.assignmentId} role={current.counterpart.role === 'RUNNER' ? 'REQUESTER' : 'RUNNER'} />
           ) : null}
           {attachOpen ? (
             <MediaUpload purpose="CHAT_IMAGE" maxFiles={1} value={imageId ? [imageId] : []} onChange={(ids) => setImageId(ids[0])} />

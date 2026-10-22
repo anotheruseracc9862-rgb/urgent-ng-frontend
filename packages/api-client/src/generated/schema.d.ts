@@ -3513,6 +3513,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/requester/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every offer on the signed-in requester's errands, newest first. */
+        get: operations["RequesterOffers_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations": {
         parameters: {
             query?: never;
@@ -6328,6 +6345,10 @@ export interface components {
             /** @description The conversation with the runner once they accept and messages are open. */
             conversationId: string | null;
         };
+        ErrandBoostDto: {
+            /** Format: date-time */
+            expiresAt: string;
+        };
         /** @enum {string} */
         ErrandCancellationReason: "REQUESTER_CANCELLED" | "RUNNER_CANCELLED" | "RUNNER_REJECTED_ASSIGNMENT" | "NO_RUNNER_AVAILABLE" | "SAFETY_CONCERN" | "DUPLICATE_ERRAND" | "USER_ACCOUNT_RESTRICTED" | "ADMIN_CANCELLED" | "OTHER";
         ErrandDto: {
@@ -6347,6 +6368,8 @@ export interface components {
             dropoffContact: components["schemas"]["ErrandContactViewDto"] | null;
             photos: components["schemas"]["ErrandPhotoDto"][];
             assignment: components["schemas"]["ErrandAssignmentSummaryDto"] | null;
+            /** @description The boost running on this errand now, or null. One boost at a time. */
+            boost: components["schemas"]["ErrandBoostDto"] | null;
             /** Format: date-time */
             publishedAt: string | null;
             /** Format: date-time */
@@ -6438,6 +6461,12 @@ export interface components {
             suggestedBudgetMinor: number | null;
             pickupArea: string | null;
             destinationArea: string | null;
+            /** @description The approximate pickup point (about 500 m grid), for a map. */
+            pickupApprox: components["schemas"]["LatLngDto"] | null;
+            /** @description The approximate destination point, for a map. A service has only this one. */
+            destinationApprox: components["schemas"]["LatLngDto"] | null;
+            /** @description The boost running on this errand now, or null. */
+            boost: components["schemas"]["ErrandBoostDto"] | null;
             /** Format: date-time */
             publishedAt: string | null;
             /** Format: date-time */
@@ -6654,6 +6683,33 @@ export interface components {
             pickupArea: string | null;
             /** @description Approximate area only. */
             destinationArea: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RequesterOfferSummaryDto: {
+            id: string;
+            errandId: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            /**
+             * @description Whose move it is. REQUESTER: the offer or counter is waiting for the requester.
+             * @enum {string}
+             */
+            awaitingParty: "RUNNER" | "REQUESTER" | "NONE";
+            amountMinor: number;
+            durationMinutes: number;
+            needsReconfirmation: boolean;
+            version: number;
+            closeReason: string | null;
+            errandTitle: string;
+            errandStatus: string;
+            /** @enum {string} */
+            categoryFlow: "TRANSIT" | "SERVICE";
+            /** @description The runner's first name. */
+            runnerFirstName: string;
+            /** @description Public average rating, once there are enough ratings. */
+            runnerRating: number | null;
+            runnerCompletedErrands: number;
             /** Format: date-time */
             createdAt: string;
         };
@@ -7348,6 +7404,10 @@ export interface components {
             /** @description Approximate area only. Use GET /assignments/:id for exact data once accepted. */
             pickupArea: string | null;
             destinationArea: string | null;
+            /** @description The approximate pickup point (about 500 m grid), for a map. Never the exact point. */
+            pickupApprox: components["schemas"]["LatLngDto"] | null;
+            /** @description The approximate destination point, for a map. Never the exact point. */
+            destinationApprox: components["schemas"]["LatLngDto"] | null;
             /**
              * @description A service has no pickup: its one address is the destination.
              * @enum {string}
@@ -22916,6 +22976,66 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["RunnerOfferSummaryDto"][];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Error (see `error.code`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
+    RequesterOffers_list: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor for pagination */
+                cursor?: string;
+                /** @description Number of items per page */
+                limit?: number;
+                /** @description Only offers in this status. */
+                status?: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RequesterOfferSummaryDto"][];
                         meta?: {
                             [key: string]: unknown;
                         };

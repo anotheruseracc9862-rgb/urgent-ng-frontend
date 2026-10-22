@@ -14,6 +14,7 @@ import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
 import { JourneyHere } from '@/features/journey/journey-context';
 import { isService } from '@/features/reference/flow';
+import { trackingStop } from './tracking-stop';
 
 // The map code loads only when there is a pin to show.
 const RoundedLiveLocationMap = dynamic(
@@ -86,6 +87,7 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
   }
 
   const live = location.data;
+  const stop = trackingStop(current.errand);
   const hasPin = live.point !== null && live.sharing === 'ACTIVE' && ['FRESH', 'STALE'].includes(live.freshness);
 
   return (
@@ -106,8 +108,8 @@ export function LiveTrackingPage({ assignmentId }: { assignmentId: string }) {
             <p className="mt-2 text-sm font-bold text-ink">Estimated arrival: {live.estimatedArrivalMinutes} minutes</p>
           ) : null}
         </div>
-        {hasPin && live.point ? (
-          <MapProvider><RoundedLiveLocationMap point={live.point} /></MapProvider>
+        {hasPin || stop ? (
+          <MapProvider><RoundedLiveLocationMap point={hasPin ? live.point : null} stop={stop} /></MapProvider>
         ) : (
           <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-line bg-panel p-5 text-center">
             <p className="max-w-sm text-sm text-muted">

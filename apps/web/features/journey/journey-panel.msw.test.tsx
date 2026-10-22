@@ -42,13 +42,13 @@ describe('journey steps on an assignment', () => {
     renderIn(<AssignmentJourney assignmentId="a1"><JourneyHere /></AssignmentJourney>, 'run-1');
 
     const steps = await screen.findByRole('list');
-    expect(within(steps).getAllByRole('listitem')).toHaveLength(7);
+    expect(within(steps).getAllByRole('listitem')).toHaveLength(6);
     expect(currentStep()).toContain('Accept job');
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
     // The one button is the phone pill that opens the full list; the page has nothing else to press.
     expect(screen.getAllByRole('button')).toHaveLength(1);
-    expect(screen.getByRole('button')).toHaveTextContent('Step 3 of 7: Accept job');
+    expect(screen.getByRole('button')).toHaveTextContent('Step 3 of 6: Accept job');
     expect(screen.queryByText(/sees/i)).not.toBeInTheDocument();
   });
 
@@ -61,16 +61,18 @@ describe('journey steps on an assignment', () => {
     expect(currentStep()).toContain('Select runner');
   });
 
-  it('moves to the errand running once payment terms are confirmed', async () => {
+  it('is at the errand running as soon as the job is accepted, without waiting for any payment plan', async () => {
+    let paymentRequests = 0;
     server.use(
       http.get('*/api/v1/assignments/a1', () => envelope(assignment('RUNNER', 'ACCEPTED', 'ACCEPTED'))),
-      http.get('*/api/v1/assignments/a1/payment-agreement', () => envelope({ assignmentId: 'a1', agreedAmountMinor: 520000, currency: 'NGN', paymentMethod: 'CASH', paymentTiming: 'AT_DELIVERY', confirmedByRequesterAt: '2026-10-19T09:40:00.000Z', confirmedByRunnerAt: '2026-10-19T09:41:00.000Z', fullyConfirmed: true })),
+      http.get('*/api/v1/assignments/a1/payment-agreement', () => { paymentRequests += 1; return envelope({}); }),
     );
 
     renderIn(<AssignmentJourney assignmentId="a1"><JourneyHere /></AssignmentJourney>, 'run-1');
 
     await screen.findByRole('list');
     await vi.waitFor(() => expect(currentStep()).toContain('Run errand'));
+    expect(paymentRequests).toBe(0);
   });
 
   it('draws nothing when the assignment cannot be loaded, and the page still renders', async () => {

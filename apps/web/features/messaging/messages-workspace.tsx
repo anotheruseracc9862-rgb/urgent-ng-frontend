@@ -189,7 +189,7 @@ function ConversationDetails({ conversation }: { conversation: Conversation }) {
       <div className="mt-4 grid gap-2">
         <Link href={errandHref} className={`${action} bg-ink text-white hover:bg-[#0f1822]`}>Open errand</Link>
         {conversation.assignmentId ? (
-          <Link href={`/assignments/${encodeURIComponent(conversation.assignmentId)}/payment`} className={`${action} bg-panel text-ink hover:bg-tint-2`}>Payment terms</Link>
+          <Link href={`/assignments/${encodeURIComponent(conversation.assignmentId)}/payment`} className={`${action} bg-panel text-ink hover:bg-tint-2`}>Payment plan</Link>
         ) : null}
         <Link
           href={`/report?targetType=USER&targetId=${encodeURIComponent(conversation.counterpart.userId)}`}
@@ -236,7 +236,7 @@ export function MessagesWorkspace({ activeId }: { activeId?: string }) {
   const [detailsOpen, setDetailsOpen] = React.useState(false);
 
   return (
-    <div className="grid gap-4 lg:h-[calc(100vh-150px)] lg:min-h-[560px] lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)_320px]">
+    <div className="grid gap-4 lg:h-[calc(100dvh-164px)] lg:min-h-[560px] lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)_320px]">
       <section aria-label="Conversations" className={`${PANE} ${activeId ? 'hidden lg:flex' : 'flex'} max-lg:h-[calc(100dvh-10rem)] max-lg:min-h-[420px]`}>
         <ConversationList activeId={activeId} />
       </section>

@@ -88,7 +88,7 @@ describe('Messages workspace', () => {
     expect(await within(details).findByText('Agreed amount')).toBeInTheDocument();
     expect(within(details).getByText('₦3,000')).toBeInTheDocument();
     expect(within(details).getByRole('link', { name: 'Open errand' })).toHaveAttribute('href', '/errands/e1');
-    expect(within(details).getByRole('link', { name: 'Payment terms' })).toHaveAttribute('href', '/assignments/a1/payment');
+    expect(within(details).getByRole('link', { name: 'Payment plan' })).toHaveAttribute('href', '/assignments/a1/payment');
     expect(within(details).getByRole('link', { name: 'Report' })).toHaveAttribute('href', '/report?targetType=USER&targetId=u2');
     expect(within(details).getByRole('button', { name: 'Mute conversation' })).toBeInTheDocument();
     expect(within(details).getByRole('button', { name: 'Block Tunde' })).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('Messages workspace', () => {
     const details = await screen.findByRole('complementary', { name: 'Errand details' });
     expect(await within(details).findByText('Offer')).toBeInTheDocument();
     expect(within(details).getByText('₦8,000')).toBeInTheDocument();
-    expect(within(details).queryByRole('link', { name: 'Payment terms' })).toBeNull();
+    expect(within(details).queryByRole('link', { name: 'Payment plan' })).toBeNull();
   });
 });
 

@@ -75,7 +75,7 @@ describe('Track your errands', () => {
 
     expect(await screen.findByRole('link', { name: 'Live tracker' })).toHaveAttribute('href', '/assignments/a3/track');
     expect(screen.getByRole('link', { name: 'Open a dispute' })).toHaveAttribute('href', '/assignments/a3/dispute');
-    expect(screen.getByRole('link', { name: 'Payment terms' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Payment plan' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Change request' })).not.toBeInTheDocument();
   });

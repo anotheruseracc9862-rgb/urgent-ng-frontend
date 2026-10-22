@@ -26,7 +26,7 @@ export type ShellMode = 'REQUESTER' | 'RUNNER';
 type Icon = ComponentType<{ className?: string }>;
 
 /** What the count badge next to a nav item shows. Filled in by `useNavCounts`. */
-export type NavCountKey = 'errands' | 'offers' | 'tasks' | 'messages' | 'notifications' | 'nearby';
+export type NavCountKey = 'errands' | 'offers' | 'offersToReview' | 'tasks' | 'messages' | 'notifications' | 'nearby';
 
 export interface NavItem {
   /** Path only. A query that picks a sub-view goes in `query`. */
@@ -56,6 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, primary: true },
 
   { href: '/errands', label: 'My errands', icon: Package, mode: 'REQUESTER', primary: true, count: 'errands' },
+  { href: '/offers', label: 'Offers', icon: Tag, mode: 'REQUESTER', count: 'offersToReview', countAlert: true },
   { href: '/track', label: 'Track errand', icon: MapPin, mode: 'REQUESTER', primary: true, alsoActiveFor: ['/assignments'] },
 
   { href: '/marketplace', label: 'Find errands', icon: Compass, mode: 'RUNNER', primary: true, count: 'nearby' },
@@ -123,7 +124,7 @@ export const ROUTE_TITLES: Readonly<Record<string, string>> = {
 
 const ASSIGNMENT_SCREENS: Readonly<Record<string, string>> = {
   run: 'Run errand',
-  payment: 'Payment terms',
+  payment: 'Payment plan',
   changes: 'Change requests',
   confirm: 'Confirm delivery',
   cancel: 'Cancel',

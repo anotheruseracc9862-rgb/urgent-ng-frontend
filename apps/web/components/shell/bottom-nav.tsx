@@ -47,7 +47,8 @@ export function BottomNav({ mode }: { mode: ShellMode }) {
           const { label, icon: Icon } = item;
           const isProfile = item.href === '/profile';
           // Offers live under the Find errands tab on phones (see RunnerWorkSwitch).
-          const active = isItemActive(item, pathname, search) || (item.href === '/marketplace' && pathname.startsWith('/offers'));
+          const active = isItemActive(item, pathname, search) || (item.href === '/marketplace' && mode === 'RUNNER' && pathname.startsWith('/offers'))
+            || (item.href === '/errands' && mode === 'REQUESTER' && pathname.startsWith('/offers'));
           const replyDue = item.href === '/marketplace' && awaitingReply > 0;
           const badgeCount = replyDue ? awaitingReply : item.count ? counts[item.count] ?? 0 : 0;
           return (

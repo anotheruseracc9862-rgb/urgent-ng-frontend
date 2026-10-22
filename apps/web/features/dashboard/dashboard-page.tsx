@@ -356,7 +356,7 @@ function RequesterDashboard({ summary }: { summary: Summary | undefined }) {
                       </IconChip>
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-ink">{errand.title}</strong>
-                        <span className="block truncate text-[12.5px] text-muted">{isService(errand.category) ? `${errand.destinationArea ?? 'Area not set'} · Service` : `${errand.pickupArea ?? 'Area not set'}${errand.destinationArea ? ` → ${errand.destinationArea}` : ''}`}</span>
+                        <span className="block truncate text-[12.5px] text-muted">{open && errand.boost ? <span className="mr-1.5 inline-flex rounded-full bg-violet-bg px-2 py-0.5 text-[10px] font-bold text-violet">Boosted</span> : null}{isService(errand.category) ? `${errand.destinationArea ?? 'Area not set'} · Service` : `${errand.pickupArea ?? 'Area not set'}${errand.destinationArea ? ` → ${errand.destinationArea}` : ''}`}</span>
                       </span>
                       <span className="shrink-0 text-right">
                         <Badge tone={open ? 'amber' : status.tone}>{open ? `${errand.offerCount} offer${errand.offerCount === 1 ? '' : 's'}` : status.label}</Badge>

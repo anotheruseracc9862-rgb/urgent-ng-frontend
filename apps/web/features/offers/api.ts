@@ -4,6 +4,7 @@ import { api, apiResponse } from '@/lib/api/client';
 export type OfferNegotiation = components['schemas']['OfferNegotiationDto'];
 export type NegotiationEvent = components['schemas']['NegotiationEventDto'];
 export type RunnerOffer = components['schemas']['RunnerOfferSummaryDto'];
+export type RequesterOffer = components['schemas']['RequesterOfferSummaryDto'];
 export type RunnerOfferLimit = components['schemas']['RunnerOfferLimitDto'];
 export type RunnerEligibility = components['schemas']['RunnerEligibilityDto'];
 export type MarketplaceErrand = components['schemas']['MarketplaceErrandDto'];
@@ -46,6 +47,8 @@ export const offersApi = {
   runnerEligibility: () => api<RunnerEligibility>('/runner/eligibility'),
   runnerOffers: (filters: { status?: RunnerOffer['status']; cursor?: string; limit?: number }) =>
     apiResponse<RunnerOffer[]>('/runner/offers', { query: filters }),
+  requesterOffers: (filters: { status?: RequesterOffer['status']; cursor?: string; limit?: number }) =>
+    apiResponse<RequesterOffer[]>('/requester/offers', { query: filters }),
   marketplaceErrand: (id: string) => api<MarketplaceErrand>(`/marketplace/errands/${id}`),
   runnerAssignments: (filters: { cursor?: string; limit?: number; status?: string; q?: string; from?: string; to?: string }) =>
     apiResponse<RunnerAssignmentSummary>('/runner/assignments', { query: filters }),

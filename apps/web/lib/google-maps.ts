@@ -25,3 +25,11 @@ export function loadGoogleMaps(): Promise<GoogleMapsLibraries> {
 
   return librariesPromise;
 }
+
+let routesPromise: Promise<google.maps.RoutesLibrary> | undefined;
+
+/** The directions library, loaded on first use: only a map that draws a road route pays for it. Call after `loadGoogleMaps`. */
+export function loadRoutes(): Promise<google.maps.RoutesLibrary> {
+  routesPromise ??= importLibrary('routes');
+  return routesPromise;
+}

@@ -8,7 +8,7 @@ afterEach(cleanup);
 describe('JourneyPanel on a phone', () => {
   it('is one pill that names the step, with the other steps hidden', () => {
     render(<JourneyPanel view={buildJourney({ role: 'REQUESTER', errandStatus: 'OPEN' })} />);
-    const pill = screen.getByRole('button', { name: /Step 1 of 7: Offers/ });
+    const pill = screen.getByRole('button', { name: /Step 1 of 6: Offers/ });
     expect(pill).toHaveAttribute('aria-expanded', 'false');
     // Only the wide bar's list is in the page until the pill is opened.
     expect(screen.getAllByRole('list')).toHaveLength(1);
@@ -22,8 +22,8 @@ describe('JourneyPanel on a phone', () => {
     expect(pill).toHaveAttribute('aria-expanded', 'true');
     const all = document.getElementById(pill.getAttribute('aria-controls')!)!;
     const rows = within(all).getAllByRole('listitem');
-    expect(rows).toHaveLength(7);
-    expect(rows.map((row) => row.textContent?.replace(/^\d+/, '').replace(/\s*\((done|now|stopped)\)$/, ''))).toEqual(['Offers', 'Negotiate', 'Select runner', 'Payment terms', 'Errand runs', 'Confirm', 'Rate']);
+    expect(rows).toHaveLength(6);
+    expect(rows.map((row) => row.textContent?.replace(/^\d+/, '').replace(/\s*\((done|now|stopped)\)$/, ''))).toEqual(['Offers', 'Negotiate', 'Select runner', 'Errand runs', 'Confirm', 'Rate']);
     expect(rows[0]).toHaveTextContent('(done)');
     expect(rows[1]).toHaveAttribute('aria-current', 'step');
     expect(rows[1]).toHaveTextContent('(now)');
@@ -42,6 +42,6 @@ describe('JourneyPanel on a phone', () => {
 
   it('uses the runner labels for a runner', () => {
     render(<JourneyPanel view={buildJourney({ role: 'RUNNER', errandStatus: 'RUNNER_SELECTED', assignment: { status: 'PENDING_ACCEPTANCE' } })} />);
-    expect(screen.getByRole('button')).toHaveTextContent('Step 3 of 7: Accept job');
+    expect(screen.getByRole('button')).toHaveTextContent('Step 3 of 6: Accept job');
   });
 });

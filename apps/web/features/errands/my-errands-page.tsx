@@ -20,6 +20,8 @@ import { useApiMutation } from '@/lib/query/mutations';
 import { errandsApi, type ErrandSummary, type MyErrandFilters } from './api';
 import { errandQueries } from './queries';
 import { isService } from '@/features/reference/flow';
+import { RequesterWorkSwitch } from '@/components/requester/work-switch';
+import { BoostBadge } from '@/features/billing/boost-badge';
 
 type Tab = NonNullable<MyErrandFilters['tab']>;
 type Sort = NonNullable<MyErrandFilters['sort']>;
@@ -173,6 +175,7 @@ function ErrandCard({ errand }: { errand: ErrandSummary }) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={status.tone}>{status.label}</Badge>
           <span className="inline-flex rounded-full bg-tint-2 px-2.5 py-1 text-[11.5px] font-bold text-green-900">{errand.category.name}</span>
+          {errand.status === 'OPEN' ? <BoostBadge boost={errand.boost} /> : null}
         </div>
         <span className="text-[11px] text-muted">{errand.status === 'DRAFT' ? 'Saved' : 'Posted'} {formatRelativeTime(posted)}</span>
       </div>
@@ -371,6 +374,7 @@ export function MyErrandsPage() {
           </>
         )}
       />
+      <RequesterWorkSwitch current="errands" />
 
       {summary.error ? (
         <Alert variant="danger" role="alert">

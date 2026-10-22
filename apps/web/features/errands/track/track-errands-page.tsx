@@ -11,6 +11,7 @@ import { errandQueries } from '../queries';
 import type { ErrandSummary } from '../api';
 import { availableActions } from '@/features/assignments/available-actions';
 import { EXECUTION_STEPS, flowOf } from '@/features/reference/flow';
+import { ApproxRouteMap } from '@/components/map/ApproxRouteMap';
 
 /** Where each errand status sits on the five milestones. -1 means the runner has not accepted yet. */
 const STAGE_INDEX: Partial<Record<ErrandSummary['status'], number>> = {
@@ -56,8 +57,12 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
   const link = 'relative z-10 inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[13.5px] font-bold';
   const soft = 'relative z-10 inline-flex min-h-9 items-center rounded-full bg-panel px-3.5 text-[12.5px] font-bold text-ink hover:bg-tint-2';
 
+  const hasMap = Boolean(errand.pickupApprox || errand.destinationApprox);
+
   return (
     <section className="relative rounded-[var(--r-lg)] bg-surface p-5 shadow-[var(--shadow)] transition-shadow hover:shadow-[var(--shadow-pop)] motion-reduce:transition-none sm:p-[22px]" aria-labelledby={`track-${errand.id}`}>
+      <div className={hasMap ? 'grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]' : undefined}>
+      <div className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${delivered ? 'bg-ok-bg text-ok' : 'bg-blue-bg text-blue'}`}>
           {delivered ? null : <span aria-hidden="true" className="size-[7px] animate-pulse rounded-full bg-current" />}
@@ -105,13 +110,16 @@ function TrackCard({ errand }: { errand: ErrandSummary }) {
         ) : null}
         {can.shareProgress ? <Link href={`/errands/${errand.id}/share`} className={`${link} bg-surface text-ink shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel`}>Share with trusted contact</Link> : null}
       </div>
+      </div>
+      {hasMap ? <ApproxRouteMap showRoute={false} pickup={errand.pickupApprox} destination={errand.destinationApprox} /> : null}
+      </div>
 
       {assignment && (can.paymentTerms || can.changeRequest || can.dispute || can.cancel) ? (
         <>
           <hr className="my-[18px] border-0 border-t border-line" />
           <div className="flex flex-wrap gap-2">
             <Link href={`/errands/${errand.id}`} className={soft}>Errand details</Link>
-            {can.paymentTerms ? <Link href={`/assignments/${assignment}/payment`} className={soft}>Payment terms</Link> : null}
+            {can.paymentTerms ? <Link href={`/assignments/${assignment}/payment`} className={soft}>Payment plan</Link> : null}
             {can.changeRequest ? <Link href={`/assignments/${assignment}/changes`} className={soft}>Change request</Link> : null}
             {can.dispute ? <Link href={`/assignments/${assignment}/dispute`} className={soft}>Open a dispute</Link> : null}
             {can.cancel ? <Link href={`/assignments/${assignment}/cancel`} className="relative z-10 inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-[12.5px] font-bold text-red hover:bg-[#ffe1dc]">Cancel</Link> : null}

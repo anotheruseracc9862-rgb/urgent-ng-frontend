@@ -24,6 +24,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/components/map/MapProvider', () => ({
+  MapProvider: ({ children }: { children: React.ReactNode }) => children,
   useMapProvider: () => ({ libraries: null, error: new Error('Map unavailable') }),
 }));
 

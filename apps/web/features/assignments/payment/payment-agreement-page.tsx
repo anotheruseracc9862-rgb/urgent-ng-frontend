@@ -14,6 +14,7 @@ import { isApiError } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { offersApi } from '@/features/offers/api';
 import { PAYMENT_TIMING_LABEL, flowOf } from '@/features/reference/flow';
+import { PAYMENT_PLAN_ACK, PAYMENT_PLAN_NOTICE } from './payment-notice';
 import { JourneyHere } from '@/features/journey/journey-context';
 
 type PaymentMethod = NonNullable<components['schemas']['PaymentAgreementDto']['paymentMethod']>;
@@ -46,6 +47,7 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
   });
   const [methodDraft, setMethodDraft] = useState<PaymentMethod | ''>('');
   const [timingDraft, setTimingDraft] = useState<PaymentTiming | ''>('');
+  const [acknowledged, setAcknowledged] = useState(false);
   const update = useApiMutation({ affects: ['assignments'],
     mutationFn: (input: components['schemas']['UpdatePaymentAgreementDto']) => offersApi.updatePaymentAgreement(assignmentId, input),
     onSuccess: (result, input) => {
@@ -58,13 +60,13 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
   });
 
   if (agreement.isPending || assignment.isPending) {
-    return <PageLoading title="Payment agreement" eyebrow="Assignment" width="max-w-5xl" />;
+    return <PageLoading title="Payment plan" eyebrow="Assignment" width="max-w-5xl" />;
   }
   if (agreement.error || !agreement.data || assignment.error || !assignment.data) {
     const error = agreement.error ?? assignment.error;
     return (
       <main className="grid min-w-0 content-start gap-4 pb-10">
-        <ApiError error={error} fallback="We could not load this payment agreement." onRetry={() => { void agreement.refetch(); void assignment.refetch(); }} />
+        <ApiError error={error} fallback="We could not load this payment plan." onRetry={() => { void agreement.refetch(); void assignment.refetch(); }} />
       </main>
     );
   }
@@ -82,18 +84,19 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
     <main className="grid min-w-0 content-start gap-4 pb-10">
       <Link href={`/assignments/${assignmentId}`} className="inline-flex w-fit items-center gap-2 text-xs font-bold text-green-900 hover:underline max-sm:hidden"><ArrowLeft aria-hidden="true" className="size-4" />Back to assignment</Link>
       <PageHead
-        eyebrow="Payment agreement"
+        eyebrow="Payment plan"
         title={<span className="block max-w-[760px] break-words">{assignment.data.data.errand.title}</span>}
-        description="Agree how and when the runner fee is paid. Both sides confirm the same terms."
+        description="Note how and when the runner fee will be paid, so you are both clear. Each of you confirms the same plan."
       />
       <JourneyHere />
       <Alert variant="warn" role="note">
-        <p>Urgent.ng never holds or transfers this money. The payment is arranged directly between the requester and runner.</p>
+        <p className="font-bold">Payment is between you and the other person.</p>
+        <p className="mt-1">{PAYMENT_PLAN_NOTICE}</p>
       </Alert>
       <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]" aria-labelledby="payment-terms">
           <div className="border-b border-line-2 pb-4">
-            <h2 id="payment-terms" className="text-base font-extrabold text-ink">Payment terms</h2>
+            <h2 id="payment-terms" className="text-base font-extrabold text-ink">Payment plan</h2>
             <p className="mt-1 text-xs text-muted">Choose how the fee is paid and when.</p>
           </div>
           <div className="rounded-[var(--r)] bg-tint p-4">
@@ -117,17 +120,17 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
             </div>
           </div>
           {termsChanged ? (
-            <Alert variant="warn" role="status">Saving changed payment terms clears both parties&apos; confirmations. Both parties will need to confirm the updated agreement.</Alert>
+            <Alert variant="warn" role="status">Saving a changed plan clears both confirmations. You will both need to confirm the updated plan.</Alert>
           ) : null}
-          {update.error ? <ApiError error={update.error} fallback="We could not update the payment agreement." /> : null}
-          {update.isSuccess ? <Alert variant="ok" role="status">Payment terms updated. Both confirmations were refreshed by the server.</Alert> : null}
+          {update.error ? <ApiError error={update.error} fallback="We could not update the payment plan." /> : null}
+          {update.isSuccess ? <Alert variant="ok" role="status">Payment plan updated. Both confirmations were cleared, so you will each need to confirm it again.</Alert> : null}
           <div className="flex justify-end border-t border-line-2 pt-4">
             <Button
               type="button"
               disabled={!method || !timing || update.isPending || (method === current.paymentMethod && timing === current.paymentTiming)}
               onClick={() => update.mutate({ paymentMethod: method as PaymentMethod, paymentTiming: timing as PaymentTiming })}
             >
-              {update.isPending ? 'Saving…' : 'Save payment terms'}
+              {update.isPending ? 'Saving…' : 'Save payment plan'}
             </Button>
           </div>
         </section>
@@ -140,11 +143,17 @@ export function PaymentAgreementPage({ assignmentId }: { assignmentId: string })
             <div className="rounded-[var(--r-sm)] bg-panel p-3"><dt className="text-xs font-bold text-muted">You ({label(role)})</dt><dd className="mt-1 font-semibold text-ink">{confirmedAt ? `Confirmed ${new Date(confirmedAt).toLocaleString()}` : 'Not confirmed'}</dd></div>
             <div className="rounded-[var(--r-sm)] bg-panel p-3"><dt className="text-xs font-bold text-muted">Other party</dt><dd className="mt-1 font-semibold text-ink">{otherConfirmedAt ? `Confirmed ${new Date(otherConfirmedAt).toLocaleString()}` : 'Not confirmed'}</dd></div>
           </dl>
-          <p role="status" className="text-xs leading-relaxed text-muted">{current.fullyConfirmed ? 'Both parties confirmed these terms.' : 'Waiting for both parties to confirm the current terms.'}</p>
+          <p role="status" className="text-xs leading-relaxed text-muted">{current.fullyConfirmed ? 'Both of you confirmed this plan.' : 'Waiting for both of you to confirm the current plan.'}</p>
           {confirmedAt ? null : (
-            <Button type="button" disabled={!current.paymentMethod || !current.paymentTiming || update.isPending} onClick={() => update.mutate({ confirm: true })}>
-              {update.isPending ? 'Confirming…' : 'Confirm payment agreement'}
-            </Button>
+            <>
+              <label className="flex items-start gap-2 text-xs leading-snug text-ink-2">
+                <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--green-700,#3f7a1c)]" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
+                <span>{PAYMENT_PLAN_ACK}</span>
+              </label>
+              <Button type="button" disabled={!current.paymentMethod || !current.paymentTiming || update.isPending || !acknowledged} onClick={() => update.mutate({ confirm: true })}>
+                {update.isPending ? 'Confirming…' : 'Confirm payment plan'}
+              </Button>
+            </>
           )}
         </aside>
       </div>

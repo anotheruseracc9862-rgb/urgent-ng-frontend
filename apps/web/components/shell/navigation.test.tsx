@@ -35,7 +35,7 @@ afterAll(() => server.close());
 describe('shell navigation model', () => {
   it('keeps the demo rail short and mode specific', () => {
     expect(itemsFor('REQUESTER').map(({ label }) => label)).toEqual([
-      'Dashboard', 'My errands', 'Track errand', 'Messages', 'Notifications', 'Settings', 'Profile & account',
+      'Dashboard', 'My errands', 'Offers', 'Track errand', 'Messages', 'Notifications', 'Settings', 'Profile & account',
     ]);
     expect(itemsFor('RUNNER').map(({ label }) => label)).toEqual([
       'Dashboard', 'Find errands', 'My offers', 'Active task', 'Messages', 'Notifications', 'Settings', 'Profile & account',
@@ -184,7 +184,7 @@ describe('assignmentBreadcrumbs', () => {
       trail: [{ label: 'Active tasks', href: '/assignments' }, { label: 'Assignment', href: `/assignments/${id}` }],
       current: 'Run errand',
     });
-    expect(assignmentBreadcrumbs(`/assignments/${id}/payment`, 'REQUESTER')?.current).toBe('Payment terms');
+    expect(assignmentBreadcrumbs(`/assignments/${id}/payment`, 'REQUESTER')?.current).toBe('Payment plan');
     expect(assignmentBreadcrumbs(`/assignments/${id}/no-show`, 'RUNNER')?.current).toBe('No-show report');
     expect(assignmentBreadcrumbs(`/assignments/${id}/something-new`, 'RUNNER')?.current).toBe('Details');
   });

@@ -10,6 +10,7 @@ import { useLivePolling } from '@/features/realtime/use-live-polling';
 import { assignmentQueries, type RunnerTask } from '../queries';
 import { ExecutionProgress, RouteBlock, stageBadge } from '../execution-progress';
 import { availableActions } from '../available-actions';
+import { ApproxRouteMap } from '@/components/map/ApproxRouteMap';
 
 
 function useAssignments(status: 'ACTIVE' | 'PENDING_ACCEPTANCE', userId: string) {
@@ -27,8 +28,11 @@ export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respo
   const id = encodeURIComponent(assignment.id);
   const badge = stageBadge(assignment.errandStatus, Boolean(respond), assignment.categoryFlow);
   const can = availableActions('RUNNER', assignment.status, assignment.errandStatus);
+  const hasMap = !respond && Boolean(assignment.pickupApprox || assignment.destinationApprox);
   return (
     <li className="rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+      <div className={hasMap ? 'grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]' : undefined}>
+      <div className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${badge.className}`}>
           <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />{badge.label}
@@ -59,9 +63,12 @@ export function TaskRow({ assignment, respond }: { assignment: RunnerTask; respo
           </Link>
         ) : null}
       </div>
+      </div>
+      {hasMap ? <ApproxRouteMap pickup={assignment.pickupApprox} destination={assignment.destinationApprox} /> : null}
+      </div>
       {respond || !(can.paymentTerms || can.changeRequest || can.dispute || can.cancel) ? null : (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-line-2 pt-4">
-          {can.paymentTerms ? <Link href={`/assignments/${id}/payment`} className={chip}>Payment terms</Link> : null}
+          {can.paymentTerms ? <Link href={`/assignments/${id}/payment`} className={chip}>Payment plan</Link> : null}
           {can.changeRequest ? <Link href={`/assignments/${id}/changes`} className={chip}>Change request</Link> : null}
           {can.dispute ? <Link href={`/assignments/${id}/dispute`} className={chip}>Open a dispute</Link> : null}
           {can.cancel ? <Link href={`/assignments/${id}/cancel`} className="inline-flex min-h-9 items-center rounded-full bg-red-bg px-3.5 text-xs font-extrabold text-red hover:opacity-80">Cancel</Link> : null}

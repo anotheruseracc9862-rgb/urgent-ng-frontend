@@ -10,13 +10,17 @@ import { errandsApi } from '@/features/errands/api';
 import { queryKeys } from '@/lib/query/keys';
 import { useApiMutation } from '@/lib/query/mutations';
 import { billingApi, productFor, type Order } from './api';
+import { BoostBadge } from './boost-badge';
+import type { components } from '@urgent/api-client';
 import { billingErrorMessage } from './messages';
 import { useIntentKey } from './use-intent-key';
 import { useContinueToCheckout } from './use-checkout';
 
-function BoostRow({ errandId, title, boostedOrder, price, selected }: {
+function BoostRow({ errandId, title, boost, boostedOrder, price, selected }: {
   errandId: string;
   title: string;
+  /** The boost running now, from the errand itself. This, and not an old paid order, says whether it is boosted. */
+  boost: components['schemas']['ErrandBoostDto'] | null;
   boostedOrder: Order | undefined;
   price: string | null;
   selected: boolean;
@@ -32,8 +36,8 @@ function BoostRow({ errandId, title, boostedOrder, price, selected }: {
       continueToCheckout(order);
     },
   });
-  const pending = boostedOrder?.status === 'PENDING';
-  const live = boostedOrder?.status === 'PAID';
+  const live = Boolean(boost);
+  const pending = !live && boostedOrder?.status === 'PENDING';
 
   return (
     <li className={`grid min-w-0 gap-3 rounded-[var(--r-lg)] border p-4 transition-colors sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${
@@ -46,9 +50,12 @@ function BoostRow({ errandId, title, boostedOrder, price, selected }: {
         <div className="min-w-0 flex-1">
           <Link href={`/errands/${encodeURIComponent(errandId)}`} className="block truncate text-sm font-extrabold text-ink hover:underline">{title}</Link>
           {live ? (
-            <p className="mt-1 text-xs leading-relaxed text-ok">
-              Boosted since {boostedOrder.paidAt ? formatDate(boostedOrder.paidAt, 'medium') : 'now'}. It ends when the boost period passes or the errand closes.
-            </p>
+            <div className="mt-1.5 grid gap-1">
+              <BoostBadge boost={boost} className="w-fit" />
+              <p className="text-xs leading-relaxed text-ok">
+                It is already boosted, so it cannot be boosted again. It ends when the boost period passes or the errand closes{boostedOrder?.paidAt ? `. Paid ${formatDate(boostedOrder.paidAt, 'medium')}` : ''}.
+              </p>
+            </div>
           ) : pending ? (
             <p className="mt-1 text-xs leading-relaxed text-muted">A boost payment is waiting to be confirmed.</p>
           ) : (
@@ -141,6 +148,7 @@ export function BoostsPage({ errandId }: { errandId?: string }) {
                 key={errand.id}
                 errandId={errand.id}
                 title={errand.title}
+                boost={errand.boost}
                 boostedOrder={boostOrders.get(errand.id)}
                 price={price}
                 selected={errand.id === errandId}

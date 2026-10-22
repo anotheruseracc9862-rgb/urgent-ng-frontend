@@ -76,7 +76,6 @@ export function MarketplaceMapPage() {
 
   useEffect(() => {
     if (!libraries || !mapElement.current) return;
-    const palette = getComputedStyle(document.documentElement);
     const map = new libraries.maps.Map(mapElement.current, {
       center: { lat: 6.5244, lng: 3.3792 },
       zoom: 12,
@@ -89,11 +88,8 @@ export function MarketplaceMapPage() {
       minZoom: 5,
       maxZoom: 20,
       gestureHandling: 'greedy',
+      // The standard Google map. Colours read from the theme variables came out as bright blue roads, so only clutter is hidden.
       styles: [
-        { featureType: 'landscape', stylers: [{ color: palette.getPropertyValue('--panel').trim() }] },
-        { featureType: 'road', elementType: 'geometry', stylers: [{ color: palette.getPropertyValue('--surface').trim() }] },
-        { featureType: 'water', stylers: [{ color: '#dce9e5' }] },
-        { elementType: 'labels.text.fill', stylers: [{ color: palette.getPropertyValue('--muted').trim() }] },
         { featureType: 'poi', stylers: [{ visibility: 'off' }] },
         { featureType: 'transit', stylers: [{ visibility: 'off' }] },
       ],

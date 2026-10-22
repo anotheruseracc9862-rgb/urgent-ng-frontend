@@ -184,7 +184,7 @@ export function AssignmentChangesPage({ assignmentId }: { assignmentId: string }
         description="Propose a change to the agreed terms. The other party must accept it before it takes effect."
       />
       <JourneyHere />
-      {payment.error ? <ApiError error={payment.error} fallback="We could not load the current payment agreement." onRetry={() => void payment.refetch()} /> : null}
+      {payment.error ? <ApiError error={payment.error} fallback="We could not load the current payment plan." onRetry={() => void payment.refetch()} /> : null}
       <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid min-w-0 content-start gap-4">
           {!pending && !canPropose ? (
