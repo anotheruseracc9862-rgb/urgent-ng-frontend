@@ -79,6 +79,11 @@ export const queryKeys = {
     runnerHistorySummary: () => ['assignments', 'runner-history', 'summary'] as const,
   },
 
+  // Requester
+  requester: {
+    offers: (filters: Record<string, unknown>) => ['requester', 'offers', filters] as const,
+  },
+
   // Runner
   runner: {
     all: () => ['runner'] as const,

@@ -29,7 +29,6 @@ function appealErrorMessage(error: unknown): string {
     if (reason === 'NOT_APPEALABLE') return 'This action is not eligible for appeal.';
     if (reason === 'NO_OPEN_APPEAL') return 'This action no longer has an open appeal.';
   }
-  if (isApiError(error) && error.requestId) return `We could not submit the appeal. Request ID: ${error.requestId}`;
   return 'We could not submit the appeal. Please try again.';
 }
 
@@ -82,7 +81,6 @@ export function StandingDetails() {
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>We could not load your enforcement history.</p>
-            {isApiError(enforcement.error) && enforcement.error.requestId ? <p className="text-xs">Request ID: {enforcement.error.requestId}</p> : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => void enforcement.refetch()}>Try again</Button>
           </div>
         </Alert>
@@ -133,7 +131,6 @@ export function StandingDetails() {
         <Alert variant="danger" role="alert">
           <div className="grid gap-2">
             <p>We could not load your reliability details.</p>
-            {isApiError(reliability.error) && reliability.error.requestId ? <p className="text-xs">Request ID: {reliability.error.requestId}</p> : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => void reliability.refetch()}>Try again</Button>
           </div>
         </Alert>

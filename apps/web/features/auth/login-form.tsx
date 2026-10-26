@@ -12,7 +12,6 @@ import { e164ToLocalPhone, isLocalPhone } from '@urgent/utils';
 import { authApi, toIdentifier } from '@/lib/api/auth';
 import { isApiError, safeRedirect } from '@/lib/api/client';
 import { readPendingIdentifier } from '@/lib/auth/pending-identity';
-import { track } from '@/lib/observability';
 import { AuthHeading, FieldError, FormError, OrDivider, PasswordInput, describeAuthError } from './auth-ui';
 import { GoogleButton } from './google-button';
 import { routeAfterLogin } from './after-login';
@@ -37,7 +36,6 @@ export function LoginForm() {
   const justVerified = params.get('verified') === '1';
   const justReset = params.get('reset') === '1';
   const sessionCheckFailed = params.get('reason') === 'session-check-failed';
-  const sessionCheckRequestId = params.get('requestId');
 
   const [errorMessage, setErrorMessage] = useState('');
   const [locked, setLocked] = useState(false);
@@ -64,7 +62,6 @@ export function LoginForm() {
     setLocked(false);
     try {
       const result = await authApi.login({ ...toIdentifier(data.identifier), password: data.password });
-      track('auth.login_completed');
       await routeAfterLogin(router, result.status, redirect);
     } catch (error) {
       if (isApiError(error) && error.code === 'ACCOUNT_LOCKED') setLocked(true);
@@ -92,7 +89,6 @@ export function LoginForm() {
       {sessionCheckFailed ? (
         <Alert variant="danger">
           We could not check your session. Sign in again to continue.
-          {sessionCheckRequestId ? <span className="ml-1">Reference: {sessionCheckRequestId}</span> : null}
         </Alert>
       ) : null}
       {errorMessage ? <FormError message={errorMessage} /> : null}

@@ -27,7 +27,7 @@ export default async function PrivacyPage() {
             <p className="font-semibold text-ink mb-2">Your Privacy Matters</p>
             <p className="text-ink-2 text-sm mb-0">
               This policy explains how we collect, use, store, and protect your personal
-              information when you use Urgent.ng.
+              information when you use Urgent.ng. We handle personal data in line with the Nigeria Data Protection Act 2023.
             </p>
           </div>
 
@@ -50,7 +50,9 @@ export default async function PrivacyPage() {
               Verification Information (Runners Only)
             </h3>
             <ul className="list-disc pl-6 text-ink-2 space-y-2 mb-4">
-              <li>National Identification Number (NIN) - verified but not stored</li>
+              <li>National Identification Number (NIN) or Bank Verification Number (BVN): we pass it to our identity-verification provider to check it and do not store it. We keep only a one-way fingerprint (a hash) of it, so the same identity cannot be used on several accounts</li>
+              <li>Date of birth, address and local government area you give us for verification</li>
+              <li>An identity document photo, only if a manual review is needed</li>
               <li>Selfie photo for identity verification</li>
               <li>Guarantor details (optional)</li>
             </ul>
@@ -59,6 +61,8 @@ export default async function PrivacyPage() {
             <ul className="list-disc pl-6 text-ink-2 space-y-2 mb-4">
               <li>Pickup and delivery locations</li>
               <li>Contact phone numbers for coordination</li>
+              <li>Service addresses, for services done at a home</li>
+              <li>Messages you send through the app</li>
               <li>Errand descriptions and instructions</li>
               <li>Photos of items (when provided)</li>
             </ul>
@@ -66,7 +70,9 @@ export default async function PrivacyPage() {
             <h3 className="text-base font-bold text-ink mb-2">Location Data</h3>
             <p className="text-ink-2 leading-relaxed mb-4">
               When you use location features, we collect your approximate location to show nearby
-              errands or runners. You can control location permissions in your device settings.
+              errands or runners. If you choose to share your live location during an active errand, the other person
+              sees a rounded position, not an exact one, and a trusted contact you share a progress link with sees the
+              same. You can turn this off at any time, and you can control location permissions in your device settings.
             </p>
 
             <h3 className="text-base font-bold text-ink mb-2">Usage Data</h3>
@@ -74,6 +80,7 @@ export default async function PrivacyPage() {
               <li>Device information (type, operating system, browser)</li>
               <li>IP address</li>
               <li>Pages visited and features used</li>
+              <li>Which errands a runner opened. We count this to tell a requester how many runners opened a boosted errand, and we never show who</li>
               <li>Error logs and performance data</li>
             </ul>
           </section>
@@ -125,11 +132,16 @@ export default async function PrivacyPage() {
 
             <h3 className="text-base font-bold text-ink mb-2">With Service Providers</h3>
             <ul className="list-disc pl-6 text-ink-2 space-y-2 mb-4">
-              <li>Payment processor (Paystack) for transactions</li>
+              <li>Payment processor (Paystack) for platform fees such as Runner Pro, verification and boosts</li>
               <li>SMS and email providers for notifications</li>
-              <li>Cloud hosting services (AWS)</li>
-              <li>Analytics tools for platform improvement</li>
+              <li>Identity-verification provider, to check Runner identities</li>
+              <li>Google, for maps and place search, for signing in with Google if you choose it, and for push notifications (Firebase)</li>
+              <li>Cloud hosting providers</li>
             </ul>
+            <p className="text-ink-2 leading-relaxed mb-4">
+              Some of these providers are outside Nigeria, so your data may be processed in other countries. We share only
+              what each provider needs to do its job.
+            </p>
 
             <h3 className="text-base font-bold text-ink mb-2">For Legal Reasons</h3>
             <p className="text-ink-2 leading-relaxed">
@@ -159,10 +171,13 @@ export default async function PrivacyPage() {
                 <strong>Notifications:</strong> 90 days
               </li>
               <li>
-                <strong>Account data:</strong> Until deletion request, then scrubbed after 30 days
+                <strong>Account data:</strong> Until you ask to close your account. You have 14 days to change your mind, and your personal data is scrubbed 30 days after the account is closed
               </li>
               <li>
-                <strong>Errand records:</strong> Retained for legal and dispute resolution purposes
+                <strong>Errand records:</strong> Kept for as long as needed for legal, tax and dispute resolution purposes, then deleted or made anonymous
+            </li>
+            <li>
+              <strong>Which errands a runner opened:</strong> 90 days
               </li>
             </ul>
           </section>
@@ -186,6 +201,12 @@ export default async function PrivacyPage() {
               <li>
                 <strong>Portability:</strong> Receive your data in a structured format
               </li>
+              <li>
+                <strong>Withdraw consent:</strong> Where we rely on your consent, such as location sharing or marketing, you can withdraw it in your settings
+              </li>
+              <li>
+                <strong>Complain:</strong> You can complain to the Nigeria Data Protection Commission if you think we have handled your data wrongly
+              </li>
             </ul>
           </section>
 
@@ -199,7 +220,7 @@ export default async function PrivacyPage() {
               <li>Secure authentication and password hashing</li>
               <li>Regular security audits and monitoring</li>
               <li>Access controls and employee training</li>
-              <li>Incident response procedures</li>
+              <li>Incident response procedures: if a breach puts your rights at risk we will tell you, and we will tell the Nigeria Data Protection Commission within 72 hours</li>
             </ul>
           </section>
 
@@ -213,11 +234,11 @@ export default async function PrivacyPage() {
             <ul className="list-disc pl-6 text-ink-2 space-y-2">
               <li>Keep you logged in</li>
               <li>Remember your preferences</li>
-              <li>Analyze platform usage</li>
+              <li>Remember whether you are using the app as a requester or a runner</li>
               <li>Improve performance and security</li>
             </ul>
             <p className="text-ink-2 leading-relaxed mt-4">
-              You can control cookies through your browser settings, but some features may not work
+              We do not use advertising cookies. Google Maps, when it is shown, may set its own cookies. You can control cookies through your browser settings, but some features may not work
               without them.
             </p>
           </section>
@@ -249,7 +270,7 @@ export default async function PrivacyPage() {
             </p>
             <div className="mt-4 p-4 bg-cn-blue-50 rounded-lg">
               <p className="text-ink-2">
-                <strong>Email:</strong>{' '}
+                <strong>Email (including our Data Protection Officer):</strong>{' '}
                 <a href="mailto:privacy@urgent.ng" className="text-cn-green-800 underline">
                   privacy@urgent.ng
                 </a>

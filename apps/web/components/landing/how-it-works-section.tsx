@@ -7,7 +7,7 @@ const STEPS: Record<Role, { title: string; text: string }[]> = {
   requester: [
     {
       title: 'Post Your Request',
-      text: 'Tell us what needs doing, where to pick up, where to deliver, and your preferred timing. Add photos and special instructions.',
+      text: 'Tell us what needs doing, where to pick up and deliver, or the address for a job like cleaning or plumbing, and your preferred timing. Add photos and special instructions.',
     },
     {
       title: 'Receive Price Offers',

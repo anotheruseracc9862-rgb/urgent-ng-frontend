@@ -88,7 +88,7 @@ export function PublicHeader() {
           <Image
             src="/assets/logo.png"
             alt="Urgent.ng"
-            width={140}
+            width={114}
             height={34}
             priority
             className="h-[30px] w-auto lg:h-[34px]"
@@ -110,14 +110,14 @@ export function PublicHeader() {
         <div className="flex items-center gap-2">
           {viewer.status === 'loading' ? (
             <div aria-hidden className="flex items-center gap-2">
-              <span className="hidden h-[42px] w-24 animate-pulse rounded-full bg-[#f3f5f2] sm:block" />
+              <span className="hidden h-[42px] w-24 animate-pulse rounded-full bg-[#f3f5f2] lg:block" />
               <span className="h-[42px] w-[42px] animate-pulse rounded-full bg-[#f3f5f2] min-[420px]:w-[132px]" />
             </div>
           ) : null}
 
           {viewer.status === 'guest' ? (
             <>
-              <Link href="/login" aria-label="Sign In" className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}>
+              <Link href="/login" aria-label="Sign In" className={cn(PILL, 'hidden text-cn-blue-600 hover:bg-[#f3f5f2] lg:inline-flex')}>
                 <User className="size-[18px]" />
                 <span className="hidden sm:inline">Sign In</span>
               </Link>
@@ -125,7 +125,7 @@ export function PublicHeader() {
                 href="/register"
                 className={cn(
                   PILL,
-                  'hidden bg-white text-ink shadow-[inset_0_0_0_1px_rgba(23,33,46,0.12)] hover:bg-[#f3f5f2] md:inline-flex',
+                  'hidden bg-white text-ink shadow-[inset_0_0_0_1px_rgba(23,33,46,0.12)] hover:bg-[#f3f5f2] lg:inline-flex',
                 )}
               >
                 Sign Up
@@ -199,6 +199,24 @@ export function PublicHeader() {
               Become a Runner
             </Link>
           )}
+          {viewer.status === 'guest' ? (
+            <div className="mt-2 grid gap-2 border-t border-[var(--tu-line)] pt-3">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className={cn(PILL, 'text-cn-blue-600 hover:bg-[#f3f5f2]')}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setOpen(false)}
+                className={cn(PILL, 'bg-cn-green-500 text-ink hover:bg-cn-green-400')}
+              >
+                Sign Up
+              </Link>
+            </div>
+          ) : null}
         </nav>
       ) : null}
     </header>

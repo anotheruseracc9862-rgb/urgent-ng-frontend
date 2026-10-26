@@ -13,9 +13,9 @@ export function LoadingFrame({ inShell = false }: { inShell?: boolean }) {
       className={`grid place-items-center ${inShell ? 'min-h-[60vh]' : 'min-h-screen bg-panel'}`}
     >
       <Image
-        src="/assets/mascot.png"
+        src="/assets/mascot-sprint.png"
         alt=""
-        width={112}
+        width={132}
         height={112}
         priority
         className="h-28 w-auto motion-safe:animate-[mascot-pulse_1.4s_ease-in-out_infinite]"

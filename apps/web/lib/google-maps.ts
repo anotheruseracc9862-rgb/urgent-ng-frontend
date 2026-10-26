@@ -4,6 +4,7 @@ export interface GoogleMapsLibraries {
   maps: google.maps.MapsLibrary;
   marker: google.maps.MarkerLibrary;
   places: google.maps.PlacesLibrary;
+  geocoding: google.maps.GeocodingLibrary;
 }
 
 let librariesPromise: Promise<GoogleMapsLibraries> | undefined;
@@ -19,7 +20,16 @@ export function loadGoogleMaps(): Promise<GoogleMapsLibraries> {
     importLibrary('maps'),
     importLibrary('marker'),
     importLibrary('places'),
-  ]).then(([maps, marker, places]) => ({ maps, marker, places }));
+    importLibrary('geocoding'),
+  ]).then(([maps, marker, places, geocoding]) => ({ maps, marker, places, geocoding }));
 
   return librariesPromise;
+}
+
+let routesPromise: Promise<google.maps.RoutesLibrary> | undefined;
+
+/** The directions library, loaded on first use: only a map that draws a road route pays for it. Call after `loadGoogleMaps`. */
+export function loadRoutes(): Promise<google.maps.RoutesLibrary> {
+  routesPromise ??= importLibrary('routes');
+  return routesPromise;
 }

@@ -15,11 +15,11 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Urgent.ng — On-Demand Errand Marketplace in Nigeria',
   description:
-    'Get anything picked up, delivered, or sorted in minutes. Connect with verified runners nearby across Lagos, Abuja, and major Nigerian cities with safe pay on delivery.',
+    'Get anything picked up, delivered, or sorted in minutes. Connect with verified runners nearby across Lagos, Abuja, and major Nigerian cities with pay on delivery.',
   openGraph: {
     title: 'Urgent.ng — On-Demand Errand Marketplace in Nigeria',
     description:
-      'Get anything picked up, delivered, or sorted in minutes. Connect with verified runners nearby across Lagos, Abuja, and major Nigerian cities with safe pay on delivery.',
+      'Get anything picked up, delivered, or sorted in minutes. Connect with verified runners nearby across Lagos, Abuja, and major Nigerian cities with pay on delivery.',
     type: 'website',
     locale: 'en_NG',
     siteName: 'Urgent.ng',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Urgent.ng — On-Demand Errand Marketplace in Nigeria',
     description:
-      'Get anything picked up, delivered, or sorted in minutes. Connect with verified runners nearby across Lagos, Abuja, and major Nigerian cities with safe pay on delivery.',
+      'Get anything picked up, delivered, or sorted in minutes. Connect with verified runners nearby across Lagos, Abuja, and major Nigerian cities with pay on delivery.',
   },
 };
 

@@ -1,5 +1,5 @@
 /**
- * Areas that need a session. Shared by the middleware and by the loading frame, so both agree on
+ * Areas that need a session. Shared by the proxy and by the loading frame, so both agree on
  * which URLs belong to the signed-in app.
  */
 export const PROTECTED_PATHS = [

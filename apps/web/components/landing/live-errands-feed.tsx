@@ -27,7 +27,7 @@ const SAMPLE_ERRANDS = [
     pickup: '14 Admiralty Way, Lekki Phase 1',
     dropoff: 'Buyer destination in Lagos',
     description:
-      'Flat screen 38 inches TV in crisp working condition with wall bracket & remote. Need trusted runner to inspect and deliver to buyer with safe payment on delivery.',
+      'Flat screen 38 inches TV in crisp working condition with wall bracket & remote. Need trusted runner to inspect and deliver to buyer with payment on delivery.',
     urgency: 'Today ASAP',
     postedAgo: '14m ago',
     budget: 5000,

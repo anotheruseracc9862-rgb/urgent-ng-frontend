@@ -62,7 +62,7 @@ describe('sensitive data scan', () => {
   });
 
   it('does not log from production code', () => {
-    const allowed = new Set(['lib/observability/report.ts', 'lib/observability/analytics.ts', 'lib/observability/web-vitals.ts']);
+    const allowed = new Set(['lib/observability/report.ts', 'lib/observability/web-vitals.ts']);
     const logging = SOURCES.filter(({ file, text }) => !allowed.has(file) && /\bconsole\.(log|debug|info)\(/.test(text))
       .map(({ file }) => file);
     expect(logging).toEqual([]);

@@ -4,6 +4,8 @@ import { env } from "./lib/env";
 import { securityHeaders } from "./lib/security-headers";
 
 const buildConfig = (production: boolean): NextConfig => ({
+  // Dev only: lets a phone reach dev assets and HMR through a GitHub/VS Code port-forwarding tunnel.
+  allowedDevOrigins: ["**.devtunnels.ms"],
   experimental: {
     // Barrel packages: import only the components and icons a route uses.
     optimizePackageImports: ["@urgent/ui", "lucide-react"],
@@ -17,13 +19,16 @@ const buildConfig = (production: boolean): NextConfig => ({
     "@urgent/config",
   ],
   async headers() {
+    const options = { production, apiOrigin: env.NEXT_PUBLIC_API_URL };
     return [
       {
         source: '/:path*',
-        headers: securityHeaders({
-          production,
-          apiOrigin: env.NEXT_PUBLIC_API_URL,
-        }),
+        headers: securityHeaders(options),
+      },
+      // Listed after the rule above, so for this one file its policy replaces the general one.
+      {
+        source: '/firebase-messaging-sw.js',
+        headers: securityHeaders({ ...options, serviceWorker: true }),
       },
     ];
   },
@@ -31,7 +36,8 @@ const buildConfig = (production: boolean): NextConfig => ({
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${env.NEXT_PUBLIC_API_URL}/:path*`,
+        // The proxy runs on this server, so it can use the backend's private address when one is set.
+        destination: `${process.env.API_INTERNAL_URL ?? env.NEXT_PUBLIC_API_URL}/:path*`,
       },
     ];
   },
