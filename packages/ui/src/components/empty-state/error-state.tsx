@@ -6,7 +6,6 @@ import { cn } from "../../lib/utils";
 export interface ErrorStateProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
   message: string;
-  requestId?: string;
   onRetry?: () => void;
 }
 
@@ -14,7 +13,6 @@ export function ErrorState({
   className,
   title = "We could not load this",
   message,
-  requestId,
   onRetry,
   ...props
 }: ErrorStateProps) {
@@ -31,7 +29,6 @@ export function ErrorState({
         <h2 id={headingId} className="font-extrabold">{title}</h2>
       </div>
       <p className="text-sm">{message}</p>
-      {requestId && <p className="text-xs">Request ID: <code>{requestId}</code></p>}
       {onRetry && <Button variant="ghost" onClick={onRetry}>Try again</Button>}
     </section>
   );

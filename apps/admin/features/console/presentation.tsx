@@ -66,7 +66,7 @@ export function DisplayValue({ value, name = "", compact = false, sensitive = fa
     if (!compact && /mediaId$/i.test(name)) return <Link prefetch={false} className="text-button mono record-id" href={`/media?record=${encodeURIComponent(value)}`}>Review media {value} ↗</Link>;
     if (!compact && name === "userId") return <Link prefetch={false} className="text-button mono record-id" href={`/users?record=${encodeURIComponent(value)}`}>Review user {value} ↗</Link>;
     if (/^(status|state|errandStatus)$/.test(name) || /^[A-Z][A-Z_]{2,}$/.test(value) && value.length < 40) return <StatusBadge value={value} />;
-    if (/^\d{4}-\d\d-\d\dT/.test(value) && Number.isFinite(Date.parse(value))) return <time dateTime={value}>{new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))}</time>;
+    if (/^\d{4}-\d\d-\d\dT/.test(value) && Number.isFinite(Date.parse(value))) return <time dateTime={value} title={`${value} · shown in Africa/Lagos (WAT)`}>{new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" }).format(new Date(value))}</time>;
     if (compact && value.length > 90) return <span title={value}>{value.slice(0, 87)}…</span>;
     return <span className={/id$|reference|requestId/i.test(name) ? "mono record-id" : "preserve-lines"}>{value}</span>;
   }
@@ -82,9 +82,28 @@ export function RecordView({ value, sensitive = false }: { value: unknown; sensi
 
 export function DataTable({ rows, columns, onOpen }: { rows: unknown[]; columns: string[]; onOpen?: (row: Record<string, unknown>) => void }) {
   if (!rows.length) return <EmptyState />;
-  return <><p className="table-hint muted">Scroll within the table to view additional columns and rows.</p><div className="table-scroll" role="region" aria-label="Records table" tabIndex={0}><Table className="admin-table"><TableHeader><TableRow>{columns.map(c => <TableHead key={c} scope="col">{labelFor(c)}</TableHead>)}{onOpen && <TableHead scope="col"><span className="sr-only">Open record</span></TableHead>}</TableRow></TableHeader><TableBody>{rows.map((row, index) => <TableRow key={String(valueAt(row, "id") ?? valueAt(row, "key") ?? index)}>{columns.map(c => <TableCell key={c}><DisplayValue value={valueAt(row, c)} name={c.split(".").pop()} compact /></TableCell>)}{onOpen && <TableCell><button className="text-button" onClick={() => onOpen(row as Record<string, unknown>)} aria-label={`Open record ${index + 1}`}>Review <span aria-hidden="true">↗</span></button></TableCell>}</TableRow>)}</TableBody></Table></div></>;
+  return <><p className="table-hint muted">Scroll within the table to view additional columns and rows.</p><div className="table-scroll" role="region" aria-label="Records table" tabIndex={0}><Table className="admin-table"><TableHeader><TableRow>{columns.map(c => <TableHead key={c} scope="col">{labelFor(c)}</TableHead>)}{onOpen && <TableHead scope="col"><span className="sr-only">Open record</span></TableHead>}</TableRow></TableHeader><TableBody>{rows.map((row, index) => <TableRow key={String(valueAt(row, "id") ?? valueAt(row, "key") ?? index)}>{columns.map(c => <TableCell key={c}><DisplayValue value={valueAt(row, c)} name={c.split(".").pop()} compact /></TableCell>)}{onOpen && <TableCell><button className="text-button" onClick={() => onOpen(row as Record<string, unknown>)} aria-label={`Review record ${index + 1}`}>Review <span aria-hidden="true">↗</span></button></TableCell>}</TableRow>)}</TableBody></Table></div></>;
 }
 
 export function Pagination({ meta, count, cursor, onCursor }: { meta?: ApiMeta; count: number; cursor?: string | null; onCursor: (cursor: string | null) => void }) {
   return <div className="pagination"><span>{count} {count === 1 ? "record" : "records"} on this page</span><div className="toolbar"><button className="button" disabled={!cursor} onClick={() => onCursor(null)}>First page</button><button className="button" disabled={!meta?.hasNextPage || typeof meta.nextCursor !== "string"} onClick={() => onCursor(String(meta?.nextCursor))}>Next page</button></div></div>;
+}
+
+export function PerformanceReport({ kind, value }: { kind: string; value: unknown }) {
+  if (Array.isArray(value)) return <DataTable rows={value} columns={['area', 'errands', 'errandsWithOffer', 'errandsCompleted', 'offers', 'availableRunnersWithin5km', 'errandsPerRunner']} />;
+  const metrics = (keys: string[], notes: Record<string, string> = {}) => <div className="metric-grid">{keys.map(key => {
+    const number = valueAt(value, key);
+    const rate = /Rate$|Share$|^share/.test(key);
+    return <article key={key}><span>{labelFor(key.split('.').pop()!)}</span><b>{rate && typeof number === 'number' ? new Intl.NumberFormat('en-NG', { style: 'percent', maximumFractionDigits: 1 }).format(number) : <DisplayValue name={key} value={number} />}</b><small>{notes[key] ?? 'Within the selected period'}</small></article>;
+  })}</div>;
+  return <div className="stack">
+    <p className="context-note">Last {String(valueAt(value, 'windowDays') ?? 30)} days · Live server report</p>
+    {kind === 'analytics-overview' && metrics(['errandsPublished', 'errandsWithOffer', 'shareReceivingOffer', 'errandsCompleted', 'completionRate', 'minutesToFirstOfferMedian', 'minutesToFirstOfferP90', 'averageRating', 'ratingsCount', 'repeatRequesterShare', 'requestersWithCompleted'], {
+      shareReceivingOffer: 'Of published errands', completionRate: 'Completed ÷ completed, cancelled and expired errands',
+      minutesToFirstOfferMedian: 'Minutes · errands receiving an offer', minutesToFirstOfferP90: 'Minutes · 90th percentile',
+      averageRating: 'Overall published, revealed ratings · out of 5', repeatRequesterShare: 'Requesters completing at least two errands ÷ requesters with completions',
+    })}
+    {kind === 'analytics-funnel' && <><p className="context-note">People registered in this period; each stage counts distinct people, not events.</p>{['all', 'runners', 'requesters'].map(group => <section className="stack" key={group}><h3>{labelFor(group)}</h3>{metrics(Object.keys(valueAt(value, group) as object ?? {}).map(key => `${group}.${key}`))}</section>)}</>}
+    {kind === 'analytics-revenue' && <><p className="context-note">Platform purchases only. Amounts are NGN, VAT included; participant payment notes are not revenue.</p>{metrics(['totalGrossMinor', 'totalNetMinor'])}<h3>By product</h3><DataTable rows={valueAt(value, 'streams') as unknown[] ?? []} columns={['type', 'orders', 'grossMinor', 'refundedMinor', 'netMinor']} /><h3>Daily sales · Lagos time</h3><DataTable rows={valueAt(value, 'daily') as unknown[] ?? []} columns={['day', 'type', 'amountMinor']} /></>}
+  </div>;
 }

@@ -4,6 +4,8 @@ import { securityHeaders } from "./lib/security-headers";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Dev only: lets a phone reach dev assets and HMR through a GitHub/VS Code port-forwarding tunnel.
+  allowedDevOrigins: ["**.devtunnels.ms"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders(process.env.NODE_ENV === "production") }];
   },

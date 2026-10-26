@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LockKeyhole } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@urgent/ui";
-import type { ApiResult } from "@urgent/api-client";
+import type { ApiMeta, ApiResult } from "@urgent/api-client";
 import { adminApi, adminRequest } from "@/lib/api/client";
 import { allowed, recordPath } from "./access";
 import { endpoint } from "./contracts";
@@ -13,17 +13,17 @@ import { DataTable, EmptyState, ErrorState, LoadingState, Pagination, RecordView
 import { useAdmin } from "./shell";
 
 /** Separate component lifetime: changing record/tab unmounts and discards revealed data. */
-export function RelatedPanel({ path, id, sensitive = false }: { path: string; id: string; sensitive?: boolean }) {
+export function RelatedPanel({ path, id, sensitive = false, onOpen, columns }: { path: string; id: string; sensitive?: boolean; columns?: string[]; onOpen?: (row: Record<string, unknown>) => void }) {
   const admin = useAdmin();
   if (!allowed(admin, endpoint("GET", path))) return null;
-  return sensitive ? <SensitiveGate path={path} id={id} /> : <PublicRelated path={path} id={id} />;
+  return sensitive ? <SensitiveGate path={path} id={id} /> : <PublicRelated path={path} id={id} onOpen={onOpen} columns={columns} />;
 }
-function PublicRelated({ path, id }: { path: string; id: string }) {
+function PublicRelated({ path, id, onOpen, columns }: { path: string; id: string; columns?: string[]; onOpen?: (row: Record<string, unknown>) => void }) {
   const [cursor, setCursor] = useState<string | null>(null);
   const query = useQuery({ queryKey: ["admin", "related", path, id, cursor], queryFn: ({ signal }) => adminRequest(recordPath(path, id), { query: { cursor: cursor ?? undefined }, signal }), gcTime: 0 });
   if (query.isPending) return <LoadingState />;
   if (query.isError) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
-  return <><RecordView value={query.data.data} />{query.data.meta && <Pagination meta={query.data.meta} count={Array.isArray(query.data.data) ? query.data.data.length : 0} cursor={cursor} onCursor={setCursor} />}</>;
+  return <>{columns && Array.isArray(query.data.data) ? <DataTable rows={query.data.data} columns={columns} onOpen={onOpen} /> : <RecordView value={query.data.data} />}{query.data.meta && <Pagination meta={query.data.meta} count={Array.isArray(query.data.data) ? query.data.data.length : 0} cursor={cursor} onCursor={setCursor} />}</>;
 }
 
 export function SensitiveGate({ path, id }: { path: string; id: string }) {
@@ -34,10 +34,16 @@ export function SensitiveGate({ path, id }: { path: string; id: string }) {
   const [reasonCode, setReasonCode] = useState<unknown>();
   const [reasonText, setReasonText] = useState<unknown>();
   const [variant, setVariant] = useState<unknown>();
-  const reasons = useQuery({ queryKey: ["admin", "reason-codes"], queryFn: () => adminApi<{ codes: string[] }>("/reason-codes"), enabled: modal });
+  const [cursor, setCursor] = useState<string | null>(null);
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => () => controller.current?.abort(), []);
   const operation = endpoint("GET", path);
+  const needsReason = operation.query.some(f => f.name === 'reasonCode');
+  const reasons = useQuery({ queryKey: ["admin", "reason-codes"], queryFn: () => adminApi<{ codes: string[] }>("/reason-codes"), enabled: modal && needsReason });
   async function reveal(cursor?: string) {
-    if (!reasons.data?.codes.includes(String(reasonCode)) || reasonCode === "OTHER" && !String(reasonText ?? "").trim()) return;
+    if (needsReason && (!reasons.data?.codes.includes(String(reasonCode)) || reasonCode === "OTHER" && !String(reasonText ?? "").trim())) return;
+    controller.current?.abort();
+    const request = new AbortController(); controller.current = request;
     setBusy(true); setError(null);
     try {
       const query: Record<string, string> = {};
@@ -47,18 +53,20 @@ export function SensitiveGate({ path, id }: { path: string; id: string }) {
         if (field.name === "variant" && variant) query.variant = String(variant);
       }
       if (cursor) query.cursor = cursor;
-      setResult(await adminRequest(recordPath(path, id), { query })); setModal(false);
-    } catch (cause) { setError(cause); }
-    finally { setBusy(false); }
+      const result = path === '/disputes/{id}/chat'
+        ? await adminRequest<{ messages: unknown[]; meta: ApiMeta }>(recordPath(path, id), { query, signal: request.signal }).then(page => ({ ...page, data: page.data.messages, meta: page.data.meta }))
+        : await adminRequest(recordPath(path, id), { query, signal: request.signal });
+      if (!request.signal.aborted) { setResult(result); setCursor(cursor ?? null); setModal(false); }
+    } catch (cause) { if (!request.signal.aborted) setError(cause); }
+    finally { if (controller.current === request) setBusy(false); }
   }
   return <div className="stack"><div className="sensitive-notice"><LockKeyhole size={20} /><div><b>Sensitive information</b><p>Access requires a separate permission and is audited. Revealed data is not saved in the query cache.</p></div></div>
-    {result ? <><button className="button" onClick={() => { setResult(null); setReasonCode(undefined); setReasonText(undefined); }}>Hide sensitive data</button><RecordView value={result.data} sensitive />{result.meta && <Pagination meta={result.meta} count={Array.isArray(result.data) ? result.data.length : 0} onCursor={cursor => void reveal(cursor ?? undefined)} />}</> : <button className="button" onClick={() => setModal(true)}><LockKeyhole size={16} />Reveal with a reason</button>}
+    {result ? <><button className="button" onClick={() => { controller.current?.abort(); setBusy(false); setResult(null); setError(null); setCursor(null); setReasonCode(undefined); setReasonText(undefined); }}>Hide sensitive data</button><RecordView value={result.data} sensitive />{result.meta && <Pagination meta={result.meta} cursor={cursor} count={Array.isArray(result.data) ? result.data.length : 0} onCursor={cursor => { if (!busy) void reveal(cursor ?? undefined); }} />}</> : <button className="button" onClick={() => setModal(true)}><LockKeyhole size={16} />{needsReason ? 'Reveal with a reason' : 'Reveal information'}</button>}
     {!!error && <ErrorState error={error} />}
     {modal && <Dialog open onOpenChange={open => { if (!open && !busy) setModal(false); }}><DialogContent className="admin-dialog"><DialogTitle>Reveal sensitive information</DialogTitle><DialogDescription>The server records this access. Do not copy this information outside an authorized case.</DialogDescription><form className="stack" onSubmit={e => { e.preventDefault(); if (!busy) void reveal(); }}>
-      {reasons.isError ? <ErrorState error={reasons.error} retry={() => void reasons.refetch()} /> : <SchemaField name="reasonCode" schema={{ type: "string", enum: reasons.data?.codes ?? [] }} value={reasonCode} required onChange={setReasonCode} />}
-      <SchemaField name="reasonText" schema={{ type: "string", maxLength: 1000 }} value={reasonText} required={reasonCode === "OTHER"} onChange={setReasonText} />
+      {needsReason ? <>{reasons.isError ? <ErrorState error={reasons.error} retry={() => void reasons.refetch()} /> : <SchemaField name="reasonCode" schema={{ type: "string", enum: reasons.data?.codes ?? [] }} value={reasonCode} required onChange={setReasonCode} />}<SchemaField name="reasonText" schema={{ type: "string", maxLength: 1000 }} value={reasonText} required={reasonCode === "OTHER"} onChange={setReasonText} /></> : <p className="context-note">This endpoint audits access but does not collect a reason. Reveal only for an authorized task.</p>}
       {operation.query.filter(f => f.name === "variant").map(f => <SchemaField key={f.name} name={f.name} schema={f.schema} required={f.required} value={variant} onChange={setVariant} />)}
-      <button className="button primary" disabled={busy || !reasons.data}>{busy ? "Loading…" : "Reveal information"}</button>
+      <button className="button primary" disabled={busy || needsReason && !reasons.data}>{busy ? "Loading…" : "Reveal information"}</button>
     </form></DialogContent></Dialog>}
   </div>;
 }

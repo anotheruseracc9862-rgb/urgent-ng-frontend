@@ -1,12 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "./lib/env";
+import { isAllowedWriteOrigin } from "./lib/allowed-origins";
 import { contentSecurityPolicy } from "./lib/security-headers";
 
 export function proxy(request: NextRequest) {
   const api = request.nextUrl.pathname.startsWith("/api/");
   if (api && !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
-    (request.headers.get("origin") !== new URL(env.NEXT_PUBLIC_APP_URL).origin || request.headers.get("sec-fetch-site") === "cross-site")) {
+    (!isAllowedWriteOrigin(request.headers.get("origin")) || request.headers.get("sec-fetch-site") === "cross-site")) {
     return NextResponse.json({ error: { code: "FORBIDDEN", message: "Cross-origin admin writes are not allowed." } }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
   if (api) {

@@ -12,6 +12,8 @@ import { endpoint, type Schema } from "./contracts";
 import { SchemaField, requestValue } from "./fields";
 import { ErrorState, RecordView } from "./presentation";
 import { useAdmin } from "./shell";
+import { resourceLocation } from "./navigation";
+import { ActionContext } from "./action-context";
 
 export type AdminAction = NonNullable<Resource["actions"]>[number];
 export function canAct(action: AdminAction, record: unknown, admin: ReturnType<typeof useAdmin>): boolean {
@@ -35,7 +37,7 @@ export function ActionResult({ result }: { result: ApiResult<unknown> }) {
   const approvalId = valueAt(result.data, "approval.id");
   const auditId = valueAt(result.data, "auditId");
   return <section className={`action-result ${pending ? "notice" : "success-notice"}`} aria-live="polite"><h2>{pending ? "Waiting for a different administrator" : "Server result"}</h2><p>{pending ? "The request has been recorded. Do not treat it as an applied change until it is approved and executed." : "The server returned the following outcome. No local state-machine override was applied."}</p>
-    {pending && <Link className="text-button" prefetch={false} href={valueAt(result.data, "waitingForSecondAdmin") ? "/refunds?status=REQUESTED" : `/approvals${approvalId ? `?record=${encodeURIComponent(String(approvalId))}` : ""}`}>Review pending request ↗</Link>}
+    {pending && <Link className="text-button" prefetch={false} href={valueAt(result.data, "waitingForSecondAdmin") ? resourceLocation('refunds', { status: 'REQUESTED' }) : resourceLocation('approvals', approvalId ? { record: String(approvalId) } : {})}>Review pending request ↗</Link>}
     <details><summary>Inspect result and request ID</summary><RecordView value={result.data} /><p className="mono">Request ID: {result.requestId ?? "Not returned"}</p></details>
     <AuditResultLink requestId={result.requestId} auditId={auditId} />
   </section>;
@@ -43,14 +45,18 @@ export function ActionResult({ result }: { result: ApiResult<unknown> }) {
 function AuditResultLink({ requestId, auditId }: { requestId?: string; auditId?: unknown }) {
   const admin = useAdmin();
   if (!admin.permissions.includes("AUDIT_VIEW")) return null;
-  return <Link prefetch={false} className="text-button" href={auditId ? `/audit?record=${encodeURIComponent(String(auditId))}` : "/audit"}>{requestId ? "Open audit log to inspect the matching request" : "Open audit log"} ↗</Link>;
+  return <Link prefetch={false} className="text-button" href={resourceLocation('audit', auditId ? { record: String(auditId) } : {})}>{requestId ? "Open audit log to inspect the matching request" : "Open audit log"} ↗</Link>;
 }
 
 export function ReasonDialog({ action, id, record, onClose, onResult }: { action: AdminAction; id?: string; record?: unknown; onClose: () => void; onResult: (result: ApiResult<unknown>) => void }) {
   const admin = useAdmin();
   const operation = endpoint(action.method, action.path);
   const client = useQueryClient();
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const category = action.path.startsWith('/categories');
+  const [values, setValues] = useState<Record<string, unknown>>(() => {
+    if (!['PUT', 'PATCH'].includes(action.method)) return category ? { flow: 'TRANSIT', requiresPickup: true, requiresDestination: true } : {};
+    return Object.fromEntries(Object.keys(operation.body?.properties ?? {}).filter(name => !['reasonCode', 'reasonText'].includes(name)).map(name => [name, valueAt(record, name) ?? valueAt(record, `data.${name}`)]).filter(([, value]) => value !== undefined));
+  });
   const [targetId, setTargetId] = useState(id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -66,7 +72,8 @@ export function ReasonDialog({ action, id, record, onClose, onResult }: { action
     if (needsReason && (!reasons.data?.codes.includes(String(values.reasonCode)) || values.reasonCode === "OTHER" && !String(values.reasonText ?? "").trim())) return;
     submitted.current = true; setBusy(true); setError(null);
     try {
-      const body = operation.hasBody ? requestValue(values, operation.body ?? {}) : undefined;
+      const submittedValues = category && values.flow === 'SERVICE' ? { ...values, requiresPickup: false, requiresDestination: true } : values;
+      const body = operation.hasBody ? requestValue(submittedValues, operation.body ?? {}) : undefined;
       const result = await adminRequest(recordPath(action.path, targetId), { method: action.method as ApiMethod, body });
       // Do not invalidate /me away while an action is resolving. All other server state is re-read.
       await client.invalidateQueries({ predicate: query => query.queryKey[0] === "admin" && query.queryKey[1] !== "me" });
@@ -77,7 +84,9 @@ export function ReasonDialog({ action, id, record, onClose, onResult }: { action
   return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}><DialogContent className="admin-dialog"><DialogTitle>{labelFor(action.label)}</DialogTitle><DialogDescription>{operation.summary ?? "Review the target and confirm. The server checks your permissions and validates the action."}</DialogDescription>
     <form onSubmit={submit} className="stack" aria-busy={busy}><fieldset disabled={busy} className="stack action-fields">
       {needsId && (id ? <p className="mono">Target: {id}</p> : <SchemaField name="target ID" schema={{ type: "string", minLength: 1 }} required value={targetId} onChange={v => setTargetId(String(v ?? ""))} />)}
-      {Object.entries(fields).filter(([name]) => name !== "reasonCode" && name !== "reasonText").map(([name, original]) => {
+      <ActionContext path={action.path} method={action.method} record={record} values={values} />
+      {category && <p className="context-note">{values.flow === 'SERVICE' ? 'Service: work at one address. No pickup is required; the service address is stored as the destination.' : 'Transit: movement between places. Choose the required pickup and destination stops.'} Flow cannot change once an errand uses this category.</p>}
+      {Object.entries(fields).filter(([name]) => name !== "reasonCode" && name !== "reasonText" && !(category && values.flow === 'SERVICE' && ['requiresPickup', 'requiresDestination'].includes(name))).map(([name, original]) => {
         const schema: Schema = name === "value" && operation.path.startsWith("/config/") && typeof valueAt(record, "value") !== "undefined" ? { ...original, oneOf: undefined, type: typeof valueAt(record, "value") } : original;
         return <SchemaField key={name} name={name} schema={schema} value={values[name]} required={operation.body?.required?.includes(name)} onChange={v => setValues(old => ({ ...old, [name]: v }))} />;
       })}
