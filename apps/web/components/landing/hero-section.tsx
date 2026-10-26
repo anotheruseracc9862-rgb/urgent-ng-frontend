@@ -31,8 +31,9 @@ export function HeroSection() {
           </h1>
 
           <p className="hero-fade-2 mb-8 max-w-[480px] text-base leading-relaxed text-cn-blue-500">
-            Connect with verified, trusted runners around you in minutes. Set your task, receive competitive
-            price offers, and pay safely only after it&apos;s delivered.
+            Connect with identity-verified runners around you in minutes, to pick something up, deliver it, or come
+            and do the job at your place. Set your task, receive competitive price offers, and pay the runner directly
+            once it&apos;s done.
           </p>
 
           {/* Mobile media: the photo with the badge under it. No entrance animation: it is the LCP element. */}

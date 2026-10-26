@@ -41,16 +41,20 @@ function IconField({ icon: Icon, children, top }: { icon: typeof Clock; children
 }
 
 /** Shown only when the reference API cannot be reached. */
-const FALLBACK_CATEGORIES: Pick<PopularCategory, 'key' | 'name'>[] = [
-  { key: 'delivery', name: 'Package Delivery' },
-  { key: 'shopping', name: 'Market Shopping' },
-  { key: 'document', name: 'Document Pickup' },
-  { key: 'other', name: 'Other Custom Errand' },
+const FALLBACK_CATEGORIES: Pick<PopularCategory, 'key' | 'name' | 'flow'>[] = [
+  { key: 'delivery', name: 'Delivery' },
+  { key: 'pickup', name: 'Pickup' },
+  { key: 'shopping_purchase', name: 'Shopping & Purchase' },
+  { key: 'home_cleaning', name: 'Home Cleaning', flow: 'SERVICE' },
+  { key: 'plumbing', name: 'Plumbing', flow: 'SERVICE' },
 ];
 
 export function InstantRequestSection({ categories = [] }: { categories?: PopularCategory[] }) {
   const options = categories.length > 0 ? categories : FALLBACK_CATEGORIES;
   const router = useRouter();
+  const [categoryKey, setCategoryKey] = useState(options[0]?.key ?? '');
+  // A service is done at one address, so the form asks for one place instead of a pickup and a drop-off.
+  const service = options.find((option) => option.key === categoryKey)?.flow === 'SERVICE';
   const [budget, setBudget] = useState('3500');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const preset = BUDGET_PRESETS.find((p) => String(p) === budget);
@@ -85,14 +89,14 @@ export function InstantRequestSection({ categories = [] }: { categories?: Popula
               const next: Record<string, string> = {};
               if (!Number.isFinite(amount) || amount < 500) next.budget = 'Enter at least ₦500';
               if (text('title').length < 5) next.title = 'Say what needs to be done';
-              if (!text('pickup')) next.pickup = 'Add a pickup location';
-              if (!text('destination')) next.destination = 'Add a delivery destination';
+              if (!service && !text('pickup')) next.pickup = 'Add a pickup location';
+              if (!text('destination')) next.destination = service ? 'Add the service address' : 'Add a delivery destination';
               setErrors(next);
               if (Object.keys(next).length > 0) return;
               saveErrandDraft({
                 budgetNaira: amount,
                 title: text('title'),
-                pickup: text('pickup'),
+                pickup: service ? '' : text('pickup'),
                 destination: text('destination'),
                 category: text('category'),
                 urgency: text('urgency'),
@@ -161,31 +165,33 @@ export function InstantRequestSection({ categories = [] }: { categories?: Popula
                   name="title"
                   type="text"
                   className={FIELD}
-                  placeholder="e.g. Pick up urgent Visa document from VFS Global, deliver to Lekki Phase 1"
+                  placeholder={service ? 'e.g. Deep clean my two-bedroom flat this weekend' : 'e.g. Pick up urgent Visa document from VFS Global, deliver to Lekki Phase 1'}
                 />
               </IconField>
               {errors.title ? <p className="text-xs font-semibold text-red">{errors.title}</p> : null}
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="pickup" required>
-                  Pickup Location
-                </Label>
-                <IconField icon={MapPin}>
-                  <input
-                    id="pickup"
-                  name="pickup"
-                    type="text"
-                    className={FIELD}
-                    placeholder="Pickup street / landmark (e.g. Lekki Phase 1)"
-                  />
-                </IconField>
-                {errors.pickup ? <p className="text-xs font-semibold text-red">{errors.pickup}</p> : null}
-              </div>
-              <div className="grid gap-1.5">
+              {service ? null : (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="pickup" required>
+                    Pickup Location
+                  </Label>
+                  <IconField icon={MapPin}>
+                    <input
+                      id="pickup"
+                    name="pickup"
+                      type="text"
+                      className={FIELD}
+                      placeholder="Pickup street / landmark (e.g. Lekki Phase 1)"
+                    />
+                  </IconField>
+                  {errors.pickup ? <p className="text-xs font-semibold text-red">{errors.pickup}</p> : null}
+                </div>
+              )}
+              <div className={cn('grid gap-1.5', service && 'md:col-span-2')}>
                 <Label htmlFor="destination" required>
-                  Delivery Destination
+                  {service ? 'Service Address' : 'Delivery Destination'}
                 </Label>
                 <IconField icon={Navigation}>
                   <input
@@ -193,7 +199,7 @@ export function InstantRequestSection({ categories = [] }: { categories?: Popula
                   name="destination"
                     type="text"
                     className={FIELD}
-                    placeholder="Delivery street / landmark (e.g. Ikeja GRA)"
+                    placeholder={service ? 'Street / landmark where the work happens (e.g. Lekki Phase 1)' : 'Delivery street / landmark (e.g. Ikeja GRA)'}
                   />
                 </IconField>
                 {errors.destination ? <p className="text-xs font-semibold text-red">{errors.destination}</p> : null}
@@ -207,7 +213,7 @@ export function InstantRequestSection({ categories = [] }: { categories?: Popula
                 </Label>
                 <IconField icon={Boxes}>
                   <select id="category"
-                  name="category" className={cn(FIELD, CHEVRON)} defaultValue={options[0]?.key}>
+                  name="category" className={cn(FIELD, CHEVRON)} value={categoryKey} onChange={(e) => setCategoryKey(e.target.value)}>
                     {options.map((category) => (
                       <option key={category.key} value={category.key}>
                         {category.name}

@@ -31,7 +31,8 @@ export interface ApiResponse<T> {
 }
 
 const BROWSER_BASE = "/api/v1";
-const SERVER_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api/v1";
+// Server-side calls prefer API_INTERNAL_URL (the backend on a private address) so they skip the public hop.
+const SERVER_BASE = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api/v1";
 
 type RefreshResult = "refreshed" | "expired";
 let refreshing: Promise<RefreshResult> | null = null;

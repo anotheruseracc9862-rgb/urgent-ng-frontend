@@ -45,6 +45,8 @@ export const authApi = {
   forgot: (input: Identifier) => api<{ sent: boolean }>('/auth/password/forgot', { method: 'POST', body: input }),
   reset: (input: Identifier & { code: string; newPassword: string }) =>
     api<{ reset: boolean }>('/auth/password/reset', { method: 'POST', body: input }),
+  changePassword: (input: { currentPassword: string; newPassword: string }) =>
+    api<void>('/me/password', { method: 'POST', body: input }),
   me: () => api<Me>('/me'),
   publicViewer: () => api<Me>('/me', { optionalAuth: true }),
   updateMe: (input: components['schemas']['UpdateMeDto']) =>

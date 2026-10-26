@@ -13,7 +13,6 @@ import { authApi } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/client';
 import { REQUIRED_CONSENTS } from '@/lib/api/types';
 import { setPendingVerify } from '@/lib/auth/pending-identity';
-import { track } from '@/lib/observability';
 import { AuthHeading, FieldError, FormError, OrDivider, PasswordInput, describeAuthError } from './auth-ui';
 import { GoogleButton } from './google-button';
 
@@ -87,7 +86,6 @@ export function RegisterForm() {
       // Context for the next screen. Never put it in the URL; never store the password.
       setPendingVerify({ via: result.verifyVia, phone, email });
       sessionStorage.setItem('urgent.intent', mode);
-      track('auth.register_completed');
       router.push('/verify');
     } catch (error) {
       if (isApiError(error) && error.code === 'IDENTIFIER_TAKEN') {

@@ -1,10 +1,12 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:4000/api/v1';
+const API_URL = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:4000/api/v1';
 
 export interface PopularCategory {
   key: string;
   name: string;
   requiresPickup: boolean;
   requiresDestination: boolean;
+  /** A service is work done at one address. Missing means a delivery-style errand. */
+  flow?: 'TRANSIT' | 'SERVICE';
   isPopular: boolean;
 }
 

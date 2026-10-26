@@ -13,9 +13,9 @@ import { AuthHeading, FormError, describeAuthError } from './auth-ui';
 const LABELS: Record<ConsentType, { label: string; href: string }> = {
   TERMS_OF_SERVICE: { label: 'Terms of Service', href: '/terms' },
   PRIVACY_POLICY: { label: 'Privacy Policy', href: '/privacy' },
-  SAFETY_POLICY: { label: 'Safety Policy', href: '/help' },
-  PROHIBITED_ITEMS_POLICY: { label: 'Prohibited Items Policy', href: '/terms' },
-  OFFLINE_PAYMENT_TERMS: { label: 'Offline Payment Terms', href: '/help' },
+  SAFETY_POLICY: { label: 'Safety Policy', href: '/terms#safety' },
+  PROHIBITED_ITEMS_POLICY: { label: 'Prohibited Items Policy', href: '/terms#prohibited-items' },
+  OFFLINE_PAYMENT_TERMS: { label: 'Offline Payment Terms', href: '/terms#payment-terms' },
   LOCATION_SHARING: { label: 'Location Sharing', href: '/privacy' },
   MARKETING_COMMUNICATIONS: { label: 'Marketing Communications', href: '/privacy' },
 };

@@ -9,8 +9,12 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#a6d445',
+    // Square icons. The "maskable" one is full-bleed with the mascot inside the safe zone, so
+    // Android can crop it to a circle or squircle without cutting the character.
     icons: [
-      { src: '/assets/mascot.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   };
 }

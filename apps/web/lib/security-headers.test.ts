@@ -24,6 +24,14 @@ describe('security headers', () => {
     expect(csp).toContain("'unsafe-eval'");
   });
 
+  it('lets only the push service worker load Firebase scripts from the Google CDN', () => {
+    expect(contentSecurityPolicy(prod)).not.toContain('gstatic.com');
+    const worker = contentSecurityPolicy({ ...prod, serviceWorker: true });
+    expect(worker).toMatch(/script-src [^;]*https:\/\/www\.gstatic\.com/);
+    expect(worker).toContain("frame-ancestors 'none'");
+    expect(worker).not.toContain("'unsafe-eval'");
+  });
+
   it('sends HSTS only in production and limits camera and location to the app', () => {
     const headers = (options: typeof prod | { production: false }) =>
       Object.fromEntries(securityHeaders(options).map((h) => [h.key, h.value]));

@@ -1,5 +1,8 @@
 /**
- * Web Vitals tracking for performance monitoring
+ * Web Vitals tracking for performance monitoring.
+ *
+ * Not mounted: there is no /api/vitals sink yet, and posting to it returned 404. When a telemetry
+ * destination exists, mount a `useReportWebVitals` component that calls this in the root layout.
  */
 
 type Metric = {

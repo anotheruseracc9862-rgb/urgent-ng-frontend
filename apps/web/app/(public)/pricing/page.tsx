@@ -44,7 +44,7 @@ function Feature({ children, light }: { children: React.ReactNode; light?: boole
 
 const COMPARE: { label: string; free: React.ReactNode; pro: React.ReactNode }[] = [
   { label: 'Post and manage errands', free: 'yes', pro: 'yes' },
-  { label: 'New offers per day', free: '10', pro: 'Unlimited' },
+  { label: 'New offers per day', free: 'Daily limit', pro: 'Much higher limit' },
   { label: 'Edit offers and answer counters', free: 'Unlimited', pro: 'Unlimited' },
   { label: 'Early access to new errands', free: 'no', pro: 'yes' },
   { label: 'Pro badge', free: 'no', pro: 'yes' },
@@ -92,7 +92,7 @@ export default async function PricingPage() {
           </div>
           <ul className="grid flex-1 gap-3">
             <Feature>Post errands and review offers</Feature>
-            <Feature>10 new offers per day as a runner</Feature>
+            <Feature>A daily limit on new offers as a runner</Feature>
             <Feature>Editing offers and counters never use your daily count</Feature>
             <Feature>Chat, progress updates and trusted-contact links</Feature>
           </ul>
@@ -121,11 +121,11 @@ export default async function PricingPage() {
               </small>
             </div>
             <div className="mt-2 text-[13px] text-[#c9d2de]">
-              {pro && pro.vatMinor > 0 ? `Includes ${naira(pro.vatMinor)} VAT. ` : ''}Cancel any time.
+              Cancel any time.
             </div>
           </div>
           <ul className="grid flex-1 gap-3 text-[#c9d2de]">
-            <Feature light>Unlimited new offers</Feature>
+            <Feature light>A much higher daily limit on new offers</Feature>
             <Feature light>See new errands a few minutes before everyone else</Feature>
             <Feature light>Pro badge on every offer</Feature>
             <Feature light>Everything in Free</Feature>
