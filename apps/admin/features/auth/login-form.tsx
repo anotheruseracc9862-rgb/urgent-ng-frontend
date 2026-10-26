@@ -20,6 +20,9 @@ export function LoginForm({ expired = false }: { expired?: boolean }) {
   const [step, setStep] = useState<LoginStep | null>(null);
   const [enrolment, setEnrolment] = useState<Enrolment | null>(null);
   const [busy, setBusy] = useState(false);
+  // Until hydration the form must not submit natively; the button stays off and the form uses POST as a backstop.
+  const [ready, setReady] = useState(false);
+  useEffect(() => { queueMicrotask(() => setReady(true)); }, []);
   const [error, setError] = useState("");
   const [showExpired, setShowExpired] = useState(expired);
 
@@ -64,7 +67,7 @@ export function LoginForm({ expired = false }: { expired?: boolean }) {
   return <AuthPanel title={step ? "Verify your identity" : "Sign in to your workspace"}>
     <p className="muted">Invitation-only access. Use your admin account, not your customer account.</p>
     {showExpired && <p className="notice" role="status">Your session expired. Please sign in again.</p>}
-    <form className="stack" onSubmit={submit} aria-busy={busy}>
+    <form className="stack" method="post" action="/login" onSubmit={submit} aria-busy={busy}>
       {!step ? <>
         <label className="field">Email<Input name="email" type="email" autoComplete="username" maxLength={255} required disabled={busy} /></label>
         <label className="field">Password<PasswordInput name="password" autoComplete="current-password" maxLength={128} required disabled={busy} /></label>
@@ -78,7 +81,7 @@ export function LoginForm({ expired = false }: { expired?: boolean }) {
         {(step.status === "MFA_REQUIRED" || enrolment) && <label className="field">6-digit authenticator code<Input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required disabled={busy} /></label>}
       </>}
       {error && <p className="error" role="alert">{error}</p>}
-      <button className="button primary" disabled={busy}>{busy ? "Please wait…" : !step ? "Continue" : step.status === "MFA_ENROLMENT_REQUIRED" && !enrolment ? "Load setup key" : "Verify and sign in"}</button>
+      <button className="button primary" disabled={busy || !ready}>{busy ? "Please wait…" : !step ? "Continue" : step.status === "MFA_ENROLMENT_REQUIRED" && !enrolment ? "Load setup key" : "Verify and sign in"}</button>
       {step && <button className="button" type="button" disabled={busy} onClick={() => { setStep(null); setEnrolment(null); setError(""); }}>Start again</button>}
     </form>
     <p className="muted">Need access? Ask your administrator for an invitation.</p>

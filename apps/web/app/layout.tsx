@@ -3,7 +3,6 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { RootProviders } from "@/components/providers/root-providers";
 import { AppThemeProvider } from "@/providers/theme-provider";
-import { WebVitalsReporter } from "@/lib/observability/web-vitals-reporter";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -29,7 +28,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`h-full antialiased ${plusJakartaSans.variable}`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <AppThemeProvider>
-          <WebVitalsReporter />
           <RootProviders>{children}</RootProviders>
         </AppThemeProvider>
       </body>
