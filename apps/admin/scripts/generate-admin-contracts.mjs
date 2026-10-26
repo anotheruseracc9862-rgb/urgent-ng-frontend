@@ -71,9 +71,11 @@ if (!configValue) throw new Error('SetConfigDto.value contract changed');
 delete configValue.type;
 configValue.oneOf = [{ type: 'number' }, { type: 'boolean' }, { type: 'string' }];
 
-function resolve(schema, seen = []) {
+function resolve(schema, seen = [], isPropertyMap = false) {
   if (!schema || typeof schema !== 'object') return schema;
   if (Array.isArray(schema)) return schema.map(s => resolve(s, seen));
+  // Keys of a `properties` map are field names (a field may be called `title`), not schema keywords.
+  if (isPropertyMap) return Object.fromEntries(Object.entries(schema).map(([k, v]) => [k, resolve(v, seen)]));
   if (schema.$ref) {
     if (seen.includes(schema.$ref)) throw new Error(`Recursive schema cycle: ${schema.$ref}`);
     const target = schema.$ref.split('/').slice(1).reduce((o, k) => o?.[k], spec);
@@ -81,7 +83,7 @@ function resolve(schema, seen = []) {
     const { $ref, ...rest } = schema;
     return { ...resolve(target, [...seen, $ref]), ...resolve(rest, seen) };
   }
-  return Object.fromEntries(Object.entries(schema).filter(([k]) => !['example', 'examples', 'title', 'xml'].includes(k)).map(([k, v]) => [k, resolve(v, seen)]));
+  return Object.fromEntries(Object.entries(schema).filter(([k]) => !['example', 'examples', 'title', 'xml'].includes(k)).map(([k, v]) => [k, resolve(v, seen, k === 'properties')]));
 }
 
 const operations = new Map();

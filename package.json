@@ -17,6 +17,7 @@
     "audit:prod": "npm audit --omit=dev",
     "contract:check": "node scripts/check-contract.mjs",
     "a11y:browser": "node scripts/check-axe.mjs",
+    "check:admin-browser": "node scripts/check-admin-browser.mjs",
     "cache:report": "node scripts/cache-report.mjs"
   },
   "devDependencies": {

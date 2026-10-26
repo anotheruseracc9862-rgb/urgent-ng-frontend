@@ -1,21 +1,43 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Input } from "@urgent/ui";
 import { QRCodeSVG } from "qrcode.react";
 import type { components } from "@urgent/api-client";
 import { adminApi, adminErrorMessage } from "../../lib/api/client";
 import { ADMIN_IDLE_KEY, DEFAULT_IDLE_SECONDS, safeAdminReturnTo } from "../../lib/auth/shared";
+import { PasswordInput } from "./password-input";
 import { AuthPanel } from "./auth-panel";
 
-type LoginStep = components["schemas"]["AdminLoginStepDto"];
+type MfaStep = components["schemas"]["AdminLoginStepDto"];
+type Session = components["schemas"]["AdminSessionResultDto"];
+/** With ADMIN_MFA_REQUIRED=false on the API, the password step answers with the session itself. */
+type LoginResult = MfaStep | (Session & { status: "AUTHENTICATED" });
+type LoginStep = MfaStep;
 type Enrolment = components["schemas"]["MfaEnrolmentDto"];
 
-export function LoginForm({ expired = false, requestId }: { expired?: boolean; requestId?: string }) {
+export function LoginForm({ expired = false }: { expired?: boolean }) {
   const [step, setStep] = useState<LoginStep | null>(null);
   const [enrolment, setEnrolment] = useState<Enrolment | null>(null);
   const [busy, setBusy] = useState(false);
+  // Until hydration the form must not submit natively; the button stays off and the form uses POST as a backstop.
+  const [ready, setReady] = useState(false);
+  useEffect(() => { queueMicrotask(() => setReady(true)); }, []);
   const [error, setError] = useState("");
+  const [showExpired, setShowExpired] = useState(expired);
+
+  useEffect(() => {
+    if (!expired) return;
+    const timer = window.setTimeout(() => setShowExpired(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [expired]);
+
+  function finish(session: Session) {
+    const seconds = Math.min(DEFAULT_IDLE_SECONDS, session.expiresIn);
+    try { localStorage.setItem(ADMIN_IDLE_KEY, JSON.stringify({ adminId: session.admin.id, seconds, deadline: Date.now() + seconds * 1000 })); } catch { /* Storage may be disabled; the console still locks in memory. */ }
+    setStep(null); setEnrolment(null);
+    window.location.replace(safeAdminReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,10 +46,11 @@ export function LoginForm({ expired = false, requestId }: { expired?: boolean; r
     setError(""); setBusy(true);
     try {
       if (!step) {
-        const next = await adminApi<LoginStep>("/auth/login", { method: "POST", noRefresh: true, body: {
+        const next = await adminApi<LoginResult>("/auth/login", { method: "POST", noRefresh: true, body: {
           email: String(values.get("email")).trim(), password: String(values.get("password")),
         } });
         form.reset();
+        if (next.status === "AUTHENTICATED") return finish(next);
         setStep(next);
         if (next.status === "MFA_ENROLMENT_REQUIRED") {
           setEnrolment(await adminApi<Enrolment>("/auth/mfa/enrol", { method: "POST", noRefresh: true, body: { mfaToken: next.mfaToken } }));
@@ -35,11 +58,7 @@ export function LoginForm({ expired = false, requestId }: { expired?: boolean; r
       } else if (step.status === "MFA_ENROLMENT_REQUIRED" && !enrolment) {
         setEnrolment(await adminApi<Enrolment>("/auth/mfa/enrol", { method: "POST", noRefresh: true, body: { mfaToken: step.mfaToken } }));
       } else {
-        const session = await adminApi<components["schemas"]["AdminSessionResultDto"]>("/auth/mfa/verify", { method: "POST", noRefresh: true, body: { mfaToken: step.mfaToken, code: String(values.get("code")) } });
-        const seconds = Math.min(DEFAULT_IDLE_SECONDS, session.expiresIn);
-        try { localStorage.setItem(ADMIN_IDLE_KEY, JSON.stringify({ adminId: session.admin.id, seconds, deadline: Date.now() + seconds * 1000 })); } catch { /* Storage may be disabled; the console still locks in memory. */ }
-        setStep(null); setEnrolment(null);
-        window.location.replace(safeAdminReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
+        finish(await adminApi<Session>("/auth/mfa/verify", { method: "POST", noRefresh: true, body: { mfaToken: step.mfaToken, code: String(values.get("code")) } }));
       }
     } catch (cause) { setError(adminErrorMessage(cause)); }
     finally { setBusy(false); }
@@ -47,11 +66,11 @@ export function LoginForm({ expired = false, requestId }: { expired?: boolean; r
 
   return <AuthPanel title={step ? "Verify your identity" : "Sign in to your workspace"}>
     <p className="muted">Invitation-only access. Use your admin account, not your customer account.</p>
-    {expired && <p className="notice" role="status">Your session expired. Please sign in again.{requestId ? ` Request ID: ${requestId}` : ""}</p>}
-    <form className="stack" onSubmit={submit} aria-busy={busy}>
+    {showExpired && <p className="notice" role="status">Your session expired. Please sign in again.</p>}
+    <form className="stack" method="post" action="/login" onSubmit={submit} aria-busy={busy}>
       {!step ? <>
         <label className="field">Email<Input name="email" type="email" autoComplete="username" maxLength={255} required disabled={busy} /></label>
-        <label className="field">Password<Input name="password" type="password" autoComplete="current-password" maxLength={128} required disabled={busy} /></label>
+        <label className="field">Password<PasswordInput name="password" autoComplete="current-password" maxLength={128} required disabled={busy} /></label>
       </> : <>
         {step.status === "MFA_ENROLMENT_REQUIRED" && <div className="notice stack">
           <p>Add an account in your authenticator app using this setup key. Never share it.</p>
@@ -62,7 +81,7 @@ export function LoginForm({ expired = false, requestId }: { expired?: boolean; r
         {(step.status === "MFA_REQUIRED" || enrolment) && <label className="field">6-digit authenticator code<Input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required disabled={busy} /></label>}
       </>}
       {error && <p className="error" role="alert">{error}</p>}
-      <button className="button primary" disabled={busy}>{busy ? "Please wait…" : !step ? "Continue" : step.status === "MFA_ENROLMENT_REQUIRED" && !enrolment ? "Load setup key" : "Verify and sign in"}</button>
+      <button className="button primary" disabled={busy || !ready}>{busy ? "Please wait…" : !step ? "Continue" : step.status === "MFA_ENROLMENT_REQUIRED" && !enrolment ? "Load setup key" : "Verify and sign in"}</button>
       {step && <button className="button" type="button" disabled={busy} onClick={() => { setStep(null); setEnrolment(null); setError(""); }}>Start again</button>}
     </form>
     <p className="muted">Need access? Ask your administrator for an invitation.</p>

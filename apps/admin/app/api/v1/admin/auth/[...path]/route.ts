@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { isAllowedWriteOrigin } from "@/lib/allowed-origins";
 
 const writes = new Set(["login", "mfa/enrol", "mfa/verify", "refresh", "logout", "accept-invite"]);
 function sanitize(value: unknown): unknown {
@@ -11,7 +12,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const path = (await context.params).path.join("/");
   const allowed = request.method === "GET" ? path === "me" : writes.has(path);
   if (!allowed) return Response.json({ error: { code: "NOT_FOUND", message: "Unknown admin auth endpoint." } }, { status: 404 });
-  if (request.method !== "GET" && (request.headers.get("origin") !== new URL(env.NEXT_PUBLIC_APP_URL).origin || request.headers.get("sec-fetch-site") === "cross-site")) {
+  if (request.method !== "GET" && (!isAllowedWriteOrigin(request.headers.get("origin")) || request.headers.get("sec-fetch-site") === "cross-site")) {
     return Response.json({ error: { code: "FORBIDDEN", message: "Cross-origin authentication requests are not allowed." } }, { status: 403 });
   }
   const headers = new Headers({ Accept: "application/json", "Content-Type": "application/json" });

@@ -1244,6 +1244,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/verifications/{attemptId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminVerification_attempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/verifications/{attemptId}/submission": {
         parameters: {
             query?: never;
@@ -3513,6 +3529,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/requester/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every offer on the signed-in requester's errands, newest first. */
+        get: operations["RequesterOffers_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations": {
         parameters: {
             query?: never;
@@ -5086,6 +5119,13 @@ export interface components {
             interstateEnabled: boolean;
         };
         CategoryDto: {
+            /**
+             * @description TRANSIT moves something between places. SERVICE is work done at one address.
+             * @enum {string}
+             */
+            flow: "TRANSIT" | "SERVICE";
+            /** @description The longest time, in minutes, a runner may quote on an errand in this category. */
+            maxOfferMinutes: number;
             id: string;
             /** @description Stable key, for example `delivery`. */
             key: string;
@@ -5663,6 +5703,8 @@ export interface components {
             /** @enum {string} */
             status: "DRAFT" | "OPEN" | "RUNNER_SELECTED" | "ACCEPTED" | "IN_PROGRESS" | "PICKED_UP" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "DISPUTED";
             category: string;
+            /** @enum {string} */
+            categoryFlow: "TRANSIT" | "SERVICE";
             requesterId: string;
             requesterName: string;
             offerCount: number;
@@ -5724,6 +5766,8 @@ export interface components {
             errandId: string;
             errandTitle: string;
             /** @enum {string} */
+            categoryFlow: "TRANSIT" | "SERVICE";
+            /** @enum {string} */
             status: "PENDING_ACCEPTANCE" | "ACCEPTED" | "DECLINED" | "TIMED_OUT" | "CANCELLED" | "COMPLETED";
             /** @enum {string} */
             errandStatus: "DRAFT" | "OPEN" | "RUNNER_SELECTED" | "ACCEPTED" | "IN_PROGRESS" | "PICKED_UP" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "DISPUTED";
@@ -5744,6 +5788,9 @@ export interface components {
             kind: string;
             type: string | null;
             errandId: string | null;
+            assignmentId: string | null;
+            /** @enum {string|null} */
+            categoryFlow: "TRANSIT" | "SERVICE" | null;
             errandTitle: string | null;
             assignedTo: string | null;
             /** Format: date-time */
@@ -5756,6 +5803,15 @@ export interface components {
             escalatedAt: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        AdminChatPageMetaDto: {
+            hasNextPage: boolean;
+            nextCursor?: string;
+        };
+        AdminDisputeChatDto: {
+            conversationId: string | null;
+            messages: components["schemas"]["AnyObjectDto"][];
+            meta: components["schemas"]["AdminChatPageMetaDto"];
         };
         AssignCaseDto: {
             /**
@@ -5970,6 +6026,11 @@ export interface components {
             name: string;
             requiresPickup: boolean;
             requiresDestination: boolean;
+            /**
+             * @description TRANSIT moves something between places. SERVICE is work done at one address.
+             * @enum {string}
+             */
+            flow: "TRANSIT" | "SERVICE";
             isPopular: boolean;
             active: boolean;
             sortOrder: number;
@@ -5985,8 +6046,16 @@ export interface components {
             /** @description A stable key: lower-case letters, digits and underscores. */
             key: string;
             name: string;
-            requiresPickup: boolean;
-            requiresDestination: boolean;
+            /**
+             * @description SERVICE ignores the two booleans: one address, stored as the destination.
+             * @default TRANSIT
+             * @enum {string}
+             */
+            flow: "TRANSIT" | "SERVICE";
+            /** @description Required for TRANSIT. */
+            requiresPickup?: boolean;
+            /** @description Required for TRANSIT. */
+            requiresDestination?: boolean;
             isPopular?: boolean;
             sortOrder?: number;
         };
@@ -5999,6 +6068,11 @@ export interface components {
             /** @description Free text for the audit record. Required when the code is OTHER. */
             reasonText?: string;
             name?: string;
+            /**
+             * @description Cannot change once an errand uses the category.
+             * @enum {string}
+             */
+            flow?: "TRANSIT" | "SERVICE";
             requiresPickup?: boolean;
             requiresDestination?: boolean;
             isPopular?: boolean;
@@ -6261,6 +6335,8 @@ export interface components {
         /** @enum {string} */
         ErrandStatus: "DRAFT" | "OPEN" | "RUNNER_SELECTED" | "ACCEPTED" | "IN_PROGRESS" | "PICKED_UP" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "DISPUTED";
         CategoryRefDto: {
+            /** @enum {string} */
+            flow: "TRANSIT" | "SERVICE";
             id: string;
             key: string;
             name: string;
@@ -6298,6 +6374,18 @@ export interface components {
             agreedAmountMinor: number;
             /** Format: date-time */
             acceptedAt: string | null;
+            /** @description The conversation with the runner once they accept and messages are open. */
+            conversationId: string | null;
+        };
+        ErrandBoostDto: {
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** @description Runners who opened the errand since the boost started. A count only. */
+            openedByCount: number;
+            /** @description Offers received since the boost started. */
+            offersSinceCount: number;
         };
         /** @enum {string} */
         ErrandCancellationReason: "REQUESTER_CANCELLED" | "RUNNER_CANCELLED" | "RUNNER_REJECTED_ASSIGNMENT" | "NO_RUNNER_AVAILABLE" | "SAFETY_CONCERN" | "DUPLICATE_ERRAND" | "USER_ACCOUNT_RESTRICTED" | "ADMIN_CANCELLED" | "OTHER";
@@ -6318,6 +6406,8 @@ export interface components {
             dropoffContact: components["schemas"]["ErrandContactViewDto"] | null;
             photos: components["schemas"]["ErrandPhotoDto"][];
             assignment: components["schemas"]["ErrandAssignmentSummaryDto"] | null;
+            /** @description The boost running on this errand now, or null. One boost at a time. */
+            boost: components["schemas"]["ErrandBoostDto"] | null;
             /** Format: date-time */
             publishedAt: string | null;
             /** Format: date-time */
@@ -6396,6 +6486,8 @@ export interface components {
             ratingCount: number;
             /** @description Errands this runner has completed. */
             completedErrands: number;
+            /** @description The runner has an active Runner Pro entitlement right now. */
+            isPro: boolean;
         };
         ErrandSummaryDto: {
             status: components["schemas"]["ErrandStatus"];
@@ -6407,6 +6499,17 @@ export interface components {
             suggestedBudgetMinor: number | null;
             pickupArea: string | null;
             destinationArea: string | null;
+            /** @description The approximate pickup point (about 500 m grid), for a map. */
+            pickupApprox: components["schemas"]["LatLngDto"] | null;
+            /** @description The approximate destination point, for a map. A service has only this one. */
+            destinationApprox: components["schemas"]["LatLngDto"] | null;
+            /** @description The boost running on this errand now, or null. */
+            boost: components["schemas"]["ErrandBoostDto"] | null;
+            /**
+             * Format: date-time
+             * @description When a boost bought now would end: the boost length, or the errand's own deadline if that is sooner. Null unless the errand is open and not boosted.
+             */
+            boostWouldEndAt: string | null;
             /** Format: date-time */
             publishedAt: string | null;
             /** Format: date-time */
@@ -6477,7 +6580,8 @@ export interface components {
             prohibitedItemsConfirmed: boolean;
         };
         CancelErrandDto: {
-            reason: components["schemas"]["ErrandCancellationReason"];
+            /** @description Why the requester is cancelling. Optional for a draft or an open errand (no runner involved yet), where it defaults to REQUESTER_CANCELLED. Required once a runner is selected. */
+            reason?: components["schemas"]["ErrandCancellationReason"];
             note?: string;
         };
         OfferDto: {
@@ -6506,7 +6610,7 @@ export interface components {
         SubmitOfferDto: {
             /** @description Offered amount in kobo. Bounds come from OFFER_MIN_AMOUNT / OFFER_MAX_AMOUNT. */
             amountMinor: number;
-            /** @description Estimated duration in minutes (5-1440 by default). */
+            /** @description Estimated duration in minutes. The longest allowed depends on the errand: 1440 (24 hours) for a delivery-style errand, 20160 (14 days) for a service. See maxOfferMinutes on the category. */
             durationMinutes: number;
             /** @description The runner confirms they are available. Must be true; the server records the time. */
             availabilityConfirmed: boolean;
@@ -6554,7 +6658,7 @@ export interface components {
         NegotiationEventDto: {
             id: string;
             /** @enum {string} */
-            type: "INITIAL_OFFER" | "COUNTER_OFFER" | "ACCEPT" | "REJECT" | "WITHDRAW" | "SYSTEM_EVENT";
+            type: "INITIAL_OFFER" | "COUNTER_OFFER" | "OFFER_EDIT" | "ACCEPT" | "REJECT" | "WITHDRAW" | "SYSTEM_EVENT";
             actorUserId: string;
             amountMinor: number | null;
             durationMinutes: number | null;
@@ -6586,6 +6690,8 @@ export interface components {
             message: string | null;
             assignmentId: string | null;
             errandTitle: string;
+            /** @description The longest estimated time either side may propose on this errand, in minutes. */
+            maxDurationMinutes: number;
             /** @description Counter-offers made so far, by both sides together. */
             roundsUsed: number;
             /** @description Counter-offers this negotiation allows. After that the only moves are accept or decline. */
@@ -6623,6 +6729,33 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        RequesterOfferSummaryDto: {
+            id: string;
+            errandId: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            /**
+             * @description Whose move it is. REQUESTER: the offer or counter is waiting for the requester.
+             * @enum {string}
+             */
+            awaitingParty: "RUNNER" | "REQUESTER" | "NONE";
+            amountMinor: number;
+            durationMinutes: number;
+            needsReconfirmation: boolean;
+            version: number;
+            closeReason: string | null;
+            errandTitle: string;
+            errandStatus: string;
+            /** @enum {string} */
+            categoryFlow: "TRANSIT" | "SERVICE";
+            /** @description The runner's first name. */
+            runnerFirstName: string;
+            /** @description Public average rating, once there are enough ratings. */
+            runnerRating: number | null;
+            runnerCompletedErrands: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
         ConversationCounterpartDto: {
             userId: string;
             firstName: string;
@@ -6636,6 +6769,8 @@ export interface components {
             /** @description Null until enough ratings are published to show an average. */
             rating: number | null;
             ratingCount: number;
+            /** @description The other person is a runner with an active Runner Pro entitlement right now. */
+            isPro: boolean;
         };
         ConversationDto: {
             id: string;
@@ -6655,6 +6790,11 @@ export interface components {
             pickupArea: string | null;
             /** @description Approximate area only. */
             destinationArea: string | null;
+            /**
+             * @description A service has no pickup: its one address is the destination.
+             * @enum {string}
+             */
+            categoryFlow: "TRANSIT" | "SERVICE";
             /** @description The assignment for this conversation, from selection onward. */
             assignmentId: string | null;
             /** Format: date-time */
@@ -6917,7 +7057,7 @@ export interface components {
             /** @description The caller opened the dispute. */
             openedByMe: boolean;
             /** @enum {string} */
-            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "OTHER";
+            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "SERVICE_NOT_DONE" | "POOR_QUALITY" | "PROPERTY_DAMAGE" | "OTHER";
             /** @enum {string} */
             status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "CLOSED";
             claim: string;
@@ -6955,7 +7095,7 @@ export interface components {
         };
         OpenDisputeDto: {
             /** @enum {string} */
-            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "OTHER";
+            type: "ITEM_NOT_DELIVERED" | "ITEM_DAMAGED" | "ITEM_MISSING" | "WRONG_ITEM" | "UNAUTHORIZED_CHANGE" | "SAFETY_INCIDENT" | "SERVICE_NOT_DONE" | "POOR_QUALITY" | "PROPERTY_DAMAGE" | "OTHER";
             claim: string;
             evidence?: components["schemas"]["EvidenceItemDto"][];
         };
@@ -7163,7 +7303,7 @@ export interface components {
             id: string;
             status: string;
             version: number;
-            category: Record<string, never>;
+            category: components["schemas"]["CategoryRefDto"];
             title: string;
             description: string;
             instructions: string | null;
@@ -7232,6 +7372,8 @@ export interface components {
             role: "REQUESTER" | "RUNNER";
             /** @description The latest non-deleted dispute for this assignment, or null. Visible only to its parties. */
             disputeId?: string | null;
+            /** @description The conversation between the two parties once the runner has accepted and messages are open, otherwise null. */
+            conversationId?: string | null;
             /** @description The errand as this caller may see it. Exact locations and contacts only for the requester, and for the runner while the assignment is ACCEPTED. */
             errand: components["schemas"]["AssignedErrandDto"];
         };
@@ -7305,6 +7447,15 @@ export interface components {
             /** @description Approximate area only. Use GET /assignments/:id for exact data once accepted. */
             pickupArea: string | null;
             destinationArea: string | null;
+            /** @description The approximate pickup point (about 500 m grid), for a map. Never the exact point. */
+            pickupApprox: components["schemas"]["LatLngDto"] | null;
+            /** @description The approximate destination point, for a map. Never the exact point. */
+            destinationApprox: components["schemas"]["LatLngDto"] | null;
+            /**
+             * @description A service has no pickup: its one address is the destination.
+             * @enum {string}
+             */
+            categoryFlow: "TRANSIT" | "SERVICE";
             /** Format: date-time */
             selectedAt: string;
             /** @description The requester's first name. */
@@ -7432,6 +7583,8 @@ export interface components {
             note?: string;
         };
         FeedCategoryDto: {
+            /** @enum {string} */
+            flow: "TRANSIT" | "SERVICE";
             key: string;
             name: string;
         };
@@ -7456,6 +7609,23 @@ export interface components {
             firstName: string;
             ratingCount: number;
         };
+        MyOfferDto: {
+            /**
+             * @description An ended offer is shown too: one offer per errand is allowed, so the card must not offer another.
+             * @enum {string}
+             */
+            status: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            /**
+             * @description Whose move it is. RUNNER: a counter came in and the runner is next.
+             * @enum {string}
+             */
+            awaitingParty: "RUNNER" | "REQUESTER" | "NONE";
+            /** @description The errand changed and the runner must confirm the offer still stands. */
+            needsReconfirmation: boolean;
+            id: string;
+            amountMinor: number;
+            durationMinutes: number;
+        };
         FeedItemDto: {
             category: components["schemas"]["FeedCategoryDto"];
             pickup: components["schemas"]["PublicAreaDto"] | null;
@@ -7468,6 +7638,8 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             id: string;
             title: string;
             description: string;
@@ -7486,6 +7658,8 @@ export interface components {
             priority: components["schemas"]["ErrandPriority"];
             suggestedBudgetMinor: number | null;
             distance: components["schemas"]["DistanceBucketDto"] | null;
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             id: string;
             title: string;
             categoryKey: string;
@@ -7510,6 +7684,8 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             instructions: string | null;
             itemSize: components["schemas"]["ItemSize"] | null;
             itemValueMinor: number | null;
@@ -7540,6 +7716,8 @@ export interface components {
             scheduledAt: string | null;
             suggestedBudgetMinor: number | null;
             requester: components["schemas"]["RequesterSummaryDto"];
+            /** @description The viewer's own offer on this errand (the latest, whatever its state), or null. */
+            myOffer: components["schemas"]["MyOfferDto"] | null;
             /** @description The saved errand may have closed since; the status tells. */
             status: components["schemas"]["ErrandStatus"];
             /** Format: date-time */
@@ -7674,6 +7852,11 @@ export interface components {
         SharedErrandDto: {
             title: string;
             category: string;
+            /**
+             * @description A service is work at one address: there is no pickup, and its steps read as work started and finished.
+             * @enum {string}
+             */
+            categoryFlow: "TRANSIT" | "SERVICE";
             requesterFirstName: string;
             runner: components["schemas"]["SharedRunnerDto"];
             /** @description The errand status, for example IN_PROGRESS, PICKED_UP or DELIVERED. */
@@ -12680,6 +12863,65 @@ export interface operations {
             };
         };
     };
+    AdminVerification_attempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attemptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["VerificationRowDto"];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Error (see `error.code`) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /**
+             * @description Error (see `error.code`)
+             *
+             *     Error (see `error.code`)
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
     AdminVerification_submission: {
         parameters: {
             query?: never;
@@ -14832,6 +15074,7 @@ export interface operations {
                 cursor?: string;
                 /** @description Number of items per page */
                 limit?: number;
+                errandId?: string;
                 status?: "PENDING_ACCEPTANCE" | "ACCEPTED" | "DECLINED" | "TIMED_OUT" | "CANCELLED" | "COMPLETED";
                 runnerId?: string;
                 requesterId?: string;
@@ -15112,6 +15355,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Number of items per page */
                 limit?: number;
+                errandId?: string;
+                assignmentId?: string;
                 /** @description Only cases assigned to you. */
                 mine?: boolean;
                 /** @description Only cases past their response or resolution deadline. */
@@ -15243,14 +15488,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Success */
+            /** @description Oldest-first messages. Continue with data.meta.nextCursor; each page requires a reason and is audited. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["AnyObjectDto"];
+                        data: components["schemas"]["AdminDisputeChatDto"];
                         meta?: {
                             [key: string]: unknown;
                         };
@@ -15685,6 +15930,8 @@ export interface operations {
                 cursor?: string;
                 /** @description Number of items per page */
                 limit?: number;
+                errandId?: string;
+                assignmentId?: string;
                 /** @description Only cases assigned to you. */
                 mine?: boolean;
                 /** @description Only cases past their response or resolution deadline. */
@@ -16549,7 +16796,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Success */
+            /** @description Oldest-first messages. Continue with meta.nextCursor; each page requires a reason and is audited. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -22836,6 +23083,66 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["RunnerOfferSummaryDto"][];
+                        meta?: {
+                            [key: string]: unknown;
+                        };
+                        requestId: string;
+                    };
+                };
+            };
+            /** @description Error (see `error.code`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+            /** @description Error (see `error.code`) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBodyDto"];
+                };
+            };
+        };
+    };
+    RequesterOffers_list: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor for pagination */
+                cursor?: string;
+                /** @description Number of items per page */
+                limit?: number;
+                /** @description Only offers in this status. */
+                status?: "ACTIVE" | "WITHDRAWN" | "REJECTED" | "SELECTED" | "EXPIRED" | "CLOSED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RequesterOfferSummaryDto"][];
                         meta?: {
                             [key: string]: unknown;
                         };

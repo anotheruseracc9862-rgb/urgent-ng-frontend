@@ -59,8 +59,8 @@ describe("admin client", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps error request IDs readable", () => {
-    expect(adminErrorMessage(new ApiError(403, "FORBIDDEN", "Not permitted", undefined, "request-42"))).toContain("Request ID: request-42");
+  it("hides request IDs from error messages", () => {
+    expect(adminErrorMessage(new ApiError(403, "FORBIDDEN", "Not permitted", undefined, "request-42"))).not.toContain("request-42");
   });
 
   it.each(["https://evil.invalid", "//evil.invalid", "/../auth", "/%2e%2e/auth", "/foo\\bar"])("rejects escaping path %s", async (path) => {

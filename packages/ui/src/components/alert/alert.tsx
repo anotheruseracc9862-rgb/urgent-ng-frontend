@@ -40,9 +40,29 @@ export interface AlertProps
 export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ({ className, variant, icon, children, ...props }, ref) => {
     const Icon = icon || iconMap[variant || "default"];
-    
+    const own = React.useRef<HTMLDivElement | null>(null);
+    const setRefs = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        own.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      },
+      [ref],
+    );
+
+    // An error that appears below the fold looks like nothing happened, most of all on a phone, where the
+    // button just pressed and the error can be a screen apart. Bring it into view; it only scrolls when it
+    // is not already visible.
+    const isError = props.role === "alert" && variant === "danger";
+    React.useEffect(() => {
+      const node = own.current;
+      if (isError && node && typeof node.scrollIntoView === "function") {
+        node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }, [isError]);
+
     return (
-      <div ref={ref} className={cn(alertVariants({ variant }), className)} {...props}>
+      <div ref={setRefs} className={cn(alertVariants({ variant }), className)} {...props}>
         <Icon className="shrink-0 mt-0.5 w-4 h-4" />
         <div className="flex-1">{children}</div>
       </div>
