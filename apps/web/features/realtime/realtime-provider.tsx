@@ -13,6 +13,11 @@ interface RealtimeContextValue {
   status: RealtimeStatus;
 }
 
+// The stream goes straight to the API, not through the web app's /api/v1 rewrite: a proxy hop keeps a
+// dead connection looking open to the server, so slots never free. Cookies do not cross origins, so
+// every connection authenticates with a one-time ticket.
+const EVENTS_URL = `${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '') || '/api/v1'}/events`;
+
 const RealtimeContext = React.createContext<RealtimeContextValue>({ status: 'connecting' });
 
 interface RealtimeEnvelope {
@@ -43,7 +48,7 @@ export function RealtimeProvider({
     let fallbackTimer: number | undefined;
     let retry = 0;
     let lastEventId = '';
-    let useTicket = false;
+    let useTicket = true;
     let wasDown = false;
     const seen = new Set<string>();
 
@@ -111,7 +116,7 @@ export function RealtimeProvider({
         return;
       }
       setStatus(retry === 0 ? 'connecting' : 'degraded');
-      let url = '/api/v1/events';
+      let url = EVENTS_URL;
       try {
         const query = new URLSearchParams();
         if (ticketMode) {
@@ -147,8 +152,12 @@ export function RealtimeProvider({
           void queryClient.invalidateQueries();
         });
         source.addEventListener('error', (event) => {
-          if (event instanceof MessageEvent) receive(event.data, event.lastEventId);
-          void queryClient.invalidateQueries();
+          // A plain connection error is handled by scheduleReconnect: refetching every query here
+          // made each failed retry a request burst. Only a server-sent error frame refetches.
+          if (event instanceof MessageEvent) {
+            receive(event.data, event.lastEventId);
+            void queryClient.invalidateQueries();
+          }
         });
         source.onerror = scheduleReconnect;
       } catch {
@@ -165,7 +174,7 @@ export function RealtimeProvider({
     });
     window.addEventListener('online', setOfflineState);
     window.addEventListener('offline', setOfflineState);
-    void connect(false);
+    void connect(true);
 
     return () => {
       stopped = true;

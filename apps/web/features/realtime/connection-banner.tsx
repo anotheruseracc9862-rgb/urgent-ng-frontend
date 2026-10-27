@@ -6,7 +6,10 @@ import { useRealtimeStatus } from './realtime-provider';
 
 const BACK_ONLINE_MS = 4_000;
 
-/** Tells the user when live updates are paused. The app keeps working by refetching. */
+/**
+ * Tells the user when the device is offline, and when it is back. A stream that is only retrying
+ * (the device is online) stays silent: the app keeps working by refetching.
+ */
 export function ConnectionBanner() {
   const status = useRealtimeStatus();
   const [previous, setPrevious] = React.useState(status);
@@ -16,7 +19,7 @@ export function ConnectionBanner() {
   // Adjust state while rendering (not in an effect) when the status changes.
   if (previous !== status) {
     setPrevious(status);
-    if (status === 'offline' || status === 'degraded') {
+    if (status === 'offline') {
       setDown(true);
       setRecovered(false);
     } else if (status === 'live' && down) {
@@ -35,13 +38,6 @@ export function ConnectionBanner() {
     return (
       <Alert variant="warn" role="status">
         <p><strong>You are offline.</strong></p>
-      </Alert>
-    );
-  }
-  if (status === 'degraded') {
-    return (
-      <Alert variant="warn" role="status">
-        <p><strong>Reconnecting…</strong></p>
       </Alert>
     );
   }

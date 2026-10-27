@@ -64,7 +64,7 @@ function setup() {
   return { invalidate };
 }
 
-const flush = () => act(async () => { await Promise.resolve(); });
+const flush = () => act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -96,7 +96,7 @@ describe('RealtimeProvider', () => {
     const { invalidate } = setup();
     await flush();
     const source = FakeEventSource.instances[0]!;
-    expect(source.url).toBe('/api/v1/events');
+    expect(source.url).toBe('/api/v1/events?ticket=tkt-1');
     act(() => source.open());
     expect(screen.getByTestId('status').textContent).toBe('live');
 

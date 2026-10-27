@@ -16,6 +16,8 @@ class FakeEventSource {
   close() {}
 }
 
+const flush = () => act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
+
 const setOnline = (value: boolean) =>
   Object.defineProperty(navigator, 'onLine', { value, configurable: true });
 
@@ -34,7 +36,7 @@ describe('ConnectionBanner', () => {
         <RealtimeProvider userId="u1"><ConnectionBanner /></RealtimeProvider>
       </QueryClientProvider>,
     );
-    await act(async () => { await Promise.resolve(); });
+    await flush();
     act(() => FakeEventSource.last.onopen?.());
     expect(screen.queryByRole('status')).toBeNull();
 
@@ -43,7 +45,8 @@ describe('ConnectionBanner', () => {
     expect(screen.getByRole('status').textContent).toMatch(/offline/i);
 
     setOnline(true);
-    await act(async () => { window.dispatchEvent(new Event('online')); await Promise.resolve(); });
+    act(() => { window.dispatchEvent(new Event('online')); });
+    await flush();
     invalidate.mockClear();
     act(() => FakeEventSource.last.onopen?.());
     expect(screen.getByRole('status').textContent).toMatch(/back online/i);
