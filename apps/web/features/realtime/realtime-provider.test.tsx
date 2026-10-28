@@ -148,6 +148,22 @@ describe('RealtimeProvider', () => {
     expect(screen.getByTestId('status').textContent).toBe('live');
   });
 
+  it('does not refetch every query when the stream drops and returns within seconds', async () => {
+    const { invalidate } = setup();
+    await flush();
+    const first = FakeEventSource.instances[0]!;
+    act(() => first.open());
+    act(() => first.fail());
+
+    invalidate.mockClear();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    const second = FakeEventSource.instances[1]!;
+    act(() => second.open());
+
+    expect(screen.getByTestId('status').textContent).toBe('live');
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
   it('closes the stream when the session is cleared', async () => {
     setup();
     await flush();

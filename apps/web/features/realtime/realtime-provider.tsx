@@ -16,6 +16,9 @@ interface RealtimeContextValue {
 // The stream goes straight to the API, not through the web app's /api/v1 rewrite: a proxy hop keeps a
 // dead connection looking open to the server, so slots never free. Cookies do not cross origins, so
 // every connection authenticates with a one-time ticket.
+/** A stream that was down shorter than this reconnects without refetching everything. */
+const REFETCH_AFTER_OUTAGE_MS = 15_000;
+
 const EVENTS_URL = `${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '') || '/api/v1'}/events`;
 
 const RealtimeContext = React.createContext<RealtimeContextValue>({ status: 'connecting' });
@@ -50,6 +53,12 @@ export function RealtimeProvider({
     let lastEventId = '';
     let useTicket = true;
     let wasDown = false;
+    let downSince: number | undefined;
+    let refetchOnOpen = false;
+    const markDown = () => {
+      wasDown = true;
+      downSince ??= Date.now();
+    };
     const seen = new Set<string>();
 
     const setOfflineState = () => {
@@ -57,7 +66,8 @@ export function RealtimeProvider({
         source?.close();
         if (timer !== undefined) window.clearTimeout(timer);
         if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
-        wasDown = true;
+        markDown();
+        refetchOnOpen = true;
         setStatus('offline');
       } else if (!stopped) {
         if (timer !== undefined) window.clearTimeout(timer);
@@ -96,7 +106,7 @@ export function RealtimeProvider({
       }
       source?.close();
       useTicket = true;
-      wasDown = true;
+      markDown();
       setStatus('degraded');
       if (fallbackTimer === undefined) {
         fallbackTimer = window.setInterval(() => {
@@ -141,9 +151,14 @@ export function RealtimeProvider({
           }
           setStatus('live');
           if (wasDown) {
-            // Events during the outage may be gone: refetch instead of trusting the stream.
+            // A short blip is covered by the server replaying from Last-Event-ID (and by a resync frame
+            // when it cannot). Only a longer outage, or a device that was offline, refetches everything.
+            const outage = downSince === undefined ? 0 : Date.now() - downSince;
+            const refetch = refetchOnOpen || outage > REFETCH_AFTER_OUTAGE_MS;
             wasDown = false;
-            void queryClient.invalidateQueries();
+            downSince = undefined;
+            refetchOnOpen = false;
+            if (refetch) void queryClient.invalidateQueries();
           }
         };
         source.onmessage = (event) => receive(event.data, event.lastEventId);
@@ -152,12 +167,10 @@ export function RealtimeProvider({
           void queryClient.invalidateQueries();
         });
         source.addEventListener('error', (event) => {
-          // A plain connection error is handled by scheduleReconnect: refetching every query here
-          // made each failed retry a request burst. Only a server-sent error frame refetches.
-          if (event instanceof MessageEvent) {
-            receive(event.data, event.lastEventId);
-            void queryClient.invalidateQueries();
-          }
+          // A plain connection error is handled by scheduleReconnect, and a server-sent error frame ends
+          // the stream, which reconnects the same way: refetching every query here made each retry a
+          // request burst that tripped the feed rate limit.
+          if (event instanceof MessageEvent) receive(event.data, event.lastEventId);
         });
         source.onerror = scheduleReconnect;
       } catch {
