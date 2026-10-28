@@ -337,7 +337,10 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
   // One short word while a save is under way, so the line neither flips between two messages nor wraps.
   const waitingFor = initialErrand?.status === 'OPEN' ? missingPlaces(form, categories) : [];
   const switchingCategory = Boolean(initialErrand && selectedCategory && form.categoryId !== initialErrand.category.id);
-  const savedMessage = waitingFor.length > 0 ? 'Not saved yet' : save.isPending || hasUnsavedChanges ? 'Saving…' : save.isSuccess ? 'Draft saved' : '';
+  // A failed save is not retried by itself, so "Saving…" would stay on screen for good while the error
+  // banner sits at the top of the page, out of sight. Say it failed, next to the button that retries.
+  const saveFailed = Boolean(saveError) && !save.isPending && hasUnsavedChanges;
+  const savedMessage = waitingFor.length > 0 ? 'Not saved yet' : saveFailed ? 'Not saved' : save.isPending || hasUnsavedChanges ? 'Saving…' : save.isSuccess ? 'Draft saved' : '';
 
   const update = <K extends keyof ErrandForm>(key: K, value: ErrandForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -480,7 +483,10 @@ function ErrandFormEditor({ errandId, initialErrand, categories }: {
               </div>
               <InfoNote>Exact addresses and contacts are shared only with the runner you select, after they accept. Payment is made directly to the runner; Urgent.ng does not handle it.</InfoNote>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                <span className="text-xs text-muted" role="status">{savedMessage || 'Draft autosaves after you pause.'}</span>
+                <span className="flex items-center gap-2 text-xs text-muted" role="status">
+                  {savedMessage || 'Draft autosaves after you pause.'}
+                  {saveFailed ? <button type="button" onClick={retrySave} className="font-bold text-green-800 underline">Try again</button> : null}
+                </span>
                 {dateInvalid || phoneInvalid || waitingFor.length > 0 || save.isPending || hasUnsavedChanges
                   ? <Button type="button" disabled>{dateInvalid ? 'Fix scheduled time to review' : phoneInvalid ? 'Fix contact phone to review' : waitingFor.length > 0 ? `Add ${waitingFor[0]} to continue` : 'Save changes to review'}</Button>
                   : initialErrand && initialErrand.status !== 'DRAFT'

@@ -116,6 +116,23 @@ describe('post errand form autosave', () => {
     expect(screen.queryByText('Saving…')).not.toBeInTheDocument();
   });
 
+  it('says the draft was not saved, with a retry beside it, when the save fails', async () => {
+    const user = userEvent.setup();
+    fakeServer();
+    // The real answer to a save that went wrong on the server.
+    server.use(http.patch('*/api/v1/errands/errand-1', () => HttpResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'boom' }, requestId: 'req-fail' }, { status: 500 })));
+    renderForm();
+    await screen.findByLabelText('Ready');
+
+    await user.type(screen.getByLabelText('Name'), 'Christian Atam');
+    await user.type(screen.getByLabelText('Phone'), '08147877487');
+
+    // Not an endless "Saving…": the error banner is at the top of the page, out of sight from here.
+    expect(await screen.findByText('Not saved', {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(screen.queryByText('Saving…')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Try again' }).length).toBeGreaterThanOrEqual(1);
+  });
+
   it('saves a newly uploaded photo once and settles', async () => {
     URL.createObjectURL = vi.fn().mockReturnValue('blob:preview');
     URL.revokeObjectURL = vi.fn();
