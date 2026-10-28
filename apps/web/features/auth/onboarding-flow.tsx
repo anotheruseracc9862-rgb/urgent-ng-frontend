@@ -7,7 +7,6 @@ import { authApi } from '@/lib/api/auth';
 import type { StartMode } from '@/lib/api/types';
 import { cn } from '@urgent/ui';
 import { saveMode } from '@/lib/auth/mode';
-import { useSessionValue } from '@/lib/storage/session-value';
 import { AuthHeading, FormError, describeAuthError } from './auth-ui';
 
 const CHOICES: { mode: StartMode; title: string; text: string; icon: typeof Package; chip: string }[] = [
@@ -29,13 +28,12 @@ const CHOICES: { mode: StartMode; title: string; text: string; icon: typeof Pack
 
 /**
  * First-run mode choice (F1-07). It saves `startMode` only: both modes stay available and the
- * shell switch changes it later. No permission prompt is shown here.
+ * shell switch changes it later. No permission prompt is shown here. Neither card starts selected:
+ * the person picks one.
  */
 export function OnboardingFlow() {
   const router = useRouter();
-  const intent = useSessionValue('urgent.intent');
-  const [picked, setPicked] = useState<StartMode | null>(null);
-  const selected: StartMode | null = picked ?? (intent === 'RUNNER' || intent === 'REQUESTER' ? intent : null);
+  const [selected, setPicked] = useState<StartMode | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,11 +44,6 @@ export function OnboardingFlow() {
     try {
       await authApi.updateMe({ startMode: mode });
       saveMode(mode);
-      try {
-        sessionStorage.removeItem('urgent.intent');
-      } catch {
-        // Storage can be blocked.
-      }
       router.replace('/dashboard');
       router.refresh();
     } catch (e) {

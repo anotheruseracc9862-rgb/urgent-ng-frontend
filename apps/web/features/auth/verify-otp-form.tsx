@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { setPendingIdentifier, setPendingVerify, type PendingVerify } from '@/lib/auth/pending-identity';
 import { usePendingVerify } from '@/lib/auth/use-pending-identity';
 import Link from 'next/link';
@@ -27,9 +27,12 @@ export function VerifyOtpForm() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [cooldown, setCooldown] = useState(30);
+  // Set the moment the code is accepted: clearing the pending context below must not send the person
+  // back to /register while they are on their way to /login.
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
-    if (raw === null) router.replace('/register');
+    if (raw === null && !verifiedRef.current) router.replace('/register');
   }, [raw, router]);
 
   useEffect(() => {
@@ -55,9 +58,18 @@ export function VerifyOtpForm() {
     setInvalid(false);
     try {
       await authApi.verifyOtp({ ...identifier, code: value });
+      verifiedRef.current = true;
       setPendingVerify(null);
       setPendingIdentifier('email' in identifier ? identifier.email : identifier.phone);
-      router.replace('/login?verified=1');
+      // The server signs a new account in when the code is accepted. Then the person chooses what to
+      // do first (onboarding); without a session they sign in as before.
+      const me = await authApi.me().catch(() => null);
+      if (me) {
+        router.replace(me.startMode === null ? '/onboarding' : '/dashboard');
+        router.refresh();
+      } else {
+        router.replace('/login?verified=1');
+      }
     } catch (e) {
       setInvalid(true);
       setError(describeAuthError(e));

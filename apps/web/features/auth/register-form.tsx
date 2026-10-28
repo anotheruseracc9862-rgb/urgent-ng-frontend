@@ -85,7 +85,6 @@ export function RegisterForm() {
 
       // Context for the next screen. Never put it in the URL; never store the password.
       setPendingVerify({ via: result.verifyVia, phone, email });
-      sessionStorage.setItem('urgent.intent', mode);
       router.push('/verify');
     } catch (error) {
       if (isApiError(error) && error.code === 'IDENTIFIER_TAKEN') {
