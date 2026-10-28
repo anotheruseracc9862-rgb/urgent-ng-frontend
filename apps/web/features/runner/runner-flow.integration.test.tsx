@@ -392,4 +392,29 @@ describe('F5 runner end-to-end flow', () => {
     await user.keyboard('{Enter}{Enter}');
     expect(screen.getByRole('button', { name: 'Create runner profile' })).toBeEnabled();
   });
+
+  it('does not flash the loading skeleton when a runner without a profile is refetched', async () => {
+    let profileCalls = 0;
+    server.use(
+      http.get('*/api/v1/runner/profile', async () => {
+        profileCalls += 1;
+        // The refetch stays in flight long enough to be seen.
+        if (profileCalls > 1) await new Promise((resolve) => setTimeout(resolve, 300));
+        return apiError(404, 'RESOURCE_NOT_FOUND', 'No profile.');
+      }),
+      http.get('*/api/v1/runner/eligibility', () => envelope({ reasons: ['NO_RUNNER_PROFILE'], canOffer: false, canBrowseFeed: false })),
+      http.get('*/api/v1/reference/categories', () => envelope([])),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const stage = renderStage(client, <RunnerProfilePage />);
+    expect(await screen.findByRole('button', { name: 'Create runner profile' })).toBeInTheDocument();
+
+    // A realtime event or a reconnect refetches every query.
+    const refetch = client.invalidateQueries();
+    await waitFor(() => expect(profileCalls).toBeGreaterThanOrEqual(2));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(stage.container.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Create runner profile' })).toBeInTheDocument();
+    await refetch;
+  });
 });

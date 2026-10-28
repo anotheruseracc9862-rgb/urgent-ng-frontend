@@ -191,8 +191,15 @@ export function RunnerProfilePage() {
     }
   };
 
-  const missingProfile = isApiError(profile.error) && profile.error.status === 404;
-  if (profile.isPending || eligibility.isPending || categories.isPending) {
+  // A runner with no profile has no cached data, so each refetch of the 404 query reads as "pending"
+  // again. Show the skeleton for the first load only, and keep the last 404 verdict while refetching.
+  const [settled, setSettled] = useState({ loaded: false, missing: false });
+  const stillLoading = profile.isPending || eligibility.isPending || categories.isPending;
+  const profileMissing = isApiError(profile.error) && profile.error.status === 404;
+  if (!profile.isPending && settled.missing !== profileMissing) setSettled((current) => ({ ...current, missing: profileMissing }));
+  if (!stillLoading && !settled.loaded) setSettled((current) => ({ ...current, loaded: true }));
+  const missingProfile = profile.isPending ? settled.missing : profileMissing;
+  if (stillLoading && !settled.loaded) {
     return (
       <div className="grid min-w-0 content-start gap-4 pb-10" aria-busy="true">
         <PageHead

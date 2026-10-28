@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@urgent/api-client';
 import { Alert, Button, Skeleton } from '@urgent/ui';
-import { CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Clock3, Loader2, ShieldCheck } from 'lucide-react';
 import { PageHead } from '@/components/shell/page-head';
 import { MediaUpload } from '@/components/media-upload/media-upload';
 import { useSession } from '@/lib/auth/client';
@@ -109,15 +110,22 @@ function StatusCard({
   title,
   children,
   action,
+  busy,
 }: {
   title: string;
   children: ReactNode;
   action?: React.ReactNode;
+  /** Work is under way: show a spinner in place of the shield. */
+  busy?: boolean;
 }) {
   return (
-    <section className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
+    <section aria-busy={busy || undefined} className="grid min-w-0 gap-4 rounded-[var(--r-lg)] bg-surface p-4 shadow-[var(--shadow)] sm:p-[22px]">
       <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-green-900"><ShieldCheck aria-hidden="true" className="size-[18px]" /></span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-tint-2 text-green-900">
+          {busy
+            ? <Loader2 aria-hidden="true" className="size-[18px] animate-spin" />
+            : <ShieldCheck aria-hidden="true" className="size-[18px]" />}
+        </span>
         <div>
           <h1 className="text-base font-extrabold tracking-tight text-ink">{title}</h1>
           <div className="mt-1 text-xs leading-5 text-muted">{children}</div>
@@ -166,7 +174,11 @@ function guarantorErrors(
   return errors;
 }
 
+/** How long the success message shows before the runner is taken to the dashboard. */
+const VERIFIED_REDIRECT_MS = 2_500;
+
 export function VerificationPage() {
+  const router = useRouter();
   const { me } = useSession();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -250,6 +262,15 @@ export function VerificationPage() {
     }, 4_000);
     return () => window.clearInterval(interval);
   }, [feeOrder, queryClient]);
+
+  const isVerified = Boolean(overview.data && (overview.data.verified || currentAttempt?.displayStatus === 'VERIFIED'));
+  useEffect(() => {
+    if (!isVerified) return;
+    // Runner screens (eligibility, offer limit) were cached before the check finished.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.runner.all() });
+    const timer = window.setTimeout(() => router.replace('/dashboard'), VERIFIED_REDIRECT_MS);
+    return () => window.clearTimeout(timer);
+  }, [isVerified, queryClient, router]);
 
   useEffect(() => {
     const updateNow = () => setNow(Date.now());
@@ -386,11 +407,12 @@ export function VerificationPage() {
 
   const data = overview.data;
   const retryOverview = () => void overview.refetch();
-  if (data.verified || currentAttempt?.displayStatus === 'VERIFIED') {
+  if (isVerified) {
     return (
       <main className="grid min-w-0 content-start gap-4 pb-10">
         <StatusCard title="You’re verified">
           <p>Your runner identity check is complete. You can now send offers.</p>
+          <p role="status" className="mt-2 flex items-center gap-2"><Loader2 aria-hidden="true" className="size-3.5 animate-spin" />Taking you to your dashboard…</p>
           {data.expiresAt && <p className="mt-2">Verified until {dateLabel(data.expiresAt)} (Lagos time).</p>}
         </StatusCard>
       </main>
@@ -413,7 +435,7 @@ export function VerificationPage() {
     const review = currentAttempt?.failureReason === 'MANUAL_REVIEW_REQUIRED' || data.status === 'REVIEW_REQUIRED';
     return (
       <main className="grid min-w-0 content-start gap-4 pb-10">
-        <StatusCard title={review ? 'Your verification needs review' : 'Verification in progress'}>
+        <StatusCard busy={!review} title={review ? 'Your verification needs review' : 'Verification in progress'}>
           <p>{review ? failureCopy.MANUAL_REVIEW_REQUIRED : 'We are checking your details. This usually takes 2 to 4 hours. You can leave this page; we will keep checking for an update.'}</p>
           {currentAttempt && <p className="mt-2">Attempt {currentAttempt.attemptNumber} · started {dateLabel(currentAttempt.startedAt)} (Lagos time)</p>}
           {polledAttempt.error && <p role="alert" className="mt-2 text-red">We could not refresh the status. We will retry automatically.</p>}

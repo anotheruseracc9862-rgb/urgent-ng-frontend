@@ -14,6 +14,14 @@ const me = {
   hasPassword: true, status: 'ACTIVE', startMode: 'RUNNER',
 } as Me;
 
+// One stable router, as in Next.js: the page schedules its redirect against it.
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), prefetch: vi.fn(), back: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => router,
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('@/components/media-upload/media-upload', () => ({
   MediaUpload: ({ capture, onChange }: { capture?: string; onChange?: (ids: string[]) => void }) => (
     <button type="button" onClick={() => onChange?.([capture ? 'selfie-media-1' : 'id-media-1'])}>
@@ -431,5 +439,31 @@ describe('runner verification flow', () => {
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Your verification needs review' })).toBeInTheDocument();
     expect(screen.getByText(/need a manual review/i)).toBeInTheDocument();
+  });
+
+  it('shows a spinner while the check is in progress', async () => {
+    server.use(http.get('*/api/v1/verification', () => envelope({
+      ...overview,
+      status: 'PENDING',
+      displayStatus: 'PENDING',
+      latestAttempt: {
+        id: 'attempt-wait', status: 'PENDING', displayStatus: 'PENDING', failureReason: null,
+        startedAt: '2026-10-14T10:00:00.000Z', completedAt: null, expiresAt: null, attemptNumber: 1,
+      },
+    })));
+
+    renderPage();
+    const heading = await screen.findByRole('heading', { name: 'Verification in progress' });
+    expect(heading.closest('section')).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('shows the success message, then takes a verified runner to the dashboard', async () => {
+    server.use(http.get('*/api/v1/verification', () => envelope({ ...overview, verified: true, status: 'VERIFIED', displayStatus: 'VERIFIED' })));
+
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'You’re verified' })).toBeInTheDocument();
+    expect(screen.getByText('Taking you to your dashboard…')).toBeInTheDocument();
+    expect(router.replace).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/dashboard'), { timeout: 4_000 });
   });
 });
